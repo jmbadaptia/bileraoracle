@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+  <rect width="512" height="512" rx="96" fill="#09090b"/>
+  <path d="M256 72C256 72 160 120 128 120C96 120 80 120 80 120V296C80 296 80 408 256 456C432 408 432 296 432 296V120C432 120 416 120 384 120C352 120 256 72 256 72Z" stroke="#fafafa" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <text x="256" y="320" text-anchor="middle" font-family="Arial, sans-serif" font-size="120" font-weight="bold" fill="#fafafa">GM</text>
+</svg>
