@@ -1,0 +1,52 @@
+services:
+  db:
+    image: gvenzl/oracle-free:23-slim
+    environment:
+      ORACLE_PASSWORD: oracle
+      APP_USER: bilera
+      APP_USER_PASSWORD: bilera
+    ports:
+      - "1521:1521"
+    volumes:
+      - oracle_data:/opt/oracle/oradata
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  backend:
+    build:
+      context: ./backend
+      target: dev
+    ports:
+      - "4000:4000"
+    environment:
+      DB_USER: bilera
+      DB_PASSWORD: bilera
+      DB_CONNECT_STRING: db:1521/FREEPDB1
+      JWT_SECRET: bilera-dev-secret-change-in-prod
+      PORT: "4000"
+      UPLOAD_DIR: /app/uploads
+    volumes:
+      - ./backend/src:/app/src
+      - uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      target: dev
+    ports:
+      - "3000:5173"
+    volumes:
+      - ./frontend/src:/app/src
+    depends_on:
+      - backend
+
+volumes:
+  oracle_data:
+  uploads:
