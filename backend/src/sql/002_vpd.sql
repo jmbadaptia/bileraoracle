@@ -10,79 +10,80 @@ CREATE OR REPLACE FUNCTION vpd_tenant_policy(
   v_tenant_id VARCHAR2(100);
 BEGIN
   v_tenant_id := SYS_CONTEXT('bilera_ctx', 'tenant_id');
-
-  -- If no context set (e.g. during init/migration), allow all
   IF v_tenant_id IS NULL THEN
     RETURN NULL;
   END IF;
-
   RETURN 'tenant_id = ' || v_tenant_id;
 END;
 /
 
--- Policy function for tables without tenant_id (photos via album)
--- Photos are filtered by album which is already filtered by tenant
--- No VPD needed on photos directly
-
--- Apply VPD policies to all tenant-scoped tables
 BEGIN
-  -- Groups
   DBMS_RLS.ADD_POLICY(
     object_schema   => USER,
     object_name     => 'GROUPS',
     policy_name     => 'groups_tenant_vpd',
     function_schema => USER,
-    policy_function => 'vpd_tenant_policy',
+    policy_function => 'VPD_TENANT_POLICY',
     statement_types => 'SELECT,INSERT,UPDATE,DELETE'
   );
+END;
+/
 
-  -- Activities
+BEGIN
   DBMS_RLS.ADD_POLICY(
     object_schema   => USER,
     object_name     => 'ACTIVITIES',
     policy_name     => 'activities_tenant_vpd',
     function_schema => USER,
-    policy_function => 'vpd_tenant_policy',
+    policy_function => 'VPD_TENANT_POLICY',
     statement_types => 'SELECT,INSERT,UPDATE,DELETE'
   );
+END;
+/
 
-  -- Tags
+BEGIN
   DBMS_RLS.ADD_POLICY(
     object_schema   => USER,
     object_name     => 'TAGS',
     policy_name     => 'tags_tenant_vpd',
     function_schema => USER,
-    policy_function => 'vpd_tenant_policy',
+    policy_function => 'VPD_TENANT_POLICY',
     statement_types => 'SELECT,INSERT,UPDATE,DELETE'
   );
+END;
+/
 
-  -- Documents
+BEGIN
   DBMS_RLS.ADD_POLICY(
     object_schema   => USER,
     object_name     => 'DOCUMENTS',
     policy_name     => 'documents_tenant_vpd',
     function_schema => USER,
-    policy_function => 'vpd_tenant_policy',
+    policy_function => 'VPD_TENANT_POLICY',
     statement_types => 'SELECT,INSERT,UPDATE,DELETE'
   );
+END;
+/
 
-  -- Albums
+BEGIN
   DBMS_RLS.ADD_POLICY(
     object_schema   => USER,
     object_name     => 'ALBUMS',
     policy_name     => 'albums_tenant_vpd',
     function_schema => USER,
-    policy_function => 'vpd_tenant_policy',
+    policy_function => 'VPD_TENANT_POLICY',
     statement_types => 'SELECT,INSERT,UPDATE,DELETE'
   );
+END;
+/
 
-  -- Memberships
+BEGIN
   DBMS_RLS.ADD_POLICY(
     object_schema   => USER,
     object_name     => 'MEMBERSHIPS',
     policy_name     => 'memberships_tenant_vpd',
     function_schema => USER,
-    policy_function => 'vpd_tenant_policy',
+    policy_function => 'VPD_TENANT_POLICY',
     statement_types => 'SELECT,INSERT,UPDATE,DELETE'
   );
 END;

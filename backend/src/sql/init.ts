@@ -5,6 +5,52 @@ import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+function splitSQL(sql: string): string[] {
+  const statements: string[] = [];
+  let current = "";
+  let inPlsql = false;
+
+  for (const line of sql.split("\n")) {
+    const trimmed = line.trim();
+
+    // Skip empty lines and comments
+    if (!trimmed || trimmed.startsWith("--")) continue;
+
+    // Detect PL/SQL block start
+    if (
+      /^(CREATE\s+OR\s+REPLACE|BEGIN|DECLARE)/i.test(trimmed) &&
+      !inPlsql
+    ) {
+      inPlsql = true;
+    }
+
+    current += line + "\n";
+
+    if (inPlsql) {
+      // PL/SQL blocks end with / on its own line
+      if (trimmed === "/") {
+        const block = current.replace(/\n\/\s*$/, "").trim();
+        if (block) statements.push(block);
+        current = "";
+        inPlsql = false;
+      }
+    } else {
+      // Regular SQL ends with ;
+      if (trimmed.endsWith(";")) {
+        const stmt = current.replace(/;\s*$/, "").trim();
+        if (stmt) statements.push(stmt);
+        current = "";
+      }
+    }
+  }
+
+  // Remaining
+  const remaining = current.trim().replace(/;\s*$/, "").replace(/\/\s*$/, "").trim();
+  if (remaining) statements.push(remaining);
+
+  return statements;
+}
+
 async function init() {
   const conn = await oracledb.getConnection({
     user: process.env.DB_USER || "bilera",
@@ -14,34 +60,46 @@ async function init() {
 
   console.log("Connected to Oracle");
 
+  // First run grants as SYSTEM
+  console.log("Running grants as SYSTEM...");
+  const sysConn = await oracledb.getConnection({
+    user: "SYSTEM",
+    password: process.env.ORACLE_PASSWORD || "oracle",
+    connectString: process.env.DB_CONNECT_STRING || "db:1521/FREEPDB1",
+  });
+
+  const grantsSql = readFileSync(join(__dirname, "000_grants.sql"), "utf-8");
+  for (const stmt of splitSQL(grantsSql)) {
+    try {
+      await sysConn.execute(stmt);
+    } catch (err: any) {
+      if (err.errorNum !== 1920 && err.errorNum !== 1921) {
+        console.error(`  Grant error: ${err.message}`);
+      }
+    }
+  }
+  await sysConn.commit();
+  await sysConn.close();
+  console.log("  Grants done.");
+
   const sqlFiles = ["001_schema.sql", "002_vpd.sql", "003_seed.sql"];
 
   for (const file of sqlFiles) {
     console.log(`Executing ${file}...`);
     const sql = readFileSync(join(__dirname, file), "utf-8");
+    const statements = splitSQL(sql);
 
-    // Split by '/' delimiter (for PL/SQL blocks) and ';' for regular statements
-    const blocks = sql
-      .split(/\n\/\n/)
-      .flatMap((block) => {
-        // If block contains BEGIN/CREATE PACKAGE/CREATE FUNCTION, keep as one
-        if (/\b(BEGIN|CREATE\s+OR\s+REPLACE|DECLARE)\b/i.test(block)) {
-          return [block.trim()];
-        }
-        // Otherwise split by semicolons
-        return block.split(";").map((s) => s.trim());
-      })
-      .filter((s) => s.length > 0 && !s.startsWith("--"));
-
-    for (const statement of blocks) {
+    for (let i = 0; i < statements.length; i++) {
+      const stmt = statements[i];
       try {
-        await conn.execute(statement);
+        await conn.execute(stmt);
       } catch (err: any) {
-        // Ignore "already exists" errors
-        if (err.errorNum === 955 || err.errorNum === 1) {
-          console.log(`  Skipped (already exists)`);
+        // Ignore "already exists" (955), "duplicate" (1), "name already used" (955)
+        if (err.errorNum === 955 || err.errorNum === 1 || err.errorNum === 28003) {
+          console.log(`  [${i + 1}] Skipped (already exists)`);
         } else {
-          console.error(`  Error: ${err.message}`);
+          console.error(`  [${i + 1}] Error: ${err.message}`);
+          console.error(`       Statement: ${stmt.substring(0, 80)}...`);
         }
       }
     }
