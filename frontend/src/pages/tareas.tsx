@@ -30,16 +30,14 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 
 const TYPE_COLORS: Record<string, string> = {
-  PLENARY: "bg-blue-100 text-blue-800 border-blue-200",
-  COMMISSION: "bg-green-100 text-green-800 border-green-200",
+  TASK: "bg-blue-100 text-blue-800 border-blue-200",
   MEETING: "bg-amber-100 text-amber-800 border-amber-200",
-  VISIT: "bg-teal-100 text-teal-800 border-teal-200",
   EVENT: "bg-purple-100 text-purple-800 border-purple-200",
   OTHER: "bg-gray-100 text-gray-800 border-gray-200",
 };
 
 const STATUS_COLUMNS = [
-  { id: "TODO", label: "Por Hacer", color: "border-t-yellow-400" },
+  { id: "PENDING", label: "Por Hacer", color: "border-t-yellow-400" },
   { id: "IN_PROGRESS", label: "En Progreso", color: "border-t-blue-400" },
   { id: "DONE", label: "Hecho", color: "border-t-green-400" },
 ] as const;
@@ -49,11 +47,13 @@ interface ActivityCard {
   title: string;
   type: string;
   status: string;
-  date: string;
+  startDate: string;
   dueDate?: string;
   location?: string;
-  user: { id: string; name: string };
-  attendees?: { user: { id: string; name: string } }[];
+  ownerName: string;
+  description?: string;
+  attendees?: { id: string; name: string }[];
+  tags?: { id: string; name: string; color: string }[];
 }
 
 function KanbanCardContent({
@@ -96,7 +96,7 @@ function KanbanCardContent({
           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1.5 text-[11px] text-muted-foreground">
             <span className="flex items-center gap-0.5">
               <CalendarDays className="h-3 w-3" />
-              {formatDate(activity.date)}
+              {formatDate(activity.startDate)}
             </span>
             {activity.location && (
               <span className="flex items-center gap-0.5">
@@ -112,7 +112,7 @@ function KanbanCardContent({
             )}
           </div>
           <p className="text-[11px] text-muted-foreground mt-1">
-            {activity.user.name}
+            {activity.ownerName}
           </p>
           {activity.dueDate && (
             <p className="text-[10px] text-orange-600 mt-0.5">
@@ -230,16 +230,16 @@ export function TareasPage() {
 
   const columns = useMemo(() => {
     const map: Record<string, ActivityCard[]> = {
-      TODO: [],
+      PENDING: [],
       IN_PROGRESS: [],
       DONE: [],
     };
     for (const activity of allActivities) {
-      const status = activity.status || "TODO";
+      const status = activity.status || "PENDING";
       if (map[status]) {
         map[status].push(activity);
       } else {
-        map.TODO.push(activity);
+        map.PENDING.push(activity);
       }
     }
     return map;
@@ -273,7 +273,7 @@ export function TareasPage() {
     const newStatus = over.id as string;
 
     // Only process drops on column droppables (not other cards)
-    if (!["TODO", "IN_PROGRESS", "DONE"].includes(newStatus)) return;
+    if (!["PENDING", "IN_PROGRESS", "DONE"].includes(newStatus)) return;
 
     const activity = allActivities.find((a) => a.id === activityId);
     if (!activity || activity.status === newStatus) return;

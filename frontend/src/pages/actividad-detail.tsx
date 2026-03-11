@@ -1,14 +1,14 @@
 import { useState, useRef } from "react";
 import { useParams, Link } from "react-router";
 import {
-  Pencil, CalendarDays, MapPin, Users, Building, UserPlus, UserMinus,
+  Pencil, CalendarDays, MapPin, Users, UserPlus, UserMinus,
   Paperclip, FileText, Download, X, Upload, Plus, ImageIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import {
   useActivity, useAttendActivity, useUnattendActivity,
-  useDocuments, useUploadDocument, useProcessDocument, useAttachDocument, useDetachDocument,
+  useDocuments, useUploadDocument, useAttachDocument, useDetachDocument,
   useAlbums, useAttachAlbum, useDetachAlbum,
 } from "@/api/hooks";
 import { formatDateTime } from "@/lib/utils";
@@ -37,7 +37,6 @@ export function ActividadDetailPage() {
   const attachDoc = useAttachDocument(id!);
   const detachDoc = useDetachDocument(id!);
   const uploadDocument = useUploadDocument();
-  const processDocument = useProcessDocument();
 
   const [showAttachDialog, setShowAttachDialog] = useState(false);
   const [showAttachAlbumDialog, setShowAttachAlbumDialog] = useState(false);
@@ -56,7 +55,7 @@ export function ActividadDetailPage() {
 
   const canEdit = isAdmin || activity.createdById === user?.id;
   const isAttending = activity.attendees?.some(
-    (a: any) => a.user.id === user?.id
+    (a: any) => a.id === user?.id
   );
 
   return (
@@ -82,7 +81,7 @@ export function ActividadDetailPage() {
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground">
-            Creado por {activity.createdBy?.name}
+            Creado por {activity.createdByName}
           </p>
         </div>
         {canEdit && (
@@ -105,23 +104,15 @@ export function ActividadDetailPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="flex items-center gap-2 text-sm">
                 <Users className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Creado por:</span>
-                <span className="font-medium">{activity.user?.name}</span>
+                <span className="text-muted-foreground">Responsable:</span>
+                <span className="font-medium">{activity.ownerName}</span>
               </div>
 
               <div className="flex items-center gap-2 text-sm">
                 <CalendarDays className="h-4 w-4 text-muted-foreground" />
                 <span className="text-muted-foreground">Fecha:</span>
-                <span>{formatDateTime(activity.date)}</span>
+                <span>{formatDateTime(activity.startDate)}</span>
               </div>
-
-              {activity.dueDate && (
-                <div className="flex items-center gap-2 text-sm">
-                  <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">Fecha límite:</span>
-                  <span>{formatDateTime(activity.dueDate)}</span>
-                </div>
-              )}
 
               {activity.location && (
                 <div className="flex items-center gap-2 text-sm">
@@ -130,19 +121,11 @@ export function ActividadDetailPage() {
                   <span>{activity.location}</span>
                 </div>
               )}
-
-              {activity.associationsInvolved && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Building className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">Entidades:</span>
-                  <span>{activity.associationsInvolved}</span>
-                </div>
-              )}
             </div>
 
             {activity.tags && activity.tags.length > 0 && (
               <div className="flex items-center gap-2 flex-wrap">
-                {activity.tags.map(({ tag }: any) => (
+                {activity.tags.map((tag: any) => (
                   <Badge
                     key={tag.id}
                     variant="outline"
@@ -205,18 +188,13 @@ export function ActividadDetailPage() {
               </p>
             ) : (
               <div className="space-y-2">
-                {activity.attendees.map(({ user: attendee }: any) => (
+                {activity.attendees.map((attendee: any) => (
                   <Link
                     key={attendee.id}
                     to={`/miembros/${attendee.id}`}
                     className="block p-2 rounded-md hover:bg-muted transition-colors"
                   >
                     <p className="text-sm font-medium">{attendee.name}</p>
-                    {attendee.position && (
-                      <p className="text-xs text-muted-foreground">
-                        {attendee.position}
-                      </p>
-                    )}
                   </Link>
                 ))}
               </div>
@@ -244,7 +222,7 @@ export function ActividadDetailPage() {
             <p className="text-sm text-muted-foreground">Sin documentos adjuntos.</p>
           ) : (
             <div className="space-y-2">
-              {activity.documents.map(({ document: doc }: any) => (
+              {activity.documents.map((doc: any) => (
                 <div
                   key={doc.id}
                   className="flex items-center justify-between p-2 rounded-md border"
@@ -316,7 +294,7 @@ export function ActividadDetailPage() {
             <p className="text-sm text-muted-foreground">Sin álbumes vinculados.</p>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {activity.albums.map(({ album: alb }: any) => (
+              {activity.albums.map((alb: any) => (
                 <div key={alb.id} className="relative group">
                   <Link to={`/galeria/${alb.id}`}>
                     <div className="aspect-[4/3] bg-muted rounded-md overflow-hidden">
@@ -333,7 +311,7 @@ export function ActividadDetailPage() {
                       )}
                     </div>
                     <p className="text-xs font-medium mt-1 truncate">{alb.title}</p>
-                    <p className="text-[10px] text-muted-foreground">{alb._count?.photos || 0} fotos</p>
+                    <p className="text-[10px] text-muted-foreground">{alb.photoCount || 0} fotos</p>
                   </Link>
                   {(isAdmin || activity.createdById === user?.id) && (
                     <button
@@ -360,7 +338,7 @@ export function ActividadDetailPage() {
       <AttachAlbumDialog
         open={showAttachAlbumDialog}
         onClose={() => setShowAttachAlbumDialog(false)}
-        existingAlbumIds={(activity.albums || []).map((a: any) => a.album.id)}
+        existingAlbumIds={(activity.albums || []).map((a: any) => a.id)}
         onAttach={(albumId) =>
           attachAlbum.mutate(albumId, {
             onSuccess: () => toast.success("Álbum vinculado"),
@@ -370,7 +348,7 @@ export function ActividadDetailPage() {
       />
 
       {/* Notes / Acta - full width */}
-      {activity.notes && (
+      {activity.description && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Notas / Acta</CardTitle>
@@ -378,7 +356,7 @@ export function ActividadDetailPage() {
           <CardContent>
             <div
               className="prose-notes"
-              dangerouslySetInnerHTML={{ __html: activity.notes }}
+              dangerouslySetInnerHTML={{ __html: activity.description }}
             />
           </CardContent>
         </Card>
@@ -390,7 +368,7 @@ export function ActividadDetailPage() {
         onClose={() => setShowAttachDialog(false)}
         activityId={id!}
         existingDocIds={
-          (activity.documents || []).map((d: any) => d.document.id)
+          (activity.documents || []).map((d: any) => d.id)
         }
         onAttach={(docId) =>
           attachDoc.mutate(docId, {
@@ -408,8 +386,6 @@ export function ActividadDetailPage() {
             attachDoc.mutate(doc.id, {
               onSuccess: () => toast.success("Documento subido y adjuntado"),
             });
-            // Process in background (extract text + embeddings)
-            processDocument.mutate(doc.id);
           } catch {
             toast.error("Error al subir el documento");
           }

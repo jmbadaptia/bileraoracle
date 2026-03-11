@@ -12,7 +12,22 @@ interface User {
   name: string;
   email: string;
   role: string;
-  position?: string | null;
+  tenantId: number;
+  tenantName?: string;
+  tenantSlug?: string;
+}
+
+export interface Tenant {
+  id: number;
+  name: string;
+  slug: string;
+  role: string;
+}
+
+interface LoginResult {
+  token: string;
+  user: User;
+  tenants?: Tenant[];
 }
 
 interface AuthContextType {
@@ -20,7 +35,10 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  pendingTenants: Tenant[] | null;
   login: (email: string, password: string) => Promise<void>;
+  switchTenant: (tenantId: number) => Promise<void>;
+  clearPendingTenants: () => void;
   logout: () => void;
 }
 
@@ -32,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return stored ? JSON.parse(stored) : null;
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [pendingTenants, setPendingTenants] = useState<Tenant[] | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -41,10 +60,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     api
-      .get<{ user: User }>("/auth/me")
-      .then(({ user }) => {
-        setUser(user);
-        localStorage.setItem("user", JSON.stringify(user));
+      .get<User>("/auth/me")
+      .then((u) => {
+        setUser(u);
+        localStorage.setItem("user", JSON.stringify(u));
       })
       .catch(() => {
         setUser(null);
@@ -55,19 +74,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function login(email: string, password: string) {
-    const { token, user } = await api.post<{ token: string; user: User }>(
-      "/auth/login",
-      { email, password }
+    const result = await api.post<LoginResult>("/auth/login", {
+      email,
+      password,
+    });
+    localStorage.setItem("token", result.token);
+    localStorage.setItem("user", JSON.stringify(result.user));
+    setUser(result.user);
+
+    // If multiple tenants, show selector
+    if (result.tenants && result.tenants.length > 1) {
+      setPendingTenants(result.tenants);
+    }
+  }
+
+  async function switchTenant(tenantId: number) {
+    const result = await api.post<{ token: string; user: User }>(
+      "/auth/switch-tenant",
+      { tenantId }
     );
-    localStorage.setItem("token", token);
-    localStorage.setItem("user", JSON.stringify(user));
-    setUser(user);
+    localStorage.setItem("token", result.token);
+    localStorage.setItem("user", JSON.stringify(result.user));
+    setUser(result.user);
+    setPendingTenants(null);
+  }
+
+  function clearPendingTenants() {
+    setPendingTenants(null);
   }
 
   function logout() {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     setUser(null);
+    setPendingTenants(null);
     window.location.href = "/login";
   }
 
@@ -78,7 +118,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         isAuthenticated: !!user,
         isAdmin: user?.role === "ADMIN",
+        pendingTenants,
         login,
+        switchTenant,
+        clearPendingTenants,
         logout,
       }}
     >

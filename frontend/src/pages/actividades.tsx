@@ -33,10 +33,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 // ---- Calendar helpers ----
 
 const TYPE_COLORS: Record<string, string> = {
-  PLENARY: "bg-blue-100 text-blue-800 border-blue-200",
-  COMMISSION: "bg-green-100 text-green-800 border-green-200",
+  TASK: "bg-blue-100 text-blue-800 border-blue-200",
   MEETING: "bg-amber-100 text-amber-800 border-amber-200",
-  VISIT: "bg-teal-100 text-teal-800 border-teal-200",
   EVENT: "bg-purple-100 text-purple-800 border-purple-200",
   OTHER: "bg-gray-100 text-gray-800 border-gray-200",
 };
@@ -47,8 +45,8 @@ interface CalendarActivity {
   id: string;
   title: string;
   type: string;
-  date: string;
-  attendees: { user: { id: string; name: string } }[];
+  startDate: string;
+  attendees: { id: string; name: string }[];
 }
 
 function ActivityPill({ activity }: { activity: CalendarActivity }) {
@@ -97,14 +95,14 @@ function CalendarView({
     const activities: CalendarActivity[] = data?.activities || [];
 
     for (const activity of activities) {
-      const dayKey = format(new Date(activity.date), "yyyy-MM-dd");
+      const dayKey = format(new Date(activity.startDate), "yyyy-MM-dd");
       if (!map.has(dayKey)) map.set(dayKey, []);
       map.get(dayKey)!.push(activity);
     }
 
     for (const [, list] of map) {
       list.sort(
-        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+        (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
       );
     }
 
@@ -213,7 +211,7 @@ function ListView() {
                     <Badge variant="secondary" className="text-xs">
                       {ACTIVITY_TYPE_LABELS[activity.type]}
                     </Badge>
-                    {activity.tags?.map(({ tag }: any) => (
+                    {activity.tags?.map((tag: any) => (
                       <Badge
                         key={tag.id}
                         variant="outline"
@@ -229,10 +227,10 @@ function ListView() {
                     ))}
                   </div>
                   <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                    <span>{activity.user?.name}</span>
+                    <span>{activity.ownerName}</span>
                     <span className="flex items-center gap-1">
                       <CalendarDays className="h-3 w-3" />
-                      {formatDate(activity.date)}
+                      {formatDate(activity.startDate)}
                     </span>
                     {activity.location && (
                       <span className="flex items-center gap-1">

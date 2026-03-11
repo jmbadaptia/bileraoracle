@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useDashboardStats } from "@/api/hooks";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/lib/utils";
-import { ACTIVITY_TYPE_LABELS, SESSION_TYPE_LABELS } from "@/lib/constants";
+import { ACTIVITY_TYPE_LABELS } from "@/lib/constants";
 
 export function DashboardPage() {
   const { user, isAdmin } = useAuth();
@@ -140,8 +140,8 @@ export function DashboardPage() {
                         {activity.title}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {activity.member?.name} &middot;{" "}
-                        {formatDate(activity.date)}
+                        {activity.ownerName} &middot;{" "}
+                        {formatDate(activity.startDate)}
                       </p>
                     </div>
                     <Badge variant="secondary" className="text-xs shrink-0">
@@ -177,13 +177,10 @@ export function DashboardPage() {
                         {doc.title}
                       </p>
                       <p className="text-xs text-muted-foreground truncate">
-                        {doc.uploadedBy?.name} &middot;{" "}
+                        {doc.uploaderName} &middot;{" "}
                         {formatDate(doc.createdAt)}
                       </p>
                     </div>
-                    <Badge variant="outline" className="text-xs shrink-0 whitespace-nowrap">
-                      {SESSION_TYPE_LABELS[doc.sessionType]}
-                    </Badge>
                   </Link>
                 ))}
               </div>
@@ -210,8 +207,8 @@ export function DashboardPage() {
                         {activity.title}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {activity.member?.name} &middot;{" "}
-                        {formatDate(activity.date)}
+                        {activity.ownerName} &middot;{" "}
+                        {formatDate(activity.startDate)}
                         {activity.location && ` · ${activity.location}`}
                       </p>
                     </div>

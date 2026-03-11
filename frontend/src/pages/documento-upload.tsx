@@ -3,18 +3,10 @@ import { useNavigate, useLocation } from "react-router";
 import { toast } from "sonner";
 import { Upload, File, X, Loader2 } from "lucide-react";
 import { api } from "@/lib/api-client";
-import { SESSION_TYPE_LABELS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 function titleFromFilename(filename: string): string {
@@ -41,7 +33,6 @@ export function DocumentoUploadPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [generatingDesc, setGeneratingDesc] = useState(false);
-  const [sessionType, setSessionType] = useState("OTHER");
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -110,23 +101,9 @@ export function DocumentoUploadPage() {
       formData.set("file", selectedFile);
       formData.set("title", title);
       formData.set("description", description);
-      formData.set("sessionType", sessionType);
 
-      const sessionDateInput = (
-        e.currentTarget.elements.namedItem("sessionDate") as HTMLInputElement
-      )?.value;
-      if (sessionDateInput) {
-        formData.set("sessionDate", sessionDateInput);
-      }
-
-      const doc = await api.upload<{ id: string }>("/documents", formData);
+      await api.upload<{ id: string }>("/documents", formData);
       toast.success("Documento subido correctamente");
-
-      // Trigger embedding processing in background
-      api.post("/documents/process", { documentId: doc.id }).catch(() => {
-        // Processing is best-effort
-      });
-
       navigate("/documentos");
     } catch (err: any) {
       toast.error(err?.message || "Error al subir el documento");
@@ -202,41 +179,16 @@ export function DocumentoUploadPage() {
               )}
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="title">Titulo *</Label>
-                <Input
-                  id="title"
-                  name="title"
-                  required
-                  placeholder="Titulo del documento"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Tipo de sesion *</Label>
-                <Select value={sessionType} onValueChange={setSessionType}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(SESSION_TYPE_LABELS).map(
-                      ([value, label]) => (
-                        <SelectItem key={value} value={value}>
-                          {label}
-                        </SelectItem>
-                      )
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="sessionDate">Fecha de la sesion</Label>
-                <Input id="sessionDate" name="sessionDate" type="date" />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="title">Titulo *</Label>
+              <Input
+                id="title"
+                name="title"
+                required
+                placeholder="Titulo del documento"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
             </div>
 
             <div className="space-y-2">

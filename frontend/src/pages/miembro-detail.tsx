@@ -7,7 +7,7 @@ import { ACTIVITY_TYPE_LABELS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function MiembroDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -36,6 +36,9 @@ export function MiembroDetailPage() {
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-4">
           <Avatar className="h-16 w-16">
+            {member.avatarPath && (
+              <AvatarImage src={member.avatarPath} alt={member.name} />
+            )}
             <AvatarFallback className="bg-primary text-primary-foreground text-xl">
               {initials}
             </AvatarFallback>
@@ -45,12 +48,6 @@ export function MiembroDetailPage() {
               <h1 className="text-2xl font-bold">{member.name}</h1>
               {!member.active && <Badge variant="secondary">Inactivo</Badge>}
             </div>
-            {member.position && (
-              <p className="text-muted-foreground">{member.position}</p>
-            )}
-            {member.party && (
-              <p className="text-sm text-muted-foreground">{member.party}</p>
-            )}
           </div>
         </div>
         {isAdmin && (
@@ -103,7 +100,7 @@ export function MiembroDetailPage() {
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Actividades propias</span>
               <span className="font-medium">
-                {member._count?.activitiesOwned ?? 0}
+                {member.activitiesOwned?.length ?? 0}
               </span>
             </div>
             <div className="flex justify-between text-sm">
@@ -111,7 +108,7 @@ export function MiembroDetailPage() {
                 Asistencias a actividades
               </span>
               <span className="font-medium">
-                {member._count?.activitiesAttended ?? 0}
+                {member.activitiesAttended?.length ?? 0}
               </span>
             </div>
           </CardContent>
@@ -154,8 +151,7 @@ export function MiembroDetailPage() {
                   <div>
                     <p className="text-sm font-medium">{activity.title}</p>
                     <p className="text-xs text-muted-foreground">
-                      {formatDate(activity.date)}
-                      {activity.location && ` - ${activity.location}`}
+                      {formatDate(activity.startDate || activity.createdAt)}
                     </p>
                   </div>
                   <Badge variant="outline" className="text-xs">

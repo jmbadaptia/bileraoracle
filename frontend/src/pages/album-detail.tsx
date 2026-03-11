@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import {
-  ArrowLeft, Upload, Download, Trash2, Pencil, ImageIcon, CheckCircle2, X,
+  ArrowLeft, Upload, Download, Trash2, Pencil, ImageIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { MasonryPhotoAlbum } from "react-photo-album";
@@ -11,7 +11,7 @@ import Zoom from "yet-another-react-lightbox/plugins/zoom";
 import "yet-another-react-lightbox/styles.css";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api-client";
-import { useAlbum, useUploadPhotos, useDeletePhotos, useDeleteAlbum } from "@/api/hooks";
+import { useAlbum, useUploadPhotos, useDeleteAlbum } from "@/api/hooks";
 import { formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,14 +29,11 @@ export function AlbumDetailPage() {
   const { isAdmin } = useAuth();
   const { data: album, isLoading } = useAlbum(id!);
   const uploadPhotos = useUploadPhotos(id!);
-  const deletePhotos = useDeletePhotos(id!);
   const deleteAlbum = useDeleteAlbum();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [lightboxIndex, setLightboxIndex] = useState(-1);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showDeletePhotosConfirm, setShowDeletePhotosConfirm] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   if (isLoading || !album) {
     return (
@@ -63,16 +60,6 @@ export function AlbumDetailPage() {
     width: photo.width || 1920,
     height: photo.height || 1080,
   }));
-
-  function toggleSelect(photoId: string, e: React.MouseEvent) {
-    e.stopPropagation();
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(photoId)) next.delete(photoId);
-      else next.add(photoId);
-      return next;
-    });
-  }
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
@@ -105,17 +92,6 @@ export function AlbumDetailPage() {
     });
   }
 
-  function handleDeleteSelected() {
-    deletePhotos.mutate([...selected], {
-      onSuccess: (result: any) => {
-        toast.success(`${result.deleted} foto(s) eliminada(s)`);
-        setSelected(new Set());
-        setShowDeletePhotosConfirm(false);
-      },
-      onError: () => toast.error("Error al eliminar fotos"),
-    });
-  }
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -136,7 +112,7 @@ export function AlbumDetailPage() {
             </p>
           )}
           <p className="text-xs text-muted-foreground ml-7 mt-1">
-            {photos.length} fotos · Creado por {album.createdBy?.name} · {formatDate(album.createdAt)}
+            {photos.length} fotos · Creado por {album.creatorName} · {formatDate(album.createdAt)}
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -185,31 +161,6 @@ export function AlbumDetailPage() {
         </div>
       </div>
 
-      {/* Selection bar */}
-      {selected.size > 0 && (
-        <div className="flex items-center gap-3 rounded-lg border bg-muted/50 px-4 py-2">
-          <span className="text-sm font-medium">
-            {selected.size} foto{selected.size > 1 ? "s" : ""} seleccionada{selected.size > 1 ? "s" : ""}
-          </span>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => setShowDeletePhotosConfirm(true)}
-          >
-            <Trash2 className="mr-1.5 h-4 w-4" />
-            Eliminar
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setSelected(new Set())}
-          >
-            <X className="mr-1.5 h-4 w-4" />
-            Cancelar
-          </Button>
-        </div>
-      )}
-
       {/* Gallery */}
       {photos.length === 0 ? (
         <Card>
@@ -232,10 +183,7 @@ export function AlbumDetailPage() {
             spacing={8}
             onClick={({ index }) => setLightboxIndex(index)}
             render={{
-              photo: ({ onClick }, { photo, index, width, height }) => {
-                const photoId = photos[index]?.id;
-                const isSelected = selected.has(photoId);
-                return (
+              photo: ({ onClick }, { photo, index, width, height }) => (
                   <div
                     className="relative group cursor-pointer overflow-hidden rounded"
                     style={{ width, height }}
@@ -247,27 +195,8 @@ export function AlbumDetailPage() {
                       className="w-full h-full object-cover"
                       loading="lazy"
                     />
-                    <button
-                      onClick={(e) => toggleSelect(photoId, e)}
-                      className={`absolute top-2 left-2 z-10 rounded-full transition-all duration-200 ${
-                        isSelected
-                          ? "opacity-100 text-blue-500 scale-110"
-                          : "opacity-0 group-hover:opacity-100 text-white drop-shadow-lg"
-                      }`}
-                    >
-                      <CheckCircle2
-                        className="h-7 w-7"
-                        fill={isSelected ? "currentColor" : "rgba(0,0,0,0.4)"}
-                        stroke="white"
-                        strokeWidth={1.5}
-                      />
-                    </button>
-                    {isSelected && (
-                      <div className="absolute inset-0 bg-blue-500/20 pointer-events-none" />
-                    )}
                   </div>
-                );
-              },
+              ),
             }}
           />
 
@@ -302,26 +231,6 @@ export function AlbumDetailPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete selected photos confirmation */}
-      <Dialog open={showDeletePhotosConfirm} onOpenChange={setShowDeletePhotosConfirm}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Eliminar fotos</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            ¿Eliminar {selected.size} foto{selected.size > 1 ? "s" : ""} seleccionada{selected.size > 1 ? "s" : ""}?
-            Esta acción no se puede deshacer.
-          </p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeletePhotosConfirm(false)}>
-              Cancelar
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteSelected}>
-              Eliminar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

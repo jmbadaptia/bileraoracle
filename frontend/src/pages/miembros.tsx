@@ -5,7 +5,7 @@ import { useMembers } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function MiembrosPage() {
   const { isAdmin } = useAuth();
@@ -73,6 +73,9 @@ export function MiembrosPage() {
                   <CardContent className="pt-6">
                     <div className="flex items-start gap-4">
                       <Avatar className="h-12 w-12">
+                        {member.avatarPath && (
+                          <AvatarImage src={member.avatarPath} alt={member.name} />
+                        )}
                         <AvatarFallback className="bg-primary text-primary-foreground">
                           {initials}
                         </AvatarFallback>
@@ -88,18 +91,8 @@ export function MiembrosPage() {
                             </Badge>
                           )}
                         </div>
-                        {member.position && (
-                          <p className="text-sm text-muted-foreground truncate">
-                            {member.position}
-                          </p>
-                        )}
-                        {member.party && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {member.party}
-                          </p>
-                        )}
                         <p className="text-xs text-muted-foreground mt-2">
-                          {member._count?.activitiesOwned ?? 0} actividades
+                          {member.activitiesCount ?? 0} actividades
                         </p>
                       </div>
                     </div>

@@ -7,10 +7,9 @@ import { requireAuth } from "../middleware/auth.js";
 export async function authRoutes(app: FastifyInstance) {
   // POST /api/auth/login
   app.post("/api/auth/login", async (request, reply) => {
-    const { email, password, tenantSlug } = request.body as {
+    const { email, password } = request.body as {
       email: string;
       password: string;
-      tenantSlug?: string;
     };
 
     if (!email || !password) {
@@ -35,30 +34,24 @@ export async function authRoutes(app: FastifyInstance) {
         return reply.code(401).send({ error: "Credenciales inválidas" });
       }
 
-      // Get memberships
+      // Get all memberships
       const membResult = await conn.execute<any>(
         `SELECT m.tenant_id, m.role, t.name AS tenant_name, t.slug AS tenant_slug
          FROM memberships m
          JOIN tenants t ON t.id = m.tenant_id
-         WHERE m.user_id = :userId AND t.active = 1`,
+         WHERE m.user_id = :userId AND t.active = 1
+         ORDER BY t.name`,
         { userId: user.ID },
         { outFormat: oracledb.OUT_FORMAT_OBJECT }
       );
 
       const memberships = membResult.rows || [];
-
       if (memberships.length === 0) {
-        return reply.code(401).send({ error: "No perteneces a ninguna organización" });
+        return reply.code(401).send({ error: "No perteneces a ninguna organización activa" });
       }
 
-      // Select tenant: by slug if provided, otherwise first one
-      let membership = memberships[0];
-      if (tenantSlug) {
-        const found = memberships.find(
-          (m: any) => m.TENANT_SLUG === tenantSlug
-        );
-        if (found) membership = found;
-      }
+      // Use first membership by default
+      const membership = memberships[0];
 
       const token = app.jwt.sign({
         id: user.ID,
@@ -79,7 +72,7 @@ export async function authRoutes(app: FastifyInstance) {
           tenantName: membership.TENANT_NAME,
           tenantSlug: membership.TENANT_SLUG,
         },
-        // If multiple orgs, send list so user can switch
+        // If multiple tenants, send list so frontend shows selector
         tenants: memberships.length > 1
           ? memberships.map((m: any) => ({
               id: m.TENANT_ID,
@@ -88,39 +81,6 @@ export async function authRoutes(app: FastifyInstance) {
               role: m.ROLE,
             }))
           : undefined,
-      };
-    });
-  });
-
-  // GET /api/auth/me
-  app.get("/api/auth/me", { preHandler: [requireAuth] }, async (request) => {
-    return withConnection(async (conn) => {
-      const result = await conn.execute<any>(
-        `SELECT u.id, u.email, u.name, u.avatar_path, u.phone, u.bio,
-                m.role, t.name AS tenant_name, t.slug AS tenant_slug
-         FROM users u
-         JOIN memberships m ON m.user_id = u.id AND m.tenant_id = :tenantId
-         JOIN tenants t ON t.id = m.tenant_id
-         WHERE u.id = :userId`,
-        { userId: request.user.id, tenantId: request.user.tenantId },
-        { outFormat: oracledb.OUT_FORMAT_OBJECT }
-      );
-
-      const user = result.rows?.[0];
-      if (!user) {
-        return { error: "Usuario no encontrado" };
-      }
-
-      return {
-        id: user.ID,
-        email: user.EMAIL,
-        name: user.NAME,
-        avatarPath: user.AVATAR_PATH,
-        phone: user.PHONE,
-        bio: user.BIO,
-        role: user.ROLE,
-        tenantName: user.TENANT_NAME,
-        tenantSlug: user.TENANT_SLUG,
       };
     });
   });
@@ -154,10 +114,48 @@ export async function authRoutes(app: FastifyInstance) {
 
       return {
         token,
-        tenantId: membership.TENANT_ID,
-        tenantName: membership.TENANT_NAME,
-        tenantSlug: membership.TENANT_SLUG,
-        role: membership.ROLE,
+        user: {
+          id: request.user.id,
+          email: request.user.email,
+          name: request.user.name,
+          role: membership.ROLE,
+          tenantId: membership.TENANT_ID,
+          tenantName: membership.TENANT_NAME,
+          tenantSlug: membership.TENANT_SLUG,
+        },
+      };
+    });
+  });
+
+  // GET /api/auth/me
+  app.get("/api/auth/me", { preHandler: [requireAuth] }, async (request) => {
+    return withConnection(async (conn) => {
+      const result = await conn.execute<any>(
+        `SELECT u.id, u.email, u.name, u.avatar_path, u.phone, u.bio,
+                m.role, t.name AS tenant_name, t.slug AS tenant_slug
+         FROM users u
+         JOIN memberships m ON m.user_id = u.id AND m.tenant_id = :tenantId
+         JOIN tenants t ON t.id = m.tenant_id
+         WHERE u.id = :userId`,
+        { userId: request.user.id, tenantId: request.user.tenantId },
+        { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      );
+
+      const user = result.rows?.[0];
+      if (!user) {
+        return { error: "Usuario no encontrado" };
+      }
+
+      return {
+        id: user.ID,
+        email: user.EMAIL,
+        name: user.NAME,
+        avatarPath: user.AVATAR_PATH,
+        phone: user.PHONE,
+        bio: user.BIO,
+        role: user.ROLE,
+        tenantName: user.TENANT_NAME,
+        tenantSlug: user.TENANT_SLUG,
       };
     });
   });

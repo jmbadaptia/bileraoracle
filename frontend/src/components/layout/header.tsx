@@ -23,7 +23,6 @@ import {
 } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { MobileNav } from "./mobile-nav";
-import { FulltextSearch } from "@/components/search/fulltext-search";
 import { ROLE_LABELS } from "@/lib/constants";
 
 interface HeaderProps {
@@ -79,7 +78,6 @@ export function Header({ userName, userEmail, userRole, pageTitle }: HeaderProps
         {pageTitle && (
           <h1 className="text-sm font-semibold truncate">{pageTitle}</h1>
         )}
-        <FulltextSearch />
         <div className="flex-1" />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

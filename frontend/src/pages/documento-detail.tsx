@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useParams, useNavigate } from "react-router";
 import {
   Download,
@@ -6,17 +5,14 @@ import {
   User,
   Calendar,
   HardDrive,
-  RefreshCw,
-  Loader2,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
-import { useDocument, useProcessDocument, useDeleteDocument } from "@/api/hooks";
+import { useDocument, useDeleteDocument } from "@/api/hooks";
 import { api } from "@/lib/api-client";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import {
-  SESSION_TYPE_LABELS,
   DOCUMENT_STATUS_LABELS,
 } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
@@ -44,10 +40,8 @@ export function DocumentoDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
-  const { data: document, isLoading, refetch } = useDocument(id!);
-  const processDocument = useProcessDocument();
+  const { data: document, isLoading } = useDocument(id!);
   const deleteDocument = useDeleteDocument();
-  const [reprocessing, setReprocessing] = useState(false);
 
   if (isLoading || !document) {
     return (
@@ -57,18 +51,6 @@ export function DocumentoDetailPage() {
         </h1>
       </div>
     );
-  }
-
-  async function handleReprocess() {
-    setReprocessing(true);
-    try {
-      await processDocument.mutateAsync(document.id);
-      toast.success("Documento reprocesado correctamente");
-      refetch();
-    } catch {
-      toast.error("Error al reprocesar");
-    }
-    setReprocessing(false);
   }
 
   const downloadUrl = api.streamUrl(`/documents/${document.id}/download`);
@@ -167,16 +149,8 @@ export function DocumentoDetailPage() {
               <div className="flex items-center gap-2 text-sm">
                 <User className="h-4 w-4 text-muted-foreground" />
                 <span className="text-muted-foreground">Por:</span>
-                <span>{document.uploadedBy?.name}</span>
+                <span>{document.uploaderName}</span>
               </div>
-
-              {document.sessionDate && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">Fecha sesion:</span>
-                  <span>{formatDate(document.sessionDate)}</span>
-                </div>
-              )}
 
               <div className="flex items-center gap-2 text-sm">
                 <HardDrive className="h-4 w-4 text-muted-foreground" />
@@ -211,12 +185,6 @@ export function DocumentoDetailPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Tipo de sesion</span>
-              <Badge variant="outline">
-                {SESSION_TYPE_LABELS[document.sessionType]}
-              </Badge>
-            </div>
-            <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Procesamiento</span>
               <Badge
                 variant={
@@ -230,34 +198,6 @@ export function DocumentoDetailPage() {
                 {DOCUMENT_STATUS_LABELS[document.status]}
               </Badge>
             </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">
-                Fragmentos indexados
-              </span>
-              <span className="font-medium">
-                {document._count?.embeddings ?? 0}
-              </span>
-            </div>
-
-            {(document.status === "ERROR" ||
-              document.status === "PENDING") && (
-              <div className="pt-2">
-                <Button
-                  onClick={handleReprocess}
-                  disabled={reprocessing}
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                >
-                  {reprocessing ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                  )}
-                  {reprocessing ? "Reprocesando..." : "Reprocesar"}
-                </Button>
-              </div>
-            )}
           </CardContent>
         </Card>
       </div>

@@ -11,10 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const TYPE_COLORS: Record<string, string> = {
-  PLENARY: "bg-blue-100 text-blue-800 border-blue-200",
-  COMMISSION: "bg-green-100 text-green-800 border-green-200",
+  TASK: "bg-blue-100 text-blue-800 border-blue-200",
   MEETING: "bg-amber-100 text-amber-800 border-amber-200",
-  VISIT: "bg-teal-100 text-teal-800 border-teal-200",
   EVENT: "bg-purple-100 text-purple-800 border-purple-200",
   OTHER: "bg-gray-100 text-gray-800 border-gray-200",
 };
@@ -24,7 +22,7 @@ export function HistorialPage() {
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
+  const [expandedDesc, setExpandedDesc] = useState<Set<string>>(new Set());
 
   const { data: membersData } = useMembers({ limit: "200", active: "true" });
   const members = membersData?.members || membersData || [];
@@ -48,8 +46,8 @@ export function HistorialPage() {
     setDateTo("");
   }
 
-  function toggleNotes(id: string) {
-    setExpandedNotes((prev) => {
+  function toggleDesc(id: string) {
+    setExpandedDesc((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -184,7 +182,7 @@ export function HistorialPage() {
                       </h3>
                     </Link>
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-muted-foreground">
-                      <span>{formatDate(activity.date)}</span>
+                      <span>{formatDate(activity.startDate)}</span>
                       {activity.location && (
                         <span className="flex items-center gap-0.5">
                           <MapPin className="h-3 w-3" />
@@ -198,11 +196,11 @@ export function HistorialPage() {
                       <div className="flex flex-wrap gap-1 mt-2">
                         {activity.attendees.map((a: any) => (
                           <Badge
-                            key={a.user.id}
+                            key={a.id}
                             variant="secondary"
                             className="text-[10px] px-1.5 py-0"
                           >
-                            {a.user.name}
+                            {a.name}
                           </Badge>
                         ))}
                       </div>
@@ -217,29 +215,29 @@ export function HistorialPage() {
                   </Badge>
                 </div>
 
-                {/* Notes */}
-                {activity.notes && (
+                {/* Description */}
+                {activity.description && (
                   <div className="mt-3">
                     <button
                       type="button"
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        toggleNotes(activity.id);
+                        toggleDesc(activity.id);
                       }}
                       className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
                     >
-                      {expandedNotes.has(activity.id) ? (
+                      {expandedDesc.has(activity.id) ? (
                         <ChevronUp className="h-3.5 w-3.5" />
                       ) : (
                         <ChevronDown className="h-3.5 w-3.5" />
                       )}
-                      Notas / Acta
+                      Descripción
                     </button>
-                    {expandedNotes.has(activity.id) && (
+                    {expandedDesc.has(activity.id) && (
                       <div
                         className="mt-2 p-3 rounded-md bg-muted/50 text-sm [&_p]:mb-1 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:mb-0.5 [&_strong]:font-semibold [&_a]:underline"
-                        dangerouslySetInnerHTML={{ __html: activity.notes }}
+                        dangerouslySetInnerHTML={{ __html: activity.description }}
                       />
                     )}
                   </div>

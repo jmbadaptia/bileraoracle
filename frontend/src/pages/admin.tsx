@@ -47,9 +47,10 @@ export function AdminPage() {
   }
 
   const {
-    totalUsers = 0,
+    totalMembers = 0,
     totalDocuments = 0,
     totalActivities = 0,
+    totalAlbums = 0,
   } = data || {};
 
   return (
@@ -61,14 +62,14 @@ export function AdminPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 grid-cols-3">
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Usuarios</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalUsers}</div>
+            <div className="text-2xl font-bold">{totalMembers}</div>
           </CardContent>
         </Card>
 
@@ -89,6 +90,16 @@ export function AdminPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalActivities}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Álbumes</CardTitle>
+            <ImageIcon className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalAlbums}</div>
           </CardContent>
         </Card>
       </div>

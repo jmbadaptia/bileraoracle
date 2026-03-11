@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import { Plus, RotateCw, UserX } from "lucide-react";
+import { Plus, UserX } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
-import { useUsers, useResendVerification, useDeleteUser } from "@/api/hooks";
+import { useUsers, useDeleteUser } from "@/api/hooks";
 import { formatDate } from "@/lib/utils";
 import { ROLE_LABELS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,6 @@ import {
 export function UsuariosPage() {
   const { user: currentUser } = useAuth();
   const { data, isLoading } = useUsers();
-  const resend = useResendVerification();
   const deleteUser = useDeleteUser();
   const [deactivateUser, setDeactivateUser] = useState<any>(null);
 
@@ -88,7 +87,6 @@ export function UsuariosPage() {
                 <TableRow>
                   <TableHead>Nombre</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>Cargo</TableHead>
                   <TableHead>Rol</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead>Creado</TableHead>
@@ -100,9 +98,6 @@ export function UsuariosPage() {
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {user.position || "—"}
-                    </TableCell>
                     <TableCell>
                       <Badge
                         variant={
@@ -121,19 +116,6 @@ export function UsuariosPage() {
                     </TableCell>
                     <TableCell>{formatDate(user.createdAt)}</TableCell>
                     <TableCell className="text-right space-x-1">
-                      {!user.active && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={resend.isPending}
-                          onClick={() => resend.mutate(user.id, {
-                            onSuccess: () => toast.success("Email de activación reenviado"),
-                          })}
-                        >
-                          <RotateCw className="mr-1 h-3 w-3" />
-                          Reenviar
-                        </Button>
-                      )}
                       <Link to={`/admin/usuarios/${user.id}/editar`}>
                         <Button variant="ghost" size="sm">
                           Editar
@@ -168,9 +150,6 @@ export function UsuariosPage() {
                 <div className="min-w-0 flex-1">
                   <p className="font-medium">{user.name}</p>
                   <p className="text-xs text-muted-foreground">{user.email}</p>
-                  {user.position && (
-                    <p className="text-xs text-muted-foreground">{user.position}</p>
-                  )}
                   {user.phone && (
                     <p className="text-xs text-muted-foreground">{user.phone}</p>
                   )}
@@ -191,19 +170,6 @@ export function UsuariosPage() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-1 shrink-0 ml-2">
-                  {!user.active && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={resend.isPending}
-                      onClick={() => resend.mutate(user.id, {
-                        onSuccess: () => toast.success("Email de activación reenviado"),
-                      })}
-                    >
-                      <RotateCw className="mr-1 h-3 w-3" />
-                      Reenviar
-                    </Button>
-                  )}
                   <Link to={`/admin/usuarios/${user.id}/editar`}>
                     <Button variant="ghost" size="sm">
                       Editar

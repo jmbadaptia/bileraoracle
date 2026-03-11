@@ -9,16 +9,11 @@ import { ActividadFormPage } from "@/pages/actividad-form";
 import { DocumentosPage } from "@/pages/documentos";
 import { DocumentoDetailPage } from "@/pages/documento-detail";
 import { DocumentoUploadPage } from "@/pages/documento-upload";
-import { OrdenanzasPage } from "@/pages/ordenanzas";
-import { BusquedaPage } from "@/pages/busqueda";
 import { AdminPage } from "@/pages/admin";
 import { UsuariosPage } from "@/pages/usuarios";
 import { UsuarioFormPage } from "@/pages/usuario-form";
-import { VerificarPage } from "@/pages/verificar";
-import { RecuperarPage } from "@/pages/recuperar";
 import { HistorialPage } from "@/pages/historial";
 import { TareasPage } from "@/pages/tareas";
-import { CompartirPage } from "@/pages/compartir";
 import { GaleriaPage } from "@/pages/galeria";
 import { AlbumDetailPage } from "@/pages/album-detail";
 import { AlbumFormPage } from "@/pages/album-form";
@@ -41,8 +36,6 @@ export function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/verificar" element={<VerificarPage />} />
-      <Route path="/recuperar" element={<RecuperarPage />} />
       <Route
         path="/"
         element={
@@ -65,10 +58,6 @@ export function App() {
         <Route path="galeria/nuevo" element={<AlbumFormPage />} />
         <Route path="galeria/:id" element={<AlbumDetailPage />} />
         <Route path="galeria/:id/editar" element={<AlbumFormPage />} />
-        <Route path="ordenanzas" element={<OrdenanzasPage />} />
-        <Route path="compartir" element={<CompartirPage />} />
-        <Route path="busqueda" element={<BusquedaPage />} />
-        <Route path="busqueda/:conversationId" element={<BusquedaPage />} />
         <Route path="admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
         <Route path="admin/usuarios" element={<AdminRoute><UsuariosPage /></AdminRoute>} />
         <Route path="admin/usuarios/nuevo" element={<AdminRoute><UsuarioFormPage /></AdminRoute>} />

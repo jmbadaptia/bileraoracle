@@ -54,8 +54,6 @@ export function UsuarioFormPage() {
       name: formData.get("name") as string,
       email: formData.get("email") as string,
       role,
-      position: (formData.get("position") as string) || undefined,
-      party: (formData.get("party") as string) || undefined,
       phone: (formData.get("phone") as string) || undefined,
       bio: (formData.get("bio") as string) || undefined,
     };
@@ -71,7 +69,7 @@ export function UsuarioFormPage() {
         toast.success("Usuario actualizado correctamente");
       } else {
         await createUser.mutateAsync(data);
-        toast.success("Usuario creado. Se le enviará un email para que active su cuenta.");
+        toast.success("Usuario creado correctamente.");
       }
       navigate("/admin/usuarios");
     } catch (err: any) {
@@ -156,24 +154,6 @@ export function UsuarioFormPage() {
                 Perfil
               </h3>
               <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="position">Cargo</Label>
-                  <Input
-                    id="position"
-                    name="position"
-                    defaultValue={user?.position || ""}
-                    placeholder="Ej: Concejal, Secretario..."
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="party">Partido</Label>
-                  <Input
-                    id="party"
-                    name="party"
-                    defaultValue={user?.party || ""}
-                    placeholder="Ej: PSN-PSOE"
-                  />
-                </div>
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="phone">Teléfono</Label>
                   <Input

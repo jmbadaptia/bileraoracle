@@ -1,4 +1,4 @@
-export const APP_NAME = "PSN - PSOE Valle de Egüés Eguesibar";
+export const APP_NAME = "Bilera";
 
 export const NAV_ITEMS = [
   { label: "Panel Principal", href: "/", icon: "LayoutDashboard" },
@@ -14,8 +14,6 @@ export const NAV_ITEMS = [
   },
   { label: "Documentos", href: "/documentos", icon: "FileText" },
   { label: "Galería", href: "/galeria", icon: "Image" },
-  { label: "Ordenanzas", href: "/ordenanzas", icon: "Scale" },
-  { label: "Consulta IA", href: "/busqueda", icon: "Search" },
 ] as const;
 
 export const ADMIN_NAV_ITEMS = [
@@ -24,27 +22,16 @@ export const ADMIN_NAV_ITEMS = [
 ] as const;
 
 export const ACTIVITY_TYPE_LABELS: Record<string, string> = {
-  PLENARY: "Pleno",
-  COMMISSION: "Comisión",
+  TASK: "Tarea",
   MEETING: "Reunión",
-  VISIT: "Visita",
   EVENT: "Evento",
   OTHER: "Otros",
 };
 
 export const ACTIVITY_STATUS_LABELS: Record<string, string> = {
-  TODO: "Por Hacer",
+  PENDING: "Pendiente",
   IN_PROGRESS: "En Progreso",
   DONE: "Hecho",
-};
-
-export const SESSION_TYPE_LABELS: Record<string, string> = {
-  COMMISSION: "Comisión",
-  PLENARY: "Pleno",
-  GOVERNMENT_BOARD: "Junta de Gobierno",
-  PRESS_NOTE: "Nota de Prensa",
-  ORDINANCE: "Ordenanza",
-  OTHER: "Otro",
 };
 
 export const ROLE_LABELS: Record<string, string> = {

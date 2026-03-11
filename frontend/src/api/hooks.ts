@@ -209,15 +209,6 @@ export function useDeleteAlbum() {
   });
 }
 
-export function useDeleteAlbums() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (albumIds: string[]) =>
-      api.delete("/albums/batch", { albumIds }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["albums"] }),
-  });
-}
-
 export function useUploadPhotos(albumId: string) {
   const qc = useQueryClient();
   return useMutation({
@@ -235,18 +226,6 @@ export function useDeletePhoto(albumId: string) {
   return useMutation({
     mutationFn: (photoId: string) =>
       api.delete(`/albums/${albumId}/photos/${photoId}`),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["albums", albumId] });
-      qc.invalidateQueries({ queryKey: ["albums"] });
-    },
-  });
-}
-
-export function useDeletePhotos(albumId: string) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (photoIds: string[]) =>
-      api.delete(`/albums/${albumId}/photos/batch`, { photoIds }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["albums", albumId] });
       qc.invalidateQueries({ queryKey: ["albums"] });
@@ -311,34 +290,18 @@ export function useDeleteDocument() {
   });
 }
 
-export function useProcessDocument() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (documentId: string) =>
-      api.post("/documents/process", { documentId }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["documents"] }),
-  });
-}
-
-export function useSummarizeDocument() {
-  return useMutation({
-    mutationFn: (formData: FormData) =>
-      api.upload<{ summary: string }>("/documents/summarize", formData),
-  });
-}
-
-// ---- Users ----
+// ---- Users (backed by /members) ----
 export function useUsers() {
   return useQuery({
     queryKey: ["users"],
-    queryFn: () => api.get<any>("/users"),
+    queryFn: () => api.get<any>("/members"),
   });
 }
 
 export function useUser(id: string) {
   return useQuery({
     queryKey: ["users", id],
-    queryFn: () => api.get<any>(`/users/${id}`),
+    queryFn: () => api.get<any>(`/members/${id}`),
     enabled: !!id,
   });
 }
@@ -346,31 +309,33 @@ export function useUser(id: string) {
 export function useCreateUser() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: any) => api.post("/users", data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
+    mutationFn: (data: any) => api.post("/members", data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["users"] });
+      qc.invalidateQueries({ queryKey: ["members"] });
+    },
   });
 }
 
 export function useUpdateUser(id: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: any) => api.put(`/users/${id}`, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
+    mutationFn: (data: any) => api.put(`/members/${id}`, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["users"] });
+      qc.invalidateQueries({ queryKey: ["members"] });
+    },
   });
 }
 
 export function useDeleteUser() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => api.delete(`/users/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
-  });
-}
-
-export function useResendVerification() {
-  return useMutation({
-    mutationFn: (userId: string) =>
-      api.post("/auth/resend-verification", { userId }),
+    mutationFn: (id: string) => api.delete(`/members/${id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["users"] });
+      qc.invalidateQueries({ queryKey: ["members"] });
+    },
   });
 }
 
@@ -392,85 +357,15 @@ export function useCreateTag() {
 }
 
 // ---- Search ----
-export function useSearch() {
-  return useMutation({
-    mutationFn: (data: {
-      query: string;
-      limit?: number;
-      sessionType?: string;
-    }) => api.post<any>("/search", data),
-  });
-}
-
-export function useFulltextSearch(query: string, sessionType?: string) {
+export function useFulltextSearch(query: string, type?: string, limit?: number) {
   const params = new URLSearchParams();
   if (query) params.set("q", query);
-  if (sessionType && sessionType !== "ALL") params.set("sessionType", sessionType);
+  if (type) params.set("type", type);
+  if (limit) params.set("limit", String(limit));
   return useQuery({
-    queryKey: ["fulltext-search", query, sessionType],
-    queryFn: () => api.get<any>(`/search/fulltext?${params.toString()}`),
+    queryKey: ["fulltext-search", query, type, limit],
+    queryFn: () => api.get<any>(`/search?${params.toString()}`),
     enabled: query.length >= 2,
   });
 }
 
-// ---- Ordinances ----
-export function useOrdinances(params?: Record<string, string>) {
-  const merged = { ...params, sessionType: "ORDINANCE", limit: "200" };
-  const search = new URLSearchParams(merged).toString();
-  return useQuery({
-    queryKey: ["ordinances", params],
-    queryFn: () => api.get<any>(`/documents?${search}`),
-  });
-}
-
-export function useScrapeOrdinances() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: () => api.post<any>("/documents/scrape-ordinances", {}),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["ordinances"] });
-      qc.invalidateQueries({ queryKey: ["documents"] });
-    },
-  });
-}
-
-// ---- Conversations ----
-export function useConversations() {
-  return useQuery({
-    queryKey: ["conversations"],
-    queryFn: () => api.get<any>("/conversations"),
-  });
-}
-
-export function useConversation(id: string | undefined) {
-  return useQuery({
-    queryKey: ["conversations", id],
-    queryFn: () => api.get<any>(`/conversations/${id}`),
-    enabled: !!id,
-  });
-}
-
-export function useCreateConversation() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: () => api.post<any>("/conversations", {}),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["conversations"] }),
-  });
-}
-
-export function useDeleteConversation() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => api.delete(`/conversations/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["conversations"] }),
-  });
-}
-
-export function useRenameConversation() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, title }: { id: string; title: string }) =>
-      api.patch(`/conversations/${id}`, { title }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["conversations"] }),
-  });
-}

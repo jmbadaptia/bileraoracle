@@ -8,7 +8,6 @@ import {
   useMembers,
   useDocuments,
   useUploadDocument,
-  useProcessDocument,
   useCreateActivity,
   useUpdateActivity,
 } from "@/api/hooks";
@@ -43,7 +42,6 @@ export function ActividadFormPage() {
   const { data: membersData } = useMembers({ active: "true", limit: "100" });
   const { data: docsData } = useDocuments({ limit: "200" });
   const uploadDocument = useUploadDocument();
-  const processDocument = useProcessDocument();
   const createActivity = useCreateActivity();
   const updateActivity = useUpdateActivity(id || "");
 
@@ -55,10 +53,10 @@ export function ActividadFormPage() {
     activity?.type || "MEETING"
   );
   const [selectedStatus, setSelectedStatus] = useState(
-    activity?.status || "TODO"
+    activity?.status || "PENDING"
   );
   const [selectedParticipants, setSelectedParticipants] = useState<string[]>([]);
-  const [notesContent, setNotesContent] = useState(activity?.notes || "");
+  const [notesContent, setNotesContent] = useState(activity?.description || "");
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [docSearch, setDocSearch] = useState("");
   const [showDocPicker, setShowDocPicker] = useState(false);
@@ -68,17 +66,17 @@ export function ActividadFormPage() {
   // Sync state when activity loads (edit mode)
   if (isEdit && activity && !synced) {
     setSelectedType(activity.type);
-    setSelectedStatus(activity.status || "TODO");
-    setNotesContent(activity.notes || "");
+    setSelectedStatus(activity.status || "PENDING");
+    setNotesContent(activity.description || "");
     // In edit mode, collect all participants (owner + attendees)
     const participantIds = new Set<string>();
-    if (activity.userId) participantIds.add(activity.userId);
+    if (activity.ownerId) participantIds.add(activity.ownerId);
     if (activity.attendees) {
-      for (const a of activity.attendees) participantIds.add(a.user.id);
+      for (const a of activity.attendees) participantIds.add(a.id);
     }
     setSelectedParticipants(Array.from(participantIds));
     if (activity.documents) {
-      setSelectedDocuments(activity.documents.map((d: any) => d.document?.id || d.documentId));
+      setSelectedDocuments(activity.documents.map((d: any) => d.id || d.documentId));
     }
     setSynced(true);
   }
@@ -107,23 +105,20 @@ export function ActividadFormPage() {
 
     const formData = new FormData(e.currentTarget);
 
-    // userId = creator (current user for new, keep original for edit)
-    const userId = isEdit ? activity?.userId || user!.id : user!.id;
+    // ownerId = creator (current user for new, keep original for edit)
+    const ownerId = isEdit ? activity?.ownerId || user!.id : user!.id;
 
     // attendeeIds = all selected participants
     const attendeeIds = selectedParticipants.length > 0 ? selectedParticipants : undefined;
 
     const data = {
-      userId,
+      ownerId,
       type: selectedType,
       status: selectedStatus,
       title: formData.get("title") as string,
-      date: (formData.get("date") as string) || undefined,
-      dueDate: (formData.get("dueDate") as string) || undefined,
+      startDate: (formData.get("startDate") as string) || undefined,
       location: (formData.get("location") as string) || undefined,
-      associationsInvolved:
-        (formData.get("associationsInvolved") as string) || undefined,
-      notes: notesContent || undefined,
+      description: notesContent || undefined,
       attendeeIds,
       documentIds: selectedDocuments.length > 0 ? selectedDocuments : undefined,
     };
@@ -209,50 +204,23 @@ export function ActividadFormPage() {
               </div>
             </div>
 
-            {/* Línea 2: Fecha inicio, Fecha límite */}
+            {/* Línea 2: Fecha inicio */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="date">Fecha</Label>
+                <Label htmlFor="startDate">Fecha</Label>
                 <Input
-                  id="date"
-                  name="date"
+                  id="startDate"
+                  name="startDate"
                   type="datetime-local"
                   defaultValue={
-                    activity?.date
-                      ? new Date(activity.date).toISOString().slice(0, 16)
+                    activity?.startDate
+                      ? new Date(activity.startDate).toISOString().slice(0, 16)
                       : !isEdit
                         ? nowLocal()
                         : ""
                   }
                 />
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="dueDate">Fecha límite</Label>
-                <Input
-                  id="dueDate"
-                  name="dueDate"
-                  type="datetime-local"
-                  defaultValue={
-                    activity?.dueDate
-                      ? new Date(activity.dueDate).toISOString().slice(0, 16)
-                      : ""
-                  }
-                />
-              </div>
-            </div>
-
-            {/* Línea 3: Colectivos */}
-            <div className="space-y-2">
-              <Label htmlFor="associationsInvolved">
-                Colectivos involucrados
-              </Label>
-              <Input
-                id="associationsInvolved"
-                name="associationsInvolved"
-                defaultValue={activity?.associationsInvolved || ""}
-                placeholder="Ej: Asociación de Vecinos La Esperanza, Cruz Roja..."
-              />
             </div>
 
             {/* Línea 4: Participantes */}
@@ -280,9 +248,9 @@ export function ActividadFormPage() {
                         }}
                       />
                       <span>{member.name}</span>
-                      {member.position && (
+                      {member.email && (
                         <span className="text-muted-foreground">
-                          ({member.position})
+                          ({member.email})
                         </span>
                       )}
                     </label>
@@ -361,8 +329,6 @@ export function ActividadFormPage() {
                       const doc: any = await uploadDocument.mutateAsync(formData);
                       setSelectedDocuments((prev) => [...prev, doc.id]);
                       toast.success("Documento subido");
-                      // Process in background
-                      processDocument.mutate(doc.id);
                     } catch {
                       toast.error("Error al subir el documento");
                     }
@@ -414,9 +380,9 @@ export function ActividadFormPage() {
               )}
             </div>
 
-            {/* Línea 6: Notas */}
+            {/* Línea 6: Descripción */}
             <div className="space-y-2">
-              <Label>Notas / Acta</Label>
+              <Label>Descripción / Notas</Label>
               <TiptapEditor
                 content={notesContent}
                 onChange={setNotesContent}
