@@ -29,6 +29,7 @@ services:
       JWT_SECRET: bilera-dev-secret-change-in-prod
       PORT: "4000"
       UPLOAD_DIR: /app/uploads
+      NLS_LANG: AMERICAN_AMERICA.AL32UTF8
     volumes:
       - ./backend/src:/app/src
       - uploads:/app/uploads
@@ -44,6 +45,8 @@ services:
       - "3000:5173"
     volumes:
       - ./frontend/src:/app/src
+      - ./frontend/index.html:/app/index.html
+      - ./frontend/vite.config.ts:/app/vite.config.ts
     depends_on:
       - backend
 

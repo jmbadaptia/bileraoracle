@@ -36,7 +36,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isAdmin: boolean;
   pendingTenants: Tenant[] | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<boolean>;
   switchTenant: (tenantId: number) => Promise<void>;
   clearPendingTenants: () => void;
   logout: () => void;
@@ -73,7 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setIsLoading(false));
   }, []);
 
-  async function login(email: string, password: string) {
+  async function login(email: string, password: string): Promise<boolean> {
     const result = await api.post<LoginResult>("/auth/login", {
       email,
       password,
@@ -82,10 +82,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("user", JSON.stringify(result.user));
     setUser(result.user);
 
-    // If multiple tenants, show selector
+    // If multiple tenants, show selector — return false to prevent navigation
     if (result.tenants && result.tenants.length > 1) {
       setPendingTenants(result.tenants);
+      return false;
     }
+    return true;
   }
 
   async function switchTenant(tenantId: number) {

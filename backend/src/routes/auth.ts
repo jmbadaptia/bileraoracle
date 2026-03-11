@@ -154,6 +154,7 @@ export async function authRoutes(app: FastifyInstance) {
         phone: user.PHONE,
         bio: user.BIO,
         role: user.ROLE,
+        tenantId: request.user.tenantId,
         tenantName: user.TENANT_NAME,
         tenantSlug: user.TENANT_SLUG,
       };

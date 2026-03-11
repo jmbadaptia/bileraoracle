@@ -37,9 +37,9 @@ export function LoginPage() {
     const password = formData.get("password") as string;
 
     try {
-      await login(email, password);
-      // If pendingTenants is set, the tenant selector will show
-      // Otherwise navigate directly
+      const canNavigate = await login(email, password);
+      if (canNavigate) navigate("/");
+      // If false, pendingTenants is set and tenant selector will render
     } catch {
       setError("Credenciales invalidas. Intentalo de nuevo.");
     }
