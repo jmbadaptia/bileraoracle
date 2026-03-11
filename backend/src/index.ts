@@ -4,6 +4,14 @@ import jwt from "@fastify/jwt";
 import multipart from "@fastify/multipart";
 import { initPool, closePool } from "./lib/db.js";
 import { authRoutes } from "./routes/auth.js";
+import { tagRoutes } from "./routes/tags.js";
+import { groupRoutes } from "./routes/groups.js";
+import { memberRoutes } from "./routes/members.js";
+import { activityRoutes } from "./routes/activities.js";
+import { documentRoutes } from "./routes/documents.js";
+import { albumRoutes } from "./routes/albums.js";
+import { dashboardRoutes } from "./routes/dashboard.js";
+import { searchRoutes } from "./routes/search.js";
 
 const app = Fastify({ logger: true });
 
@@ -27,6 +35,14 @@ async function start() {
 
   // Routes
   await app.register(authRoutes);
+  await app.register(tagRoutes);
+  await app.register(groupRoutes);
+  await app.register(memberRoutes);
+  await app.register(activityRoutes);
+  await app.register(documentRoutes);
+  await app.register(albumRoutes);
+  await app.register(dashboardRoutes);
+  await app.register(searchRoutes);
 
   // Health check
   app.get("/api/health", async () => ({ status: "ok" }));

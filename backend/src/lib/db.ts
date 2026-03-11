@@ -1,5 +1,8 @@
 import oracledb from "oracledb";
 
+// Auto-convert CLOBs to strings (for bio, description, etc.)
+oracledb.fetchAsString = [oracledb.CLOB];
+
 let pool: oracledb.Pool;
 
 export async function initPool() {
