@@ -7,6 +7,7 @@ import { useDashboardStats } from "@/api/hooks";
 import { useAuth } from "@/lib/auth";
 import { formatDate } from "@/lib/utils";
 import { ACTIVITY_TYPE_LABELS } from "@/lib/constants";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 function StatCardSkeleton() {
   return (
@@ -161,9 +162,12 @@ export function DashboardPage() {
                         {activity.ownerName} &middot; {formatDate(activity.startDate)}
                       </p>
                     </div>
-                    <Badge variant="secondary" className="text-xs shrink-0">
-                      {ACTIVITY_TYPE_LABELS[activity.type]}
-                    </Badge>
+                    <div className="flex gap-1.5 shrink-0">
+                      <Badge variant="secondary" className="text-xs">
+                        {ACTIVITY_TYPE_LABELS[activity.type]}
+                      </Badge>
+                      <StatusBadge status={activity.status} className="text-xs" />
+                    </div>
                   </Link>
                 ))}
               </div>

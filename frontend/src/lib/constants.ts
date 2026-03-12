@@ -18,6 +18,7 @@ export const NAV_ITEMS = [
   { label: "Galería", href: "/galeria", icon: "Image" },
   { label: "Contactos", href: "/contactos", icon: "Contact" },
   { label: "Asistente IA", href: "/asistente", icon: "BotMessageSquare" },
+  { label: "Guia de uso", href: "/guia", icon: "BookOpen" },
 ] as const;
 
 export const ADMIN_NAV_ITEMS = [
@@ -36,6 +37,19 @@ export const ACTIVITY_STATUS_LABELS: Record<string, string> = {
   PENDING: "Pendiente",
   IN_PROGRESS: "En Progreso",
   DONE: "Hecho",
+};
+
+export const ACTIVITY_STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
+  PENDING: { label: "Pendiente", color: "bg-amber-100 text-amber-800 border-amber-200", icon: "Clock" },
+  IN_PROGRESS: { label: "En Progreso", color: "bg-blue-100 text-blue-800 border-blue-200", icon: "Loader" },
+  DONE: { label: "Hecho", color: "bg-emerald-100 text-emerald-800 border-emerald-200", icon: "CircleCheck" },
+};
+
+export const ACTIVITY_TYPE_CONFIG: Record<string, { label: string; color: string }> = {
+  TASK: { label: "Tarea", color: "bg-blue-100 text-blue-800 border-blue-200" },
+  MEETING: { label: "Reunion", color: "bg-amber-100 text-amber-800 border-amber-200" },
+  EVENT: { label: "Evento", color: "bg-purple-100 text-purple-800 border-purple-200" },
+  OTHER: { label: "Otros", color: "bg-gray-100 text-gray-800 border-gray-200" },
 };
 
 export const ROLE_LABELS: Record<string, string> = {

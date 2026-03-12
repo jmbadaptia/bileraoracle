@@ -6,6 +6,7 @@ import { formatDate } from "@/lib/utils";
 import { ACTIVITY_TYPE_LABELS } from "@/lib/constants";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -203,12 +204,15 @@ export function HistorialPage() {
                     )}
                   </div>
 
-                  <Badge
-                    variant="outline"
-                    className={`shrink-0 text-xs ${TYPE_COLORS[activity.type] || ""}`}
-                  >
-                    {ACTIVITY_TYPE_LABELS[activity.type] || activity.type}
-                  </Badge>
+                  <div className="flex gap-1.5 shrink-0">
+                    <Badge
+                      variant="outline"
+                      className={`text-xs ${TYPE_COLORS[activity.type] || ""}`}
+                    >
+                      {ACTIVITY_TYPE_LABELS[activity.type] || activity.type}
+                    </Badge>
+                    <StatusBadge status={activity.status} className="text-xs" />
+                  </div>
                 </div>
 
                 {/* Description */}

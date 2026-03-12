@@ -16,10 +16,11 @@ import {
   useAISummarize,
 } from "@/api/hooks";
 import { formatDateTime, formatDate } from "@/lib/utils";
-import { ACTIVITY_TYPE_LABELS, ACTIVITY_STATUS_LABELS } from "@/lib/constants";
+import { ACTIVITY_TYPE_LABELS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -47,11 +48,6 @@ function colorForName(name: string) {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  DONE: "bg-emerald-100 text-emerald-800 border-emerald-200",
-  IN_PROGRESS: "bg-blue-100 text-blue-800 border-blue-200",
-  PENDING: "bg-amber-100 text-amber-800 border-amber-200",
-};
 
 export function ActividadDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -103,9 +99,7 @@ export function ActividadDetailPage() {
             <Badge variant="secondary">
               {ACTIVITY_TYPE_LABELS[activity.type]}
             </Badge>
-            <Badge variant="outline" className={STATUS_COLORS[activity.status] || ""}>
-              {ACTIVITY_STATUS_LABELS[activity.status] || "Por Hacer"}
-            </Badge>
+            <StatusBadge status={activity.status} />
           </div>
           <p className="text-sm text-muted-foreground flex items-center gap-3 flex-wrap">
             <span className="flex items-center gap-1">
@@ -490,22 +484,35 @@ export function ActividadDetailPage() {
               <CardTitle className="text-base">Actividad</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                <div className="flex gap-3 text-sm">
-                  <span className="text-muted-foreground shrink-0 w-14">
-                    {formatDate(activity.createdAt)}
-                  </span>
-                  <span>{activity.createdByName} creo la actividad</span>
+              {activity.timeline && activity.timeline.length > 0 ? (
+                <div className="space-y-3">
+                  {activity.timeline.map((event: any) => (
+                    <div key={event.id} className="flex gap-3 text-sm">
+                      <div className="shrink-0 mt-0.5">
+                        <div className="h-2 w-2 rounded-full bg-primary/60 mt-1.5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm">{event.detail || event.action}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {event.userName} &middot; {formatDateTime(event.createdAt)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                {activity.updatedAt && activity.updatedAt !== activity.createdAt && (
+              ) : (
+                <div className="space-y-3">
                   <div className="flex gap-3 text-sm">
-                    <span className="text-muted-foreground shrink-0 w-14">
-                      {formatDate(activity.updatedAt)}
-                    </span>
-                    <span>Ultima actualizacion</span>
+                    <div className="shrink-0 mt-0.5">
+                      <div className="h-2 w-2 rounded-full bg-primary/60 mt-1.5" />
+                    </div>
+                    <div>
+                      <p className="text-sm">{activity.createdByName} creo la actividad</p>
+                      <p className="text-xs text-muted-foreground">{formatDateTime(activity.createdAt)}</p>
+                    </div>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

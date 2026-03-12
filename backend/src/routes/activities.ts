@@ -3,6 +3,7 @@ import oracledb from "oracledb";
 import { withTenant } from "../lib/db.js";
 import { requireAuth } from "../middleware/auth.js";
 import { getEmbedding, buildActivityText } from "../lib/ai.js";
+import { logActivity } from "../lib/audit.js";
 
 async function updateActivityEmbedding(
   id: string, tenantId: number, userId: string,
@@ -225,6 +226,9 @@ export async function activityRoutes(app: FastifyInstance) {
         }
       }
 
+      // Audit log
+      await logActivity(conn, request.user.tenantId, id, request.user.id, request.user.name, "CREATED", `Creo la actividad "${title.trim()}"`);
+
       // Fire-and-forget embedding generation
       updateActivityEmbedding(id, request.user.tenantId, request.user.id, title.trim(), description, type, location)
         .catch(err => console.warn("Activity embedding failed:", err));
@@ -353,7 +357,28 @@ export async function activityRoutes(app: FastifyInstance) {
           description: al.DESCRIPTION,
           photoCount: al.PHOTO_COUNT,
         })),
+        timeline: [],
       };
+
+      // Get audit log
+      const logResult = await conn.execute<any>(
+        `SELECT id, user_name, action, detail, created_at
+         FROM activity_log
+         WHERE activity_id = :id
+         ORDER BY created_at ASC`,
+        { id },
+        { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      );
+
+      response.timeline = (logResult.rows || []).map((row: any) => ({
+        id: row.ID,
+        userName: row.USER_NAME,
+        action: row.ACTION,
+        detail: row.DETAIL,
+        createdAt: row.CREATED_AT,
+      }));
+
+      return response;
     });
   });
 
@@ -446,6 +471,9 @@ export async function activityRoutes(app: FastifyInstance) {
         }
       }
 
+      // Audit log
+      await logActivity(conn, request.user.tenantId, id, request.user.id, request.user.name, "UPDATED", "Actualizo la actividad");
+
       // Fire-and-forget embedding update
       updateActivityEmbedding(id, request.user.tenantId, request.user.id, title.trim(), description, type, location)
         .catch(err => console.warn("Activity embedding update failed:", err));
@@ -473,6 +501,9 @@ export async function activityRoutes(app: FastifyInstance) {
       if (result.rowsAffected === 0) {
         return reply.code(404).send({ error: "Actividad no encontrada" });
       }
+
+      const statusLabels: Record<string, string> = { PENDING: "Pendiente", IN_PROGRESS: "En Progreso", DONE: "Hecho" };
+      await logActivity(conn, request.user.tenantId, id, request.user.id, request.user.name, "STATUS_CHANGED", `Cambio estado a "${statusLabels[status] || status}"`);
 
       return { id, status };
     });
@@ -532,6 +563,8 @@ export async function activityRoutes(app: FastifyInstance) {
         throw err;
       }
 
+      await logActivity(conn, request.user.tenantId, id, request.user.id, request.user.name, "JOINED", `${request.user.name} se apunto`);
+
       return reply.code(201).send({ ok: true });
     });
   });
@@ -545,6 +578,9 @@ export async function activityRoutes(app: FastifyInstance) {
         `DELETE FROM activity_attendees WHERE activity_id = :actId AND user_id = :userId`,
         { actId: id, userId: request.user.id }
       );
+
+      await logActivity(conn, request.user.tenantId, id, request.user.id, request.user.name, "LEFT", `${request.user.name} se desapunto`);
+
       return { ok: true };
     });
   });
@@ -579,6 +615,11 @@ export async function activityRoutes(app: FastifyInstance) {
         }
         throw err;
       }
+
+      // Get added user name
+      const userResult = await conn.execute<any>(`SELECT name FROM users WHERE id = :userId`, { userId }, { outFormat: oracledb.OUT_FORMAT_OBJECT });
+      const addedName = userResult.rows?.[0]?.NAME || "Usuario";
+      await logActivity(conn, request.user.tenantId, id, request.user.id, request.user.name, "MEMBER_ADDED", `Anadio a ${addedName}`);
 
       return reply.code(201).send({ ok: true });
     });
@@ -628,6 +669,10 @@ export async function activityRoutes(app: FastifyInstance) {
         throw err;
       }
 
+      const docResult = await conn.execute<any>(`SELECT title FROM documents WHERE id = :documentId`, { documentId }, { outFormat: oracledb.OUT_FORMAT_OBJECT });
+      const docTitle = docResult.rows?.[0]?.TITLE || "documento";
+      await logActivity(conn, request.user.tenantId, id, request.user.id, request.user.name, "DOC_ATTACHED", `Adjunto "${docTitle}"`);
+
       return reply.code(201).send({ ok: true });
     });
   });
@@ -675,6 +720,10 @@ export async function activityRoutes(app: FastifyInstance) {
         }
         throw err;
       }
+
+      const albResult = await conn.execute<any>(`SELECT title FROM albums WHERE id = :albumId`, { albumId }, { outFormat: oracledb.OUT_FORMAT_OBJECT });
+      const albTitle = albResult.rows?.[0]?.TITLE || "album";
+      await logActivity(conn, request.user.tenantId, id, request.user.id, request.user.name, "ALBUM_ATTACHED", `Vinculo album "${albTitle}"`);
 
       return reply.code(201).send({ ok: true });
     });

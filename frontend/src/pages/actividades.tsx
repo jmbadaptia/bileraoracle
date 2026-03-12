@@ -28,6 +28,8 @@ import { ACTIVITY_TYPE_LABELS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { AvatarGroup } from "@/components/ui/avatar-group";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 // ---- Calendar helpers ----
@@ -211,6 +213,7 @@ function ListView() {
                     <Badge variant="secondary" className="text-xs">
                       {ACTIVITY_TYPE_LABELS[activity.type]}
                     </Badge>
+                    <StatusBadge status={activity.status} className="text-xs" />
                     {activity.tags?.map((tag: any) => (
                       <Badge
                         key={tag.id}
@@ -240,6 +243,7 @@ function ListView() {
                     )}
                   </div>
                 </div>
+                <AvatarGroup people={activity.attendees || []} max={4} />
               </div>
             </CardContent>
           </Card>

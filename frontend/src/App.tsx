@@ -26,6 +26,7 @@ import { GruposPage } from "@/pages/grupos";
 import { GrupoDetailPage } from "@/pages/grupo-detail";
 import { GrupoFormPage } from "@/pages/grupo-form";
 import { AsistentePage } from "@/pages/asistente";
+import { GuiaPage } from "@/pages/guia";
 import { useParams } from "react-router";
 
 function AsistenteWrapper() {
@@ -83,6 +84,7 @@ export function App() {
         <Route path="contactos/nuevo" element={<ContactoFormPage />} />
         <Route path="contactos/:id" element={<ContactoDetailPage />} />
         <Route path="contactos/:id/editar" element={<ContactoFormPage />} />
+        <Route path="guia" element={<GuiaPage />} />
         <Route path="asistente" element={<AsistenteWrapper />} />
         <Route path="asistente/:conversationId" element={<AsistenteWrapper />} />
         <Route path="admin" element={<AdminRoute><AdminPage /></AdminRoute>} />

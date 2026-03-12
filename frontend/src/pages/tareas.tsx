@@ -4,7 +4,6 @@ import {
   Plus,
   MapPin,
   CalendarDays,
-  Users,
   X,
   GripVertical,
   CircleCheck,
@@ -28,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { AvatarGroup } from "@/components/ui/avatar-group";
 
 const TYPE_COLORS: Record<string, string> = {
   TASK: "bg-blue-100 text-blue-800 border-blue-200",
@@ -63,8 +63,6 @@ function KanbanCardContent({
   activity: ActivityCard;
   onMarkDone?: (e: React.MouseEvent) => void;
 }) {
-  const attendeeCount = activity.attendees?.length || 0;
-
   return (
     <CardContent className="p-3">
       <div className="flex items-start gap-2">
@@ -104,16 +102,13 @@ function KanbanCardContent({
                 {activity.location}
               </span>
             )}
-            {attendeeCount > 0 && (
-              <span className="flex items-center gap-0.5">
-                <Users className="h-3 w-3" />
-                {attendeeCount}
-              </span>
-            )}
           </div>
-          <p className="text-[11px] text-muted-foreground mt-1">
-            {activity.ownerName}
-          </p>
+          <div className="flex items-center justify-between mt-1.5">
+            <p className="text-[11px] text-muted-foreground">
+              {activity.ownerName}
+            </p>
+            <AvatarGroup people={activity.attendees || []} max={3} size="sm" />
+          </div>
           {activity.dueDate && (
             <p className="text-[10px] text-orange-600 mt-0.5">
               Límite: {formatDate(activity.dueDate)}
