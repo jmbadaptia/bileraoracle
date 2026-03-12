@@ -169,18 +169,14 @@ export function HistorialPage() {
             {data?.total || activities.length} actividades
           </p>
           {activities.map((activity: any) => (
-            <Card key={activity.id} className="overflow-hidden py-0 gap-0">
+            <Link key={activity.id} to={`/actividades/${activity.id}`}>
+            <Card className="overflow-hidden py-0 gap-0 hover:bg-muted/50 hover:shadow-sm transition-all cursor-pointer">
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <Link
-                      to={`/actividades/${activity.id}`}
-                      className="hover:underline leading-none"
-                    >
                       <h3 className="font-medium text-sm leading-none">
                         {activity.title}
                       </h3>
-                    </Link>
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-muted-foreground">
                       <span>{formatDate(activity.startDate)}</span>
                       {activity.location && (
@@ -244,6 +240,7 @@ export function HistorialPage() {
                 )}
               </CardContent>
             </Card>
+            </Link>
           ))}
         </div>
       )}

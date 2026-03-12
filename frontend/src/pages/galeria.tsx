@@ -63,7 +63,7 @@ export function GaleriaPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {albums.map((album: any) => (
               <Link key={album.id} to={`/galeria/${album.id}`} className="group">
-                <Card className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
+                <Card className="overflow-hidden hover:bg-muted/50 hover:shadow-sm transition-all cursor-pointer">
                   <div className="aspect-[4/3] bg-muted relative overflow-hidden">
                     {album.coverPhotoId ? (
                       <img

@@ -1,15 +1,14 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router";
-import { Plus, FileText, Search, X, Loader2 } from "lucide-react";
+import { Plus, FileText, Search, X } from "lucide-react";
 import { useDocuments } from "@/api/hooks";
 import { formatDate } from "@/lib/utils";
-import {
-  DOCUMENT_STATUS_LABELS,
-} from "@/lib/constants";
+import { DOCUMENT_STATUS_LABELS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function formatFileSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -17,11 +16,27 @@ function formatFileSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function DocCardSkeleton() {
+  return (
+    <Card>
+      <CardContent className="py-4">
+        <div className="flex items-start gap-3">
+          <Skeleton className="h-8 w-8 rounded shrink-0" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-5 w-2/3" />
+            <Skeleton className="h-4 w-16 rounded-full" />
+            <Skeleton className="h-3 w-3/4" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function DocumentosPage() {
   const [searchInput, setSearchInput] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
 
-  // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(searchInput.trim()), 300);
     return () => clearTimeout(timer);
@@ -34,25 +49,18 @@ export function DocumentosPage() {
   const documents = data?.documents || [];
   const total = data?.total || 0;
 
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Documentos</h1>
-          <p className="text-muted-foreground">Cargando...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Documentos</h1>
-          <p className="text-muted-foreground">
-            {total} documentos en el sistema
-          </p>
+          {isLoading ? (
+            <Skeleton className="h-4 w-40 mt-1" />
+          ) : (
+            <p className="text-muted-foreground">
+              {total} documentos en el sistema
+            </p>
+          )}
         </div>
         <Link to="/documentos/subir">
           <Button>
@@ -62,8 +70,7 @@ export function DocumentosPage() {
         </Link>
       </div>
 
-      {/* Search bar */}
-      <div className="relative">
+      <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Buscar por palabras clave..."
@@ -81,7 +88,13 @@ export function DocumentosPage() {
         )}
       </div>
 
-      {documents.length === 0 ? (
+      {isLoading ? (
+        <div className="space-y-3">
+          <DocCardSkeleton />
+          <DocCardSkeleton />
+          <DocCardSkeleton />
+        </div>
+      ) : documents.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             {debouncedQuery.length >= 2 ? (
@@ -94,9 +107,7 @@ export function DocumentosPage() {
             ) : (
               <>
                 <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">
-                  No hay documentos subidos.
-                </p>
+                <p className="text-muted-foreground">No hay documentos subidos.</p>
                 <Link to="/documentos/subir" className="mt-4">
                   <Button variant="outline">Subir primer documento</Button>
                 </Link>
@@ -108,15 +119,13 @@ export function DocumentosPage() {
         <div className="space-y-3">
           {documents.map((doc: any) => (
             <Link key={doc.id} to={`/documentos/${doc.id}`}>
-              <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
+              <Card className="transition-all hover:bg-muted/50 hover:shadow-sm cursor-pointer">
                 <CardContent className="py-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-3 flex-1 min-w-0">
                       <FileText className="h-8 w-8 text-muted-foreground shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold truncate">
-                          {doc.title}
-                        </h3>
+                        <h3 className="font-semibold truncate">{doc.title}</h3>
                         <div className="flex items-center gap-2 flex-wrap mt-1">
                           <Badge
                             variant={

@@ -149,7 +149,7 @@ function DraggableCard({
       className={isDragging ? "opacity-30" : ""}
       onClick={() => navigate(`/actividades/${activity.id}`)}
     >
-      <Card className="hover:shadow-md transition-shadow cursor-pointer">
+      <Card className="hover:bg-muted/50 hover:shadow-sm transition-all cursor-pointer">
         <KanbanCardContent
           activity={activity}
           onMarkDone={(e) => {

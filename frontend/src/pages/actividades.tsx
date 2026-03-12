@@ -202,7 +202,7 @@ function ListView() {
     <div className="space-y-3">
       {activities.map((activity: any) => (
         <Link key={activity.id} to={`/actividades/${activity.id}`}>
-          <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
+          <Card className="hover:bg-muted/50 hover:shadow-sm transition-all cursor-pointer">
             <CardContent className="py-4">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">

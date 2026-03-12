@@ -12,6 +12,7 @@ export const NAV_ITEMS = [
       { label: "Historial", href: "/actividades/historial" },
     ],
   },
+  { label: "Miembros", href: "/miembros", icon: "Users" },
   { label: "Documentos", href: "/documentos", icon: "FileText" },
   { label: "Galería", href: "/galeria", icon: "Image" },
   { label: "Contactos", href: "/contactos", icon: "Contact" },

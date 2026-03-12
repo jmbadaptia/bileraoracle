@@ -84,7 +84,7 @@ export function ContactosPage() {
             <Link
               key={contact.id}
               to={`/contactos/${contact.id}`}
-              className="group block rounded-lg border p-4 hover:bg-muted/50 transition-colors"
+              className="group block rounded-lg border p-4 hover:bg-muted/50 hover:shadow-sm transition-all"
             >
               <div className="flex items-start justify-between">
                 <div className="min-w-0">

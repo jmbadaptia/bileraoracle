@@ -51,7 +51,7 @@ export function MiembroDetailPage() {
           </div>
         </div>
         {isAdmin && (
-          <Link to={`/miembros/${member.id}/editar`}>
+          <Link to={`/admin/usuarios/${member.id}/editar`}>
             <Button variant="outline">
               <Pencil className="mr-2 h-4 w-4" />
               Editar
