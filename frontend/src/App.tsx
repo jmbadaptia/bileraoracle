@@ -17,6 +17,17 @@ import { TareasPage } from "@/pages/tareas";
 import { GaleriaPage } from "@/pages/galeria";
 import { AlbumDetailPage } from "@/pages/album-detail";
 import { AlbumFormPage } from "@/pages/album-form";
+import { ContactosPage } from "@/pages/contactos";
+import { ContactoDetailPage } from "@/pages/contacto-detail";
+import { ContactoFormPage } from "@/pages/contacto-form";
+import { AsistentePage } from "@/pages/asistente";
+import { useParams } from "react-router";
+
+function AsistenteWrapper() {
+  const { conversationId } = useParams<{ conversationId?: string }>();
+  const key = conversationId === "nueva" || !conversationId ? "new" : conversationId;
+  return <AsistentePage key={key} />;
+}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -58,6 +69,12 @@ export function App() {
         <Route path="galeria/nuevo" element={<AlbumFormPage />} />
         <Route path="galeria/:id" element={<AlbumDetailPage />} />
         <Route path="galeria/:id/editar" element={<AlbumFormPage />} />
+        <Route path="contactos" element={<ContactosPage />} />
+        <Route path="contactos/nuevo" element={<ContactoFormPage />} />
+        <Route path="contactos/:id" element={<ContactoDetailPage />} />
+        <Route path="contactos/:id/editar" element={<ContactoFormPage />} />
+        <Route path="asistente" element={<AsistenteWrapper />} />
+        <Route path="asistente/:conversationId" element={<AsistenteWrapper />} />
         <Route path="admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
         <Route path="admin/usuarios" element={<AdminRoute><UsuariosPage /></AdminRoute>} />
         <Route path="admin/usuarios/nuevo" element={<AdminRoute><UsuarioFormPage /></AdminRoute>} />

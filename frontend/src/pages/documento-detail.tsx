@@ -6,10 +6,16 @@ import {
   Calendar,
   HardDrive,
   Trash2,
+  RefreshCw,
+  Loader2,
+  CheckCircle2,
+  AlertTriangle,
+  Clock,
+  Layers,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
-import { useDocument, useDeleteDocument } from "@/api/hooks";
+import { useDocument, useDeleteDocument, useReprocessDocument } from "@/api/hooks";
 import { api } from "@/lib/api-client";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import {
@@ -42,6 +48,7 @@ export function DocumentoDetailPage() {
   const { isAdmin } = useAuth();
   const { data: document, isLoading } = useDocument(id!);
   const deleteDocument = useDeleteDocument();
+  const reprocess = useReprocessDocument();
 
   if (isLoading || !document) {
     return (
@@ -183,7 +190,7 @@ export function DocumentoDetailPage() {
           <CardHeader>
             <CardTitle className="text-base">Estado</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-4">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Procesamiento</span>
               <Badge
@@ -195,9 +202,54 @@ export function DocumentoDetailPage() {
                       : "secondary"
                 }
               >
+                {document.status === "PENDING" && <Clock className="mr-1 h-3 w-3" />}
+                {document.status === "PROCESSING" && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
+                {document.status === "READY" && <CheckCircle2 className="mr-1 h-3 w-3" />}
+                {document.status === "ERROR" && <AlertTriangle className="mr-1 h-3 w-3" />}
                 {DOCUMENT_STATUS_LABELS[document.status]}
               </Badge>
             </div>
+
+            {(document.status === "PENDING" || document.status === "PROCESSING") && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Extrayendo texto y generando embeddings...</span>
+              </div>
+            )}
+
+            {document.chunkCount > 0 && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground flex items-center gap-1">
+                  <Layers className="h-4 w-4" /> Fragmentos
+                </span>
+                <span className="font-medium">{document.chunkCount}</span>
+              </div>
+            )}
+
+            {document.processingError && (
+              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                <p className="font-medium mb-1">Error de procesamiento</p>
+                <p className="text-xs">{document.processingError}</p>
+              </div>
+            )}
+
+            {isAdmin && (document.status === "READY" || document.status === "ERROR") && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                disabled={reprocess.isPending}
+                onClick={() => {
+                  reprocess.mutate(document.id, {
+                    onSuccess: () => toast.success("Reprocesando documento..."),
+                    onError: () => toast.error("Error al reprocesar"),
+                  });
+                }}
+              >
+                <RefreshCw className={`mr-2 h-4 w-4 ${reprocess.isPending ? "animate-spin" : ""}`} />
+                Reprocesar
+              </Button>
+            )}
           </CardContent>
         </Card>
       </div>

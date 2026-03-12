@@ -141,6 +141,31 @@ export function useUnattendActivity(activityId: string) {
   });
 }
 
+// ---- Activity Attendees (admin) ----
+export function useAddAttendee(activityId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) =>
+      api.post(`/activities/${activityId}/attendees`, { userId }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["activities", activityId] });
+      qc.invalidateQueries({ queryKey: ["activities"] });
+    },
+  });
+}
+
+export function useRemoveAttendee(activityId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) =>
+      api.delete(`/activities/${activityId}/attendees/${userId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["activities", activityId] });
+      qc.invalidateQueries({ queryKey: ["activities"] });
+    },
+  });
+}
+
 // ---- Activity Documents ----
 export function useAttachDocument(activityId: string) {
   const qc = useQueryClient();
@@ -271,6 +296,11 @@ export function useDocument(id: string) {
     queryKey: ["documents", id],
     queryFn: () => api.get<any>(`/documents/${id}`),
     enabled: !!id,
+    // Auto-poll while document is being processed
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      return status === "PENDING" || status === "PROCESSING" ? 3000 : false;
+    },
   });
 }
 
@@ -287,6 +317,17 @@ export function useDeleteDocument() {
   return useMutation({
     mutationFn: (id: string) => api.delete(`/documents/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["documents"] }),
+  });
+}
+
+export function useReprocessDocument() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.post(`/documents/${id}/reprocess`, {}),
+    onSuccess: (_data, id) => {
+      qc.invalidateQueries({ queryKey: ["documents", id] });
+      qc.invalidateQueries({ queryKey: ["documents"] });
+    },
   });
 }
 
@@ -366,6 +407,135 @@ export function useFulltextSearch(query: string, type?: string, limit?: number) 
     queryKey: ["fulltext-search", query, type, limit],
     queryFn: () => api.get<any>(`/search?${params.toString()}`),
     enabled: query.length >= 2,
+  });
+}
+
+// ---- Contacts ----
+export function useContacts(params?: Record<string, string>) {
+  const search = new URLSearchParams(params).toString();
+  return useQuery({
+    queryKey: ["contacts", params],
+    queryFn: () => api.get<any>(`/contacts${search ? `?${search}` : ""}`),
+  });
+}
+
+export function useContact(id: string) {
+  return useQuery({
+    queryKey: ["contacts", id],
+    queryFn: () => api.get<any>(`/contacts/${id}`),
+    enabled: !!id,
+  });
+}
+
+export function useCreateContact() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => api.post("/contacts", data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["contacts"] }),
+  });
+}
+
+export function useUpdateContact(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => api.put(`/contacts/${id}`, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["contacts"] });
+      qc.invalidateQueries({ queryKey: ["contacts", id] });
+    },
+  });
+}
+
+export function useDeleteContact() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/contacts/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["contacts"] }),
+  });
+}
+
+export function useAttachContact(activityId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { contactId: string; role?: string }) =>
+      api.post(`/activities/${activityId}/contacts`, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["activities", activityId] });
+    },
+  });
+}
+
+export function useDetachContact(activityId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (contactId: string) =>
+      api.delete(`/activities/${activityId}/contacts/${contactId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["activities", activityId] });
+    },
+  });
+}
+
+export function useContactCategories() {
+  return useQuery({
+    queryKey: ["contact-categories"],
+    queryFn: () => api.get<string[]>("/contacts/categories"),
+  });
+}
+
+// ---- AI ----
+export function useAIChat() {
+  return useMutation({
+    mutationFn: (question: string) =>
+      api.post<{ answer: string; sources: { type: string; id: string; title: string; distance: number }[] }>("/ai/chat", { question }),
+  });
+}
+
+export function useAISummarize() {
+  return useMutation({
+    mutationFn: (activityId: string) =>
+      api.post<{ summary: string }>("/ai/summarize", { activityId }),
+  });
+}
+
+// ---- Conversations ----
+export function useConversations() {
+  return useQuery({
+    queryKey: ["conversations"],
+    queryFn: () => api.get<any[]>("/conversations"),
+  });
+}
+
+export function useConversation(id: string | undefined) {
+  return useQuery({
+    queryKey: ["conversations", id],
+    queryFn: () => api.get<any>(`/conversations/${id}`),
+    enabled: !!id,
+  });
+}
+
+export function useCreateConversation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.post<any>("/conversations", {}),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["conversations"] }),
+  });
+}
+
+export function useDeleteConversation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/conversations/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["conversations"] }),
+  });
+}
+
+export function useRenameConversation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, title }: { id: string; title: string }) =>
+      api.patch(`/conversations/${id}`, { title }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["conversations"] }),
   });
 }
 

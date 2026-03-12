@@ -1,0 +1,12 @@
+model_list:
+  # Embeddings - Gemini
+  - model_name: embeddings
+    litellm_params:
+      model: gemini/gemini-embedding-001
+      api_key: os.environ/GEMINI_API_KEY
+
+  # Chat/LLM - Gemini
+  - model_name: chat
+    litellm_params:
+      model: gemini/gemini-2.5-flash
+      api_key: os.environ/GEMINI_API_KEY

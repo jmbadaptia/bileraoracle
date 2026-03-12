@@ -2,6 +2,22 @@ import { FastifyInstance } from "fastify";
 import oracledb from "oracledb";
 import { withTenant } from "../lib/db.js";
 import { requireAuth } from "../middleware/auth.js";
+import { getEmbedding, buildActivityText } from "../lib/ai.js";
+
+async function updateActivityEmbedding(
+  id: string, tenantId: number, userId: string,
+  title: string, description?: string | null, type?: string, location?: string | null
+) {
+  const text = buildActivityText(title, description, type, location);
+  const embedding = await getEmbedding(text);
+  if (!embedding) return;
+  await withTenant(tenantId, userId, async (conn) => {
+    await conn.execute(
+      `UPDATE activities SET embedding = :emb WHERE id = :id`,
+      { emb: { val: new Float32Array(embedding), type: oracledb.DB_TYPE_VECTOR }, id }
+    );
+  });
+}
 
 export async function activityRoutes(app: FastifyInstance) {
   // GET /api/activities
@@ -137,7 +153,7 @@ export async function activityRoutes(app: FastifyInstance) {
     const {
       title, description, type, status, priority,
       startDate, location, visibility, ownerId,
-      attendeeIds, tagIds,
+      attendeeIds, tagIds, contactIds,
     } = request.body as {
       title?: string;
       description?: string;
@@ -150,6 +166,7 @@ export async function activityRoutes(app: FastifyInstance) {
       ownerId?: string;
       attendeeIds?: string[];
       tagIds?: string[];
+      contactIds?: Array<{ id: string; role?: string }>;
     };
 
     if (!title || title.trim().length === 0) {
@@ -197,6 +214,20 @@ export async function activityRoutes(app: FastifyInstance) {
           );
         }
       }
+
+      // Add contacts
+      if (contactIds?.length) {
+        for (const c of contactIds) {
+          await conn.execute(
+            `INSERT INTO activity_contacts (activity_id, contact_id, role) VALUES (:actId, :contactId, :role)`,
+            { actId: id, contactId: c.id, role: c.role || null }
+          );
+        }
+      }
+
+      // Fire-and-forget embedding generation
+      updateActivityEmbedding(id, request.user.tenantId, request.user.id, title.trim(), description, type, location)
+        .catch(err => console.warn("Activity embedding failed:", err));
 
       return reply.code(201).send({
         id,
@@ -255,6 +286,16 @@ export async function activityRoutes(app: FastifyInstance) {
         { outFormat: oracledb.OUT_FORMAT_OBJECT }
       );
 
+      // Contacts
+      const contactResult = await conn.execute<any>(
+        `SELECT c.id, c.name, c.phone, c.email, c.category, ac.role
+         FROM activity_contacts ac JOIN contacts c ON c.id = ac.contact_id
+         WHERE ac.activity_id = :id
+         ORDER BY c.name`,
+        { id },
+        { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      );
+
       // Albums
       const albumResult = await conn.execute<any>(
         `SELECT al.id, al.title, al.description,
@@ -298,6 +339,14 @@ export async function activityRoutes(app: FastifyInstance) {
           fileType: d.FILE_TYPE,
           fileSize: d.FILE_SIZE,
         })),
+        contacts: (contactResult.rows || []).map((c: any) => ({
+          id: c.ID,
+          name: c.NAME,
+          phone: c.PHONE,
+          email: c.EMAIL,
+          category: c.CATEGORY,
+          role: c.ROLE,
+        })),
         albums: (albumResult.rows || []).map((al: any) => ({
           id: al.ID,
           title: al.TITLE,
@@ -314,7 +363,7 @@ export async function activityRoutes(app: FastifyInstance) {
     const {
       title, description, type, status, priority,
       startDate, location, visibility, ownerId,
-      attendeeIds, tagIds,
+      attendeeIds, tagIds, contactIds,
     } = request.body as {
       title?: string;
       description?: string;
@@ -327,6 +376,7 @@ export async function activityRoutes(app: FastifyInstance) {
       ownerId?: string;
       attendeeIds?: string[];
       tagIds?: string[];
+      contactIds?: Array<{ id: string; role?: string }>;
     };
 
     if (!title || title.trim().length === 0) {
@@ -384,6 +434,21 @@ export async function activityRoutes(app: FastifyInstance) {
           );
         }
       }
+
+      // Replace contacts
+      await conn.execute(`DELETE FROM activity_contacts WHERE activity_id = :id`, { id });
+      if (contactIds?.length) {
+        for (const c of contactIds) {
+          await conn.execute(
+            `INSERT INTO activity_contacts (activity_id, contact_id, role) VALUES (:actId, :contactId, :role)`,
+            { actId: id, contactId: c.id, role: c.role || null }
+          );
+        }
+      }
+
+      // Fire-and-forget embedding update
+      updateActivityEmbedding(id, request.user.tenantId, request.user.id, title.trim(), description, type, location)
+        .catch(err => console.warn("Activity embedding update failed:", err));
 
       return { id, title: title.trim(), status: status || "PENDING" };
     });
@@ -484,6 +549,54 @@ export async function activityRoutes(app: FastifyInstance) {
     });
   });
 
+  // POST /api/activities/:id/attendees — add a member as attendee
+  app.post("/api/activities/:id/attendees", { preHandler: [requireAuth] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { userId } = request.body as { userId: string };
+
+    if (!userId) {
+      return reply.code(400).send({ error: "userId es obligatorio" });
+    }
+
+    return withTenant(request.user.tenantId, request.user.id, async (conn) => {
+      const check = await conn.execute<any>(
+        `SELECT id FROM activities WHERE id = :id`,
+        { id },
+        { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      );
+      if (!check.rows?.length) {
+        return reply.code(404).send({ error: "Actividad no encontrada" });
+      }
+
+      try {
+        await conn.execute(
+          `INSERT INTO activity_attendees (activity_id, user_id) VALUES (:actId, :userId)`,
+          { actId: id, userId }
+        );
+      } catch (err: any) {
+        if (err.errorNum === 1) {
+          return reply.code(409).send({ error: "Este miembro ya es participante" });
+        }
+        throw err;
+      }
+
+      return reply.code(201).send({ ok: true });
+    });
+  });
+
+  // DELETE /api/activities/:id/attendees/:userId — remove member as attendee
+  app.delete("/api/activities/:id/attendees/:userId", { preHandler: [requireAuth] }, async (request) => {
+    const { id, userId } = request.params as { id: string; userId: string };
+
+    return withTenant(request.user.tenantId, request.user.id, async (conn) => {
+      await conn.execute(
+        `DELETE FROM activity_attendees WHERE activity_id = :actId AND user_id = :userId`,
+        { actId: id, userId }
+      );
+      return { ok: true };
+    });
+  });
+
   // POST /api/activities/:id/documents — attach document
   app.post("/api/activities/:id/documents", { preHandler: [requireAuth] }, async (request, reply) => {
     const { id } = request.params as { id: string };
@@ -575,6 +688,54 @@ export async function activityRoutes(app: FastifyInstance) {
       await conn.execute(
         `DELETE FROM album_activities WHERE album_id = :albumId AND activity_id = :actId`,
         { albumId, actId: id }
+      );
+      return { ok: true };
+    });
+  });
+
+  // POST /api/activities/:id/contacts — attach contact
+  app.post("/api/activities/:id/contacts", { preHandler: [requireAuth] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { contactId, role } = request.body as { contactId: string; role?: string };
+
+    if (!contactId) {
+      return reply.code(400).send({ error: "contactId es obligatorio" });
+    }
+
+    return withTenant(request.user.tenantId, request.user.id, async (conn) => {
+      const check = await conn.execute<any>(
+        `SELECT id FROM activities WHERE id = :id`,
+        { id },
+        { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      );
+      if (!check.rows?.length) {
+        return reply.code(404).send({ error: "Actividad no encontrada" });
+      }
+
+      try {
+        await conn.execute(
+          `INSERT INTO activity_contacts (activity_id, contact_id, role) VALUES (:actId, :contactId, :role)`,
+          { actId: id, contactId, role: role || null }
+        );
+      } catch (err: any) {
+        if (err.errorNum === 1) {
+          return reply.code(409).send({ error: "Contacto ya vinculado" });
+        }
+        throw err;
+      }
+
+      return reply.code(201).send({ ok: true });
+    });
+  });
+
+  // DELETE /api/activities/:id/contacts/:contactId — detach contact
+  app.delete("/api/activities/:id/contacts/:contactId", { preHandler: [requireAuth] }, async (request) => {
+    const { id, contactId } = request.params as { id: string; contactId: string };
+
+    return withTenant(request.user.tenantId, request.user.id, async (conn) => {
+      await conn.execute(
+        `DELETE FROM activity_contacts WHERE activity_id = :actId AND contact_id = :contactId`,
+        { actId: id, contactId }
       );
       return { ok: true };
     });

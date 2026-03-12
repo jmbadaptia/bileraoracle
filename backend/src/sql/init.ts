@@ -82,7 +82,7 @@ async function init() {
   await sysConn.close();
   console.log("  Grants done.");
 
-  const sqlFiles = ["001_schema.sql", "002_vpd.sql", "003_seed.sql"];
+  const sqlFiles = ["001_schema.sql", "002_vpd.sql", "003_seed.sql", "004_vectors.sql", "005_conversations.sql", "006_contacts.sql", "007_chunks.sql"];
 
   for (const file of sqlFiles) {
     console.log(`Executing ${file}...`);
@@ -95,7 +95,8 @@ async function init() {
         await conn.execute(stmt);
       } catch (err: any) {
         // Ignore "already exists" (955), "duplicate" (1), "name already used" (955)
-        if (err.errorNum === 955 || err.errorNum === 1 || err.errorNum === 28003) {
+        // 955=already exists, 1=duplicate, 1430=column already exists, 28003=password
+        if (err.errorNum === 955 || err.errorNum === 1 || err.errorNum === 1430 || err.errorNum === 28003) {
           console.log(`  [${i + 1}] Skipped (already exists)`);
         } else {
           console.error(`  [${i + 1}] Error: ${err.message}`);

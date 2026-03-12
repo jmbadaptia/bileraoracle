@@ -7,6 +7,22 @@ import archiver from "archiver";
 import oracledb from "oracledb";
 import { withTenant } from "../lib/db.js";
 import { requireAuth } from "../middleware/auth.js";
+import { getEmbedding, buildAlbumText } from "../lib/ai.js";
+
+async function updateAlbumEmbedding(
+  id: string, tenantId: number, userId: string,
+  title: string, description?: string | null
+) {
+  const text = buildAlbumText(title, description);
+  const embedding = await getEmbedding(text);
+  if (!embedding) return;
+  await withTenant(tenantId, userId, async (conn) => {
+    await conn.execute(
+      `UPDATE albums SET embedding = :emb WHERE id = :id`,
+      { emb: { val: new Float32Array(embedding), type: oracledb.DB_TYPE_VECTOR }, id }
+    );
+  });
+}
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || "./uploads";
 
@@ -101,6 +117,10 @@ export async function albumRoutes(app: FastifyInstance) {
           createdBy: request.user.id,
         }
       );
+
+      // Fire-and-forget embedding generation
+      updateAlbumEmbedding(id, request.user.tenantId, request.user.id, title.trim(), description)
+        .catch(err => console.warn("Album embedding failed:", err));
 
       return reply.code(201).send({
         id,
@@ -221,6 +241,12 @@ export async function albumRoutes(app: FastifyInstance) {
           visibility: visibility || null,
         }
       );
+
+      // Fire-and-forget embedding update
+      if (title) {
+        updateAlbumEmbedding(id, request.user.tenantId, request.user.id, title.trim(), description)
+          .catch(err => console.warn("Album embedding update failed:", err));
+      }
 
       return { id, title: title?.trim(), description: description?.trim() || null };
     });

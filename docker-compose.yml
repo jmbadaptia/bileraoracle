@@ -16,6 +16,22 @@ services:
       retries: 20
       start_period: 180s
 
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    ports:
+      - "4100:4000"
+    volumes:
+      - ./litellm-config.yaml:/app/config.yaml
+    environment:
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+    command: ["--config", "/app/config.yaml"]
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:4000/health/liveliness')\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
   backend:
     build:
       context: ./backend
@@ -30,11 +46,14 @@ services:
       PORT: "4000"
       UPLOAD_DIR: /app/uploads
       NLS_LANG: AMERICAN_AMERICA.AL32UTF8
+      LITELLM_URL: http://litellm:4000
     volumes:
       - ./backend/src:/app/src
       - uploads:/app/uploads
     depends_on:
       db:
+        condition: service_healthy
+      litellm:
         condition: service_healthy
 
   frontend:
@@ -42,7 +61,7 @@ services:
       context: ./frontend
       target: dev
     ports:
-      - "3000:5173"
+      - "127.0.0.1:3001:5173"
     volumes:
       - ./frontend/src:/app/src
       - ./frontend/index.html:/app/index.html

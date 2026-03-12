@@ -2,7 +2,8 @@ import { useState, useRef } from "react";
 import { useParams, Link } from "react-router";
 import {
   Pencil, CalendarDays, MapPin, Users, UserPlus, UserMinus,
-  Paperclip, FileText, Download, X, Upload, Plus, ImageIcon,
+  Paperclip, FileText, Download, X, Upload, Plus, ImageIcon, Bot, Loader2,
+  Phone, Mail,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
@@ -10,6 +11,9 @@ import {
   useActivity, useAttendActivity, useUnattendActivity,
   useDocuments, useUploadDocument, useAttachDocument, useDetachDocument,
   useAlbums, useAttachAlbum, useDetachAlbum,
+  useContacts, useAttachContact, useDetachContact,
+  useMembers, useAddAttendee, useRemoveAttendee,
+  useAISummarize,
 } from "@/api/hooks";
 import { formatDateTime } from "@/lib/utils";
 import { ACTIVITY_TYPE_LABELS, ACTIVITY_STATUS_LABELS } from "@/lib/constants";
@@ -40,8 +44,15 @@ export function ActividadDetailPage() {
 
   const [showAttachDialog, setShowAttachDialog] = useState(false);
   const [showAttachAlbumDialog, setShowAttachAlbumDialog] = useState(false);
+  const [showAddParticipantDialog, setShowAddParticipantDialog] = useState(false);
   const attachAlbum = useAttachAlbum(id!);
+  const attachContact = useAttachContact(id!);
+  const detachContact = useDetachContact(id!);
   const detachAlbum = useDetachAlbum(id!);
+  const addAttendee = useAddAttendee(id!);
+  const removeAttendee = useRemoveAttendee(id!);
+  const summarize = useAISummarize();
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
 
   if (isLoading || !activity) {
     return (
@@ -84,15 +95,48 @@ export function ActividadDetailPage() {
             Creado por {activity.createdByName}
           </p>
         </div>
-        {canEdit && (
-          <Link to={`/actividades/${activity.id}/editar`}>
-            <Button variant="outline">
-              <Pencil className="mr-2 h-4 w-4" />
-              Editar
-            </Button>
-          </Link>
-        )}
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            disabled={summarize.isPending}
+            onClick={() =>
+              summarize.mutate(id!, {
+                onSuccess: (data) => setAiSummary(data.summary),
+                onError: () => toast.error("Error al generar resumen"),
+              })
+            }
+          >
+            {summarize.isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Bot className="mr-2 h-4 w-4" />
+            )}
+            Resumir con IA
+          </Button>
+          {canEdit && (
+            <Link to={`/actividades/${activity.id}/editar`}>
+              <Button variant="outline">
+                <Pencil className="mr-2 h-4 w-4" />
+                Editar
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
+
+      {aiSummary && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Bot className="h-4 w-4 text-primary" />
+              Resumen IA
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm">{aiSummary}</p>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Details */}
@@ -143,59 +187,138 @@ export function ActividadDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Attendees */}
+        {/* Participantes (unified: internal + external) */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-base">Participantes</CardTitle>
-            {user && (
-              isAttending ? (
+            <div className="flex gap-1.5">
+              {user && (
+                isAttending ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={unattend.isPending}
+                    onClick={() =>
+                      unattend.mutate(undefined, {
+                        onSuccess: () => toast.success("Te has desapuntado"),
+                        onError: () => toast.error("Error al desapuntarse"),
+                      })
+                    }
+                  >
+                    <UserMinus className="mr-1.5 h-3.5 w-3.5" />
+                    Desapuntarme
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    disabled={attend.isPending}
+                    onClick={() =>
+                      attend.mutate(undefined, {
+                        onSuccess: () => toast.success("Te has apuntado"),
+                        onError: (err: any) =>
+                          toast.error(err?.message || "Error al apuntarse"),
+                      })
+                    }
+                  >
+                    <UserPlus className="mr-1.5 h-3.5 w-3.5" />
+                    Apuntarme
+                  </Button>
+                )
+              )}
+              {canEdit && (
                 <Button
+                  size="sm"
                   variant="outline"
-                  size="sm"
-                  disabled={unattend.isPending}
-                  onClick={() =>
-                    unattend.mutate(undefined, {
-                      onSuccess: () => toast.success("Te has desapuntado"),
-                      onError: () => toast.error("Error al desapuntarse"),
-                    })
-                  }
+                  onClick={() => setShowAddParticipantDialog(true)}
                 >
-                  <UserMinus className="mr-1.5 h-3.5 w-3.5" />
-                  Desapuntarme
+                  <Plus className="mr-1.5 h-3.5 w-3.5" />
+                  Añadir
                 </Button>
-              ) : (
-                <Button
-                  size="sm"
-                  disabled={attend.isPending}
-                  onClick={() =>
-                    attend.mutate(undefined, {
-                      onSuccess: () => toast.success("Te has apuntado"),
-                      onError: (err: any) =>
-                        toast.error(err?.message || "Error al apuntarse"),
-                    })
-                  }
-                >
-                  <UserPlus className="mr-1.5 h-3.5 w-3.5" />
-                  Apuntarme
-                </Button>
-              )
-            )}
+              )}
+            </div>
           </CardHeader>
           <CardContent>
-            {!activity.attendees || activity.attendees.length === 0 ? (
+            {((!activity.attendees || activity.attendees.length === 0) &&
+              (!activity.contacts || activity.contacts.length === 0)) ? (
               <p className="text-sm text-muted-foreground">
                 Sin participantes registrados.
               </p>
             ) : (
-              <div className="space-y-2">
-                {activity.attendees.map((attendee: any) => (
-                  <Link
-                    key={attendee.id}
-                    to={`/miembros/${attendee.id}`}
-                    className="block p-2 rounded-md hover:bg-muted transition-colors"
+              <div className="space-y-1.5">
+                {/* Internal members */}
+                {(activity.attendees || []).map((attendee: any) => (
+                  <div
+                    key={`m-${attendee.id}`}
+                    className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 transition-colors"
                   >
-                    <p className="text-sm font-medium">{attendee.name}</p>
-                  </Link>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{attendee.name}</p>
+                      <Badge variant="secondary" className="text-[10px] mt-0.5">
+                        Miembro
+                      </Badge>
+                    </div>
+                    {canEdit && attendee.id !== activity.ownerId && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive hover:text-destructive shrink-0"
+                        onClick={() =>
+                          removeAttendee.mutate(attendee.id, {
+                            onSuccess: () => toast.success("Participante eliminado"),
+                            onError: () => toast.error("Error al eliminar"),
+                          })
+                        }
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                {/* External contacts */}
+                {(activity.contacts || []).map((c: any) => (
+                  <div
+                    key={`c-${c.id}`}
+                    className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="min-w-0">
+                      <Link
+                        to={`/contactos/${c.id}`}
+                        className="text-sm font-medium hover:underline truncate block"
+                      >
+                        {c.name}
+                      </Link>
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                        <Badge className="text-[10px] bg-orange-100 text-orange-800 border-orange-200" variant="outline">
+                          Externo
+                        </Badge>
+                        {c.role && (
+                          <span className="text-xs text-muted-foreground">
+                            {c.role}
+                          </span>
+                        )}
+                        {c.phone && (
+                          <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                            <Phone className="h-3 w-3" />{c.phone}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {canEdit && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive hover:text-destructive shrink-0"
+                        onClick={() =>
+                          detachContact.mutate(c.id, {
+                            onSuccess: () => toast.success("Contacto desvinculado"),
+                            onError: () => toast.error("Error al desvincular"),
+                          })
+                        }
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
                 ))}
               </div>
             )}
@@ -333,6 +456,26 @@ export function ActividadDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Add Participant Dialog */}
+      <AddParticipantDialog
+        open={showAddParticipantDialog}
+        onClose={() => setShowAddParticipantDialog(false)}
+        existingAttendeeIds={(activity.attendees || []).map((a: any) => a.id)}
+        existingContactIds={(activity.contacts || []).map((c: any) => c.id)}
+        onAddMember={(userId) =>
+          addAttendee.mutate(userId, {
+            onSuccess: () => toast.success("Miembro añadido"),
+            onError: (err: any) => toast.error(err?.message || "Error al añadir"),
+          })
+        }
+        onAddContact={(contactId, role) =>
+          attachContact.mutate({ contactId, role }, {
+            onSuccess: () => toast.success("Contacto vinculado"),
+            onError: (err: any) => toast.error(err?.message || "Error al vincular"),
+          })
+        }
+      />
 
       {/* Attach Album Dialog */}
       <AttachAlbumDialog
@@ -615,6 +758,165 @@ function AttachAlbumDialog({
                 </div>
               </button>
             ))
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function AddParticipantDialog({
+  open,
+  onClose,
+  existingAttendeeIds,
+  existingContactIds,
+  onAddMember,
+  onAddContact,
+}: {
+  open: boolean;
+  onClose: () => void;
+  existingAttendeeIds: string[];
+  existingContactIds: string[];
+  onAddMember: (userId: string) => void;
+  onAddContact: (contactId: string, role?: string) => void;
+}) {
+  const [tab, setTab] = useState<"members" | "contacts">("members");
+  const [search, setSearch] = useState("");
+  const [role, setRole] = useState("");
+  const { data: membersData } = useMembers({ active: "true", limit: "100" });
+  const { data: contactsData } = useContacts({ limit: "200" });
+  const allMembers = membersData?.members || [];
+  const allContacts = contactsData?.contacts || [];
+
+  const filteredMembers = allMembers.filter(
+    (m: any) =>
+      !existingAttendeeIds.includes(m.id) &&
+      (m.name.toLowerCase().includes(search.toLowerCase()) ||
+        (m.email && m.email.toLowerCase().includes(search.toLowerCase())))
+  );
+
+  const filteredContacts = allContacts.filter(
+    (c: any) =>
+      !existingContactIds.includes(c.id) &&
+      (c.name.toLowerCase().includes(search.toLowerCase()) ||
+        (c.email && c.email.toLowerCase().includes(search.toLowerCase())))
+  );
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Añadir participante</DialogTitle>
+        </DialogHeader>
+
+        {/* Tabs */}
+        <div className="flex gap-2 border-b pb-2">
+          <button
+            type="button"
+            className={`text-sm px-3 py-1 rounded-md transition-colors ${
+              tab === "members"
+                ? "bg-primary text-primary-foreground"
+                : "hover:bg-muted"
+            }`}
+            onClick={() => { setTab("members"); setSearch(""); }}
+          >
+            <Users className="inline h-3.5 w-3.5 mr-1" />
+            Miembros
+          </button>
+          <button
+            type="button"
+            className={`text-sm px-3 py-1 rounded-md transition-colors ${
+              tab === "contacts"
+                ? "bg-primary text-primary-foreground"
+                : "hover:bg-muted"
+            }`}
+            onClick={() => { setTab("contacts"); setSearch(""); }}
+          >
+            Contactos externos
+          </button>
+        </div>
+
+        <Input
+          placeholder={tab === "members" ? "Buscar miembro..." : "Buscar contacto..."}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+
+        {tab === "contacts" && (
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">
+              Rol en esta actividad (opcional)
+            </Label>
+            <Input
+              placeholder="Ej: ponente, organizador, proveedor..."
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+            />
+          </div>
+        )}
+
+        <div className="max-h-60 overflow-y-auto space-y-1">
+          {tab === "members" ? (
+            filteredMembers.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">
+                No hay miembros disponibles
+              </p>
+            ) : (
+              filteredMembers.map((member: any) => (
+                <button
+                  key={member.id}
+                  type="button"
+                  className="w-full flex items-center gap-3 p-2 rounded-md hover:bg-muted text-left transition-colors"
+                  onClick={() => {
+                    onAddMember(member.id);
+                    onClose();
+                  }}
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{member.name}</p>
+                    {member.email && (
+                      <p className="text-xs text-muted-foreground truncate">{member.email}</p>
+                    )}
+                  </div>
+                </button>
+              ))
+            )
+          ) : (
+            filteredContacts.length === 0 ? (
+              <div className="text-center py-4">
+                <p className="text-sm text-muted-foreground">
+                  No hay contactos disponibles
+                </p>
+                <Link to="/contactos/nuevo" className="text-sm text-primary hover:underline mt-1 inline-block">
+                  Crear nuevo contacto
+                </Link>
+              </div>
+            ) : (
+              filteredContacts.map((contact: any) => (
+                <button
+                  key={contact.id}
+                  type="button"
+                  className="w-full flex items-center gap-3 p-2 rounded-md hover:bg-muted text-left transition-colors"
+                  onClick={() => {
+                    onAddContact(contact.id, role.trim() || undefined);
+                    setRole("");
+                    onClose();
+                  }}
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{contact.name}</p>
+                    <div className="flex items-center gap-2">
+                      {contact.category && (
+                        <span className="text-xs text-muted-foreground">{contact.category}</span>
+                      )}
+                      {contact.email && (
+                        <span className="text-xs text-muted-foreground">{contact.email}</span>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              ))
+            )
           )}
         </div>
       </DialogContent>

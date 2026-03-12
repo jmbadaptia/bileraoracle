@@ -14,6 +14,8 @@ export const NAV_ITEMS = [
   },
   { label: "Documentos", href: "/documentos", icon: "FileText" },
   { label: "Galería", href: "/galeria", icon: "Image" },
+  { label: "Contactos", href: "/contactos", icon: "Contact" },
+  { label: "Asistente IA", href: "/asistente", icon: "BotMessageSquare" },
 ] as const;
 
 export const ADMIN_NAV_ITEMS = [
@@ -38,6 +40,18 @@ export const ROLE_LABELS: Record<string, string> = {
   ADMIN: "Administrador",
   MEMBER: "Miembro",
 };
+
+export const CONTACT_CATEGORY_OPTIONS = [
+  "Colaborador/a",
+  "Proveedor/a",
+  "Institución",
+  "Ponente",
+  "Medio de comunicación",
+  "Asociación",
+  "Político/a",
+  "Vecino/a",
+  "Otro",
+];
 
 export const DOCUMENT_STATUS_LABELS: Record<string, string> = {
   PENDING: "Pendiente",

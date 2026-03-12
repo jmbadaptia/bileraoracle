@@ -12,6 +12,10 @@ import { documentRoutes } from "./routes/documents.js";
 import { albumRoutes } from "./routes/albums.js";
 import { dashboardRoutes } from "./routes/dashboard.js";
 import { searchRoutes } from "./routes/search.js";
+import { aiRoutes } from "./routes/ai.js";
+import { contactRoutes } from "./routes/contacts.js";
+import { conversationRoutes } from "./routes/conversations.js";
+import { chatRoutes } from "./routes/chat.js";
 
 const app = Fastify({ logger: true });
 
@@ -43,6 +47,10 @@ async function start() {
   await app.register(albumRoutes);
   await app.register(dashboardRoutes);
   await app.register(searchRoutes);
+  await app.register(aiRoutes);
+  await app.register(contactRoutes);
+  await app.register(conversationRoutes);
+  await app.register(chatRoutes);
 
   // Health check
   app.get("/api/health", async () => ({ status: "ok" }));

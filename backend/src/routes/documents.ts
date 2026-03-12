@@ -5,6 +5,7 @@ import path from "path";
 import oracledb from "oracledb";
 import { withTenant } from "../lib/db.js";
 import { requireAuth, requireAdmin } from "../middleware/auth.js";
+import { processDocument } from "../lib/processor.js";
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || "./uploads";
 
@@ -111,7 +112,7 @@ export async function documentRoutes(app: FastifyInstance) {
     return withTenant(request.user.tenantId, request.user.id, async (conn) => {
       await conn.execute(
         `INSERT INTO documents (id, tenant_id, title, description, file_path, file_name, file_type, file_size, status, visibility, uploaded_by)
-         VALUES (:id, :tenantId, :title, :description, :filePath, :fileName, :fileType, :fileSize, 'READY', :visibility, :uploadedBy)`,
+         VALUES (:id, :tenantId, :title, :description, :filePath, :fileName, :fileType, :fileSize, 'PENDING', :visibility, :uploadedBy)`,
         {
           id,
           tenantId: request.user.tenantId,
@@ -126,13 +127,19 @@ export async function documentRoutes(app: FastifyInstance) {
         }
       );
 
+      // Fire-and-forget: extract text, chunk, embed
+      processDocument(
+        id, request.user.tenantId, request.user.id,
+        filePath, data.mimetype, title.trim(), description, data.filename
+      ).catch(err => console.error("Document processing failed:", err));
+
       return reply.code(201).send({
         id,
         title: title.trim(),
         fileName: data.filename,
         fileType: data.mimetype,
         fileSize: buffer.length,
-        status: "READY",
+        status: "PENDING",
       });
     });
   });
@@ -145,6 +152,7 @@ export async function documentRoutes(app: FastifyInstance) {
       const result = await conn.execute<any>(
         `SELECT d.id, d.title, d.description, d.file_path, d.file_name, d.file_type,
                 d.file_size, d.status, d.visibility, d.uploaded_by, d.created_at, d.updated_at,
+                d.chunk_count, d.processing_error,
                 u.name AS uploader_name
          FROM documents d
          LEFT JOIN users u ON u.id = d.uploaded_by
@@ -180,6 +188,8 @@ export async function documentRoutes(app: FastifyInstance) {
         uploaderName: doc.UPLOADER_NAME,
         createdAt: doc.CREATED_AT,
         updatedAt: doc.UPDATED_AT,
+        chunkCount: doc.CHUNK_COUNT || 0,
+        processingError: doc.PROCESSING_ERROR || null,
         activities: (actResult.rows || []).map((a: any) => ({
           id: a.ID,
           title: a.TITLE,
@@ -217,6 +227,38 @@ export async function documentRoutes(app: FastifyInstance) {
       }
 
       return { ok: true };
+    });
+  });
+
+  // POST /api/documents/:id/reprocess
+  app.post("/api/documents/:id/reprocess", { preHandler: [requireAdmin] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+
+    return withTenant(request.user.tenantId, request.user.id, async (conn) => {
+      const result = await conn.execute<any>(
+        `SELECT id, file_path, file_name, file_type, title, description FROM documents WHERE id = :id`,
+        { id },
+        { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      );
+
+      const doc = result.rows?.[0];
+      if (!doc) {
+        return reply.code(404).send({ error: "Documento no encontrado" });
+      }
+
+      // Set back to PENDING
+      await conn.execute(
+        `UPDATE documents SET status = 'PENDING', processing_error = NULL, updated_at = SYSTIMESTAMP WHERE id = :id`,
+        { id }
+      );
+
+      // Fire-and-forget
+      processDocument(
+        id, request.user.tenantId, request.user.id,
+        doc.FILE_PATH, doc.FILE_TYPE, doc.TITLE, doc.DESCRIPTION, doc.FILE_NAME
+      ).catch(err => console.error("Reprocess failed:", err));
+
+      return { ok: true, status: "PENDING" };
     });
   });
 
