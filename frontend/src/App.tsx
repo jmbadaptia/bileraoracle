@@ -22,6 +22,9 @@ import { ContactoDetailPage } from "@/pages/contacto-detail";
 import { ContactoFormPage } from "@/pages/contacto-form";
 import { MiembrosPage } from "@/pages/miembros";
 import { MiembroDetailPage } from "@/pages/miembro-detail";
+import { GruposPage } from "@/pages/grupos";
+import { GrupoDetailPage } from "@/pages/grupo-detail";
+import { GrupoFormPage } from "@/pages/grupo-form";
 import { AsistentePage } from "@/pages/asistente";
 import { useParams } from "react-router";
 
@@ -73,6 +76,9 @@ export function App() {
         <Route path="galeria/:id/editar" element={<AlbumFormPage />} />
         <Route path="miembros" element={<MiembrosPage />} />
         <Route path="miembros/:id" element={<MiembroDetailPage />} />
+        <Route path="grupos" element={<GruposPage />} />
+        <Route path="grupos/nuevo" element={<AdminRoute><GrupoFormPage /></AdminRoute>} />
+        <Route path="grupos/:id" element={<GrupoDetailPage />} />
         <Route path="contactos" element={<ContactosPage />} />
         <Route path="contactos/nuevo" element={<ContactoFormPage />} />
         <Route path="contactos/:id" element={<ContactoDetailPage />} />

@@ -11,6 +11,7 @@ import {
   Image,
   BotMessageSquare,
   Contact,
+  UsersRound,
   Plus,
   Trash2,
   MessageSquare,
@@ -31,6 +32,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Shield,
   BotMessageSquare,
   Contact,
+  UsersRound,
 };
 
 interface SidebarProps {

@@ -13,6 +13,7 @@ export const NAV_ITEMS = [
     ],
   },
   { label: "Miembros", href: "/miembros", icon: "Users" },
+  { label: "Grupos", href: "/grupos", icon: "UsersRound" },
   { label: "Documentos", href: "/documentos", icon: "FileText" },
   { label: "Galería", href: "/galeria", icon: "Image" },
   { label: "Contactos", href: "/contactos", icon: "Contact" },

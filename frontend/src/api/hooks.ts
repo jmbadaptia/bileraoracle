@@ -483,6 +483,76 @@ export function useContactCategories() {
   });
 }
 
+// ---- Groups ----
+export function useGroups(params?: Record<string, string>) {
+  const search = new URLSearchParams(params).toString();
+  return useQuery({
+    queryKey: ["groups", params],
+    queryFn: () => api.get<any>(`/groups${search ? `?${search}` : ""}`),
+  });
+}
+
+export function useGroup(id: string) {
+  return useQuery({
+    queryKey: ["groups", id],
+    queryFn: () => api.get<any>(`/groups/${id}`),
+    enabled: !!id,
+  });
+}
+
+export function useCreateGroup() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { name: string; description?: string }) =>
+      api.post("/groups", data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["groups"] }),
+  });
+}
+
+export function useUpdateGroup(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { name: string; description?: string }) =>
+      api.put(`/groups/${id}`, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["groups"] });
+      qc.invalidateQueries({ queryKey: ["groups", id] });
+    },
+  });
+}
+
+export function useDeleteGroup() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/groups/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["groups"] }),
+  });
+}
+
+export function useAddGroupMember(groupId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) =>
+      api.post(`/groups/${groupId}/members`, { userId }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["groups", groupId] });
+      qc.invalidateQueries({ queryKey: ["groups"] });
+    },
+  });
+}
+
+export function useRemoveGroupMember(groupId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) =>
+      api.delete(`/groups/${groupId}/members/${userId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["groups", groupId] });
+      qc.invalidateQueries({ queryKey: ["groups"] });
+    },
+  });
+}
+
 // ---- AI ----
 export function useAIChat() {
   return useMutation({
