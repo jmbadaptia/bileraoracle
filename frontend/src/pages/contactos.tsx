@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import { Plus, Search, Phone, Mail, Globe, Trash2 } from "lucide-react";
+import { Plus, Search, Phone, Mail, Globe, Trash2, Contact } from "lucide-react";
 import { toast } from "sonner";
 import { useContacts, useDeleteContact, useContactCategories } from "@/api/hooks";
 import { useAuth } from "@/lib/auth";
@@ -28,7 +28,8 @@ export function ContactosPage() {
   const contacts = data?.contacts || [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Contactos</h1>
@@ -39,26 +40,26 @@ export function ContactosPage() {
         <Link to="/contactos/nuevo">
           <Button>
             <Plus className="mr-2 h-4 w-4" />
-            Nuevo contacto
+            Nuevo
           </Button>
         </Link>
       </div>
 
-      {/* Filters */}
-      <div className="flex gap-3 flex-wrap">
+      {/* Filter bar */}
+      <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar por nombre, email o teléfono..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
+            className="pl-9 h-9"
           />
         </div>
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+          className="h-9 rounded-md border border-input bg-background px-3 text-sm min-w-[160px]"
         >
           <option value="">Todas las categorías</option>
           {categories.map((cat: string) => (
@@ -67,38 +68,66 @@ export function ContactosPage() {
         </select>
       </div>
 
-      {/* Contact list */}
+      {/* Results */}
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Cargando...</p>
       ) : contacts.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <Contact className="h-10 w-10 text-muted-foreground/50 mb-3" />
+          <p className="text-sm text-muted-foreground">
             {search || category
               ? "No se encontraron contactos con esos filtros"
               : "No hay contactos todavía"}
           </p>
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {contacts.map((contact: any) => (
-            <Link
-              key={contact.id}
-              to={`/contactos/${contact.id}`}
-              className="group block rounded-lg border p-4 hover:bg-muted/50 hover:shadow-sm transition-all"
-            >
-              <div className="flex items-start justify-between">
-                <div className="min-w-0">
-                  <p className="font-medium truncate">{contact.name}</p>
-                  {contact.category && (
-                    <Badge variant="secondary" className="mt-1 text-xs">
-                      {contact.category}
-                    </Badge>
-                  )}
+        <>
+          <p className="text-xs text-muted-foreground">
+            {contacts.length} contacto{contacts.length !== 1 ? "s" : ""}
+          </p>
+          <div className="rounded-lg border divide-y">
+            {contacts.map((contact: any) => (
+              <Link
+                key={contact.id}
+                to={`/contactos/${contact.id}`}
+                className="flex items-center gap-4 px-4 py-3 hover:bg-muted/50 transition-colors group"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-medium truncate group-hover:text-primary transition-colors">
+                      {contact.name}
+                    </h3>
+                    {contact.category && (
+                      <Badge variant="secondary" className="text-[11px] shrink-0">
+                        {contact.category}
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5 text-xs text-muted-foreground">
+                    {contact.email && (
+                      <span className="flex items-center gap-1">
+                        <Mail className="h-3 w-3" />
+                        {contact.email}
+                      </span>
+                    )}
+                    {contact.phone && (
+                      <span className="flex items-center gap-1">
+                        <Phone className="h-3 w-3" />
+                        {contact.phone}
+                      </span>
+                    )}
+                    {contact.web && (
+                      <span className="flex items-center gap-1">
+                        <Globe className="h-3 w-3" />
+                        {contact.web}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 {isAdmin && (
                   <button
                     type="button"
-                    className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-destructive/10 text-destructive transition-opacity"
+                    className="opacity-0 group-hover:opacity-100 p-1.5 rounded hover:bg-destructive/10 text-destructive transition-opacity shrink-0"
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -108,30 +137,10 @@ export function ContactosPage() {
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 )}
-              </div>
-              <div className="mt-3 space-y-1">
-                {contact.phone && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Phone className="h-3.5 w-3.5" />
-                    <span className="truncate">{contact.phone}</span>
-                  </div>
-                )}
-                {contact.email && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Mail className="h-3.5 w-3.5" />
-                    <span className="truncate">{contact.email}</span>
-                  </div>
-                )}
-                {contact.web && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Globe className="h-3.5 w-3.5" />
-                    <span className="truncate">{contact.web}</span>
-                  </div>
-                )}
-              </div>
-            </Link>
-          ))}
-        </div>
+              </Link>
+            ))}
+          </div>
+        </>
       )}
 
       {/* Delete confirmation */}

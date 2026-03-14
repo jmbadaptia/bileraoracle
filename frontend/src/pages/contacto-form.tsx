@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { User } from "lucide-react";
 
 export function ContactoFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -85,7 +86,8 @@ export function ContactoFormPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">
+      <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+        <User className="h-6 w-6 text-muted-foreground" />
         {isEdit ? "Editar contacto" : "Nuevo contacto"}
       </h1>
 

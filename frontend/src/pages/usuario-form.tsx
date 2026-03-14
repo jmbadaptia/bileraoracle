@@ -15,6 +15,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { UserPlus } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function UsuarioFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -38,8 +40,19 @@ export function UsuarioFormPage() {
       <div className="max-w-2xl mx-auto">
         <Card>
           <CardHeader>
-            <CardTitle>Cargando...</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-muted-foreground" />
+              Editar Usuario
+            </CardTitle>
           </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Skeleton className="h-9 w-full" />
+              <Skeleton className="h-9 w-full" />
+              <Skeleton className="h-9 w-full" />
+              <Skeleton className="h-9 w-full" />
+            </div>
+          </CardContent>
         </Card>
       </div>
     );
@@ -83,7 +96,8 @@ export function UsuarioFormPage() {
     <div className="max-w-2xl mx-auto space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <UserPlus className="h-5 w-5 text-muted-foreground" />
             {isEdit ? "Editar Usuario" : "Nuevo Usuario"}
           </CardTitle>
         </CardHeader>

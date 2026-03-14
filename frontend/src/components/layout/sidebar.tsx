@@ -6,13 +6,13 @@ import {
   CalendarDays,
   FileText,
   Shield,
-  ChevronDown,
-  ChevronRight,
   Image,
   BotMessageSquare,
   Contact,
   UsersRound,
   BookOpen,
+  SquareKanban,
+  History,
   Plus,
   Trash2,
   MessageSquare,
@@ -20,7 +20,7 @@ import {
   PanelLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { APP_NAME, NAV_ITEMS, ADMIN_NAV_ITEMS } from "@/lib/constants";
+import { APP_NAME, NAV_SECTIONS } from "@/lib/constants";
 import { useConversations, useDeleteConversation } from "@/api/hooks";
 import type { ConversationSummary } from "@/types/chat";
 
@@ -35,10 +35,11 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Contact,
   UsersRound,
   BookOpen,
+  SquareKanban,
+  History,
 };
 
 interface SidebarProps {
-  userRole: string;
   collapsed: boolean;
   onToggle: () => void;
 }
@@ -71,7 +72,7 @@ const API_BASE =
   import.meta.env.VITE_API_URL ||
   `${window.location.protocol}//${window.location.hostname}:4000/api`;
 
-export function Sidebar({ userRole, collapsed, onToggle }: SidebarProps) {
+export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { data: conversations = [] } = useConversations();
@@ -80,14 +81,21 @@ export function Sidebar({ userRole, collapsed, onToggle }: SidebarProps) {
 
   const groups = useMemo(() => groupByDate(conversations), [conversations]);
 
+  // Collect all nav hrefs to find the most specific match
+  const allHrefs = NAV_SECTIONS.flatMap((s) => s.items.map((i) => i.href));
+
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
-    return pathname.startsWith(href);
+    const matches = pathname === href || pathname.startsWith(href + "/");
+    if (!matches) return false;
+    // Only active if no other href is a more specific match
+    return !allHrefs.some(
+      (other) =>
+        other !== href &&
+        other.length > href.length &&
+        (pathname === other || pathname.startsWith(other + "/"))
+    );
   };
-
-  const mainNavItems = NAV_ITEMS.filter((item) => item.href !== "/asistente");
-  const asistenteItem = NAV_ITEMS.find((item) => item.href === "/asistente");
-  const AsistenteIcon = asistenteItem ? iconMap[asistenteItem.icon] : BotMessageSquare;
 
   return (
     <aside
@@ -139,185 +147,127 @@ export function Sidebar({ userRole, collapsed, onToggle }: SidebarProps) {
         </div>
       )}
 
-      {/* Main nav items */}
-      <div className={cn("pt-4 space-y-1 shrink-0", collapsed ? "px-2" : "px-3")}>
-        {mainNavItems.map((item) => {
-          const Icon = iconMap[item.icon];
-          const hasChildren = "children" in item && item.children;
-          const parentActive = isActive(item.href);
-          return (
-            <div key={item.href}>
-              <Link
-                to={hasChildren ? item.children![0].href : item.href}
-                className={cn(
-                  "flex items-center rounded-md text-sm font-medium transition-colors",
-                  collapsed ? "justify-center p-2.5" : "gap-3 px-3 py-2",
-                  parentActive
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                )}
-                title={collapsed ? item.label : undefined}
-              >
-                {Icon && <Icon className="h-4 w-4 shrink-0" />}
-                {!collapsed && <span className="flex-1">{item.label}</span>}
-                {!collapsed && hasChildren && (
-                  parentActive
-                    ? <ChevronDown className="h-3.5 w-3.5 opacity-60" />
-                    : <ChevronRight className="h-3.5 w-3.5 opacity-60" />
-                )}
-              </Link>
-              {!collapsed && hasChildren && parentActive && (
-                <div className="ml-4 mt-1 space-y-0.5 border-l border-sidebar-border pl-3">
-                  {item.children!.map((child) => {
-                    const childActive = child.href === "/actividades"
-                      ? pathname === "/actividades"
-                      : pathname.startsWith(child.href);
-                    return (
+      {/* Nav sections */}
+      <div className="flex-1 overflow-y-auto">
+        {NAV_SECTIONS.map((section, sIdx) => (
+          <div key={sIdx} className={cn(collapsed ? "px-2" : "px-3", sIdx === 0 ? "pt-4" : "pt-2")}>
+            {/* Section label */}
+            {section.label && !collapsed && (
+              <p className="px-3 pb-1 text-[10px] font-semibold text-sidebar-foreground/40 uppercase tracking-wider">
+                {section.label}
+              </p>
+            )}
+            {section.label && collapsed && (
+              <div className="my-1 mx-2 border-t border-sidebar-border" />
+            )}
+
+            {/* Section items */}
+            <div className="space-y-0.5">
+              {section.items.map((item) => {
+                const Icon = iconMap[item.icon];
+                const active = isActive(item.href);
+                const isAsistente = item.href === "/asistente";
+
+                return (
+                  <div key={item.href}>
+                    {/* Asistente gets special rendering with + button */}
+                    {isAsistente && !collapsed ? (
+                      <div className="flex items-center">
+                        <Link
+                          to="/asistente"
+                          className={cn(
+                            "flex-1 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                            active
+                              ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                              : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                          )}
+                        >
+                          {Icon && <Icon className="h-4 w-4 shrink-0" />}
+                          <span className="flex-1">{item.label}</span>
+                        </Link>
+                        <button
+                          onClick={() => navigate("/asistente/nueva")}
+                          className="p-1.5 rounded-md text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+                          title="Nueva conversación"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ) : (
                       <Link
-                        key={child.href}
-                        to={child.href}
+                        to={item.href}
                         className={cn(
-                          "block rounded-md px-3 py-1.5 text-sm transition-colors",
-                          childActive
-                            ? "font-medium text-sidebar-foreground bg-sidebar-accent"
-                            : "text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+                          "flex items-center rounded-md text-sm font-medium transition-colors",
+                          collapsed ? "justify-center p-2.5" : "gap-3 px-3 py-2",
+                          active
+                            ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                         )}
+                        title={collapsed ? item.label : undefined}
                       >
-                        {child.label}
+                        {Icon && <Icon className="h-4 w-4 shrink-0" />}
+                        {!collapsed && <span className="flex-1">{item.label}</span>}
                       </Link>
-                    );
-                  })}
-                </div>
-              )}
+                    )}
+
+                    {/* Conversation list under Asistente IA */}
+                    {isAsistente && !collapsed && groups.length > 0 && (
+                      <div className="ml-4 mt-0.5 space-y-0 border-l border-sidebar-border pl-2 pb-1">
+                        {groups.map((group) => (
+                          <div key={group.label} className="mt-1.5 first:mt-0.5">
+                            <p className="text-[10px] font-semibold text-sidebar-foreground/40 uppercase tracking-wider px-2 mb-0.5">
+                              {group.label}
+                            </p>
+                            {group.items.map((conv) => (
+                              <button
+                                key={conv.id}
+                                onClick={() => navigate(`/asistente/${conv.id}`)}
+                                className={cn(
+                                  "w-full flex items-center gap-2 text-left rounded-md px-2 py-1.5 text-xs group transition-colors",
+                                  pathname === `/asistente/${conv.id}`
+                                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                                    : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                                )}
+                              >
+                                <MessageSquare className="h-3 w-3 shrink-0" />
+                                <span className="truncate flex-1">{conv.title}</span>
+                                <span
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteConversation.mutate(conv.id, {
+                                      onSuccess: () => {
+                                        if (pathname === `/asistente/${conv.id}`) {
+                                          navigate("/asistente");
+                                        }
+                                      },
+                                    });
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.stopPropagation();
+                                      deleteConversation.mutate(conv.id);
+                                    }
+                                  }}
+                                  className="opacity-0 group-hover:opacity-100 shrink-0 p-0.5 rounded hover:bg-sidebar-accent transition-opacity"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
 
-      {/* Asistente IA + conversations */}
-      {!collapsed ? (
-        <div className="flex flex-col mt-1 min-h-0 flex-1">
-          <div className="px-3 shrink-0">
-            <div className="flex items-center">
-              <Link
-                to="/asistente"
-                className={cn(
-                  "flex-1 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                  isActive("/asistente")
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                )}
-              >
-                {AsistenteIcon && <AsistenteIcon className="h-4 w-4" />}
-                Asistente IA
-              </Link>
-              <button
-                onClick={() => navigate("/asistente/nueva")}
-                className="p-1.5 rounded-md text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
-                title="Nueva conversacion"
-              >
-                <Plus className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          </div>
-
-          {/* Conversation list */}
-          <div className="flex-1 overflow-y-auto px-3 pt-1 pb-2">
-            {groups.map((group) => (
-              <div key={group.label} className="mt-2 first:mt-0">
-                <p className="text-[10px] font-semibold text-sidebar-foreground/40 uppercase tracking-wider px-3 mb-0.5">
-                  {group.label}
-                </p>
-                {group.items.map((conv) => (
-                  <button
-                    key={conv.id}
-                    onClick={() => navigate(`/asistente/${conv.id}`)}
-                    className={cn(
-                      "w-full flex items-center gap-2 text-left rounded-md pl-6 pr-2 py-1.5 text-xs group transition-colors",
-                      pathname === `/asistente/${conv.id}`
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                        : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
-                    )}
-                  >
-                    <MessageSquare className="h-3 w-3 shrink-0" />
-                    <span className="truncate flex-1">{conv.title}</span>
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteConversation.mutate(conv.id, {
-                          onSuccess: () => {
-                            if (pathname === `/asistente/${conv.id}`) {
-                              navigate("/asistente");
-                            }
-                          },
-                        });
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.stopPropagation();
-                          deleteConversation.mutate(conv.id);
-                        }
-                      }}
-                      className="opacity-0 group-hover:opacity-100 shrink-0 p-0.5 rounded hover:bg-sidebar-accent transition-opacity"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </span>
-                  </button>
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : (
-        /* Collapsed: just the icon */
-        <div className="px-2 mt-1 shrink-0">
-          <Link
-            to="/asistente"
-            className={cn(
-              "flex items-center justify-center p-2.5 rounded-md text-sm font-medium transition-colors",
-              isActive("/asistente")
-                ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-            )}
-            title="Asistente IA"
-          >
-            {AsistenteIcon && <AsistenteIcon className="h-4 w-4" />}
-          </Link>
-        </div>
-      )}
-
-      {/* Admin section */}
-      {userRole === "ADMIN" && (
-        <div className={cn("py-4 space-y-1 border-t border-sidebar-border shrink-0", collapsed ? "px-2" : "px-3")}>
-          {!collapsed && (
-            <p className="px-3 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider pb-1">
-              Admin
-            </p>
-          )}
-          {ADMIN_NAV_ITEMS.map((item) => {
-            const Icon = iconMap[item.icon];
-            return (
-              <Link
-                key={item.href}
-                to={item.href}
-                className={cn(
-                  "flex items-center rounded-md text-sm font-medium transition-colors",
-                  collapsed ? "justify-center p-2.5" : "gap-3 px-3 py-2",
-                  isActive(item.href)
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                )}
-                title={collapsed ? item.label : undefined}
-              >
-                {Icon && <Icon className="h-4 w-4 shrink-0" />}
-                {!collapsed && item.label}
-              </Link>
-            );
-          })}
-        </div>
-      )}
     </aside>
   );
 }

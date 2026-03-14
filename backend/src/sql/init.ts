@@ -82,7 +82,7 @@ async function init() {
   await sysConn.close();
   console.log("  Grants done.");
 
-  const sqlFiles = ["001_schema.sql", "002_vpd.sql", "003_seed.sql", "004_vectors.sql", "005_conversations.sql", "006_contacts.sql", "007_chunks.sql", "008_activity_log.sql"];
+  const sqlFiles = ["001_schema.sql", "002_vpd.sql", "003_seed.sql", "004_vectors.sql", "005_conversations.sql", "006_contacts.sql", "007_chunks.sql", "008_activity_log.sql", "009_theme.sql"];
 
   for (const file of sqlFiles) {
     console.log(`Executing ${file}...`);

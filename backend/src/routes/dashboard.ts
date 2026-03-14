@@ -102,6 +102,35 @@ export async function dashboardRoutes(app: FastifyInstance) {
     });
   });
 
+  // GET /api/admin/theme
+  app.get("/api/admin/theme", { preHandler: [requireAuth] }, async (request) => {
+    return withTenant(request.user.tenantId, request.user.id, async (conn) => {
+      const result = await conn.execute<any>(
+        `SELECT theme FROM tenants WHERE id = :tenantId`,
+        { tenantId: request.user.tenantId },
+        { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      );
+      return { theme: result.rows?.[0]?.THEME || "default" };
+    });
+  });
+
+  // PUT /api/admin/theme
+  app.put("/api/admin/theme", { preHandler: [requireAdmin] }, async (request) => {
+    const { theme } = request.body as { theme: string };
+    const validThemes = ["default", "blue", "green", "violet", "rose", "teal"];
+    if (!validThemes.includes(theme)) {
+      return { error: "Tema no válido" };
+    }
+    return withTenant(request.user.tenantId, request.user.id, async (conn) => {
+      await conn.execute(
+        `UPDATE tenants SET theme = :theme, updated_at = SYSTIMESTAMP WHERE id = :tenantId`,
+        { theme, tenantId: request.user.tenantId }
+      );
+      await conn.commit();
+      return { ok: true, theme };
+    });
+  });
+
   // POST /api/admin/logo — upload logo
   const LOGO_PATH = path.join(UPLOAD_DIR, "logo.png");
   const ALLOWED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/svg+xml", "image/webp"];

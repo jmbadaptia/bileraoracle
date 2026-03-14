@@ -33,7 +33,6 @@ export function DashboardLayout() {
   return (
     <div className="h-screen">
       <Sidebar
-        userRole={user?.role || "MEMBER"}
         collapsed={collapsed}
         onToggle={toggle}
       />

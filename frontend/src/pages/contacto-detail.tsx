@@ -5,22 +5,44 @@ import {
 import { useContact } from "@/api/hooks";
 import { useAuth } from "@/lib/auth";
 import { formatDateTime } from "@/lib/utils";
-import { ACTIVITY_TYPE_LABELS, ACTIVITY_STATUS_LABELS } from "@/lib/constants";
+import { ACTIVITY_TYPE_LABELS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 export function ContactoDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { isAdmin, user } = useAuth();
   const { data: contact, isLoading } = useContact(id!);
 
-  if (isLoading || !contact) {
+  if (isLoading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold tracking-tight">
-          {isLoading ? "Cargando..." : "Contacto no encontrado"}
-        </h1>
+        <div className="space-y-2">
+          <Skeleton className="h-7 w-48" />
+          <Skeleton className="h-4 w-32" />
+        </div>
+        <div className="grid gap-6 lg:grid-cols-3">
+          <Card className="lg:col-span-2"><CardContent className="pt-6 space-y-3">
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-4 w-48" />
+            <Skeleton className="h-4 w-36" />
+          </CardContent></Card>
+          <Card><CardContent className="pt-6 space-y-2">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-16 w-full" />
+          </CardContent></Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (!contact) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold tracking-tight">Contacto no encontrado</h1>
       </div>
     );
   }
@@ -143,18 +165,7 @@ export function ContactoDetailPage() {
                     </div>
                   </div>
                   <div className="text-right shrink-0 ml-3">
-                    <Badge
-                      variant="outline"
-                      className={
-                        act.status === "DONE"
-                          ? "bg-green-100 text-green-800 border-green-200"
-                          : act.status === "IN_PROGRESS"
-                            ? "bg-blue-100 text-blue-800 border-blue-200"
-                            : "bg-yellow-100 text-yellow-800 border-yellow-200"
-                      }
-                    >
-                      {ACTIVITY_STATUS_LABELS[act.status] || act.status}
-                    </Badge>
+                    <StatusBadge status={act.status} />
                     {act.startDate && (
                       <p className="text-xs text-muted-foreground mt-1">
                         {formatDateTime(act.startDate)}

@@ -16,6 +16,12 @@ export function useAdminStats() {
   });
 }
 
+export function useUpdateTheme() {
+  return useMutation({
+    mutationFn: (theme: string) => api.put("/admin/theme", { theme }),
+  });
+}
+
 // ---- Members ----
 export function useMembers(params?: Record<string, string>) {
   const search = new URLSearchParams(params).toString();

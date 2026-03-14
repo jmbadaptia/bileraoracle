@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ImageIcon } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function AlbumFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -32,8 +34,15 @@ export function AlbumFormPage() {
       <div className="max-w-xl mx-auto">
         <Card>
           <CardHeader>
-            <CardTitle>Cargando...</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <ImageIcon className="h-5 w-5 text-muted-foreground" />
+              Editar álbum
+            </CardTitle>
           </CardHeader>
+          <CardContent className="space-y-4">
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-9 w-full" />
+          </CardContent>
         </Card>
       </div>
     );
@@ -67,7 +76,10 @@ export function AlbumFormPage() {
     <div className="max-w-xl mx-auto">
       <Card>
         <CardHeader>
-          <CardTitle>{isEdit ? "Editar álbum" : "Nuevo álbum"}</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <ImageIcon className="h-5 w-5 text-muted-foreground" />
+            {isEdit ? "Editar álbum" : "Nuevo álbum"}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">

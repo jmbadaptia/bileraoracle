@@ -240,10 +240,7 @@ export function ActividadFormPage() {
               <Label className="text-xs text-muted-foreground">Estado</Label>
               <Select value={selectedStatus} onValueChange={setSelectedStatus}>
                 <SelectTrigger>
-                  <div className="flex items-center gap-2">
-                    <span className={`h-2 w-2 rounded-full shrink-0 ${STATUS_COLORS[selectedStatus] || "bg-gray-400"}`} />
-                    <SelectValue />
-                  </div>
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {Object.entries(ACTIVITY_STATUS_LABELS).map(([value, label]) => (

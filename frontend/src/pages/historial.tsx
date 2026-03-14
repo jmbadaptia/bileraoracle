@@ -1,15 +1,14 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import { MapPin, ChevronDown, ChevronUp, X } from "lucide-react";
+import { MapPin, Search, X, CalendarX, History } from "lucide-react";
 import { useActivities, useMembers } from "@/api/hooks";
 import { formatDate } from "@/lib/utils";
 import { ACTIVITY_TYPE_LABELS } from "@/lib/constants";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const TYPE_COLORS: Record<string, string> = {
   TASK: "bg-blue-100 text-blue-800 border-blue-200",
@@ -19,16 +18,15 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 export function HistorialPage() {
-  const [selectedUser, setSelectedUser] = useState<string | null>(null);
-  const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [selectedUser, setSelectedUser] = useState("");
+  const [selectedType, setSelectedType] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [expandedDesc, setExpandedDesc] = useState<Set<string>>(new Set());
+  const [search, setSearch] = useState("");
 
   const { data: membersData } = useMembers({ limit: "200", active: "true" });
   const members = membersData?.members || membersData || [];
 
-  // Build query params
   const params: Record<string, string> = { limit: "100" };
   if (selectedUser) params.participantId = selectedUser;
   if (selectedType) params.type = selectedType;
@@ -36,217 +34,161 @@ export function HistorialPage() {
   if (dateTo) params.to = dateTo;
 
   const { data, isLoading } = useActivities(params);
-  const activities = data?.activities || [];
+  let activities = data?.activities || [];
 
-  const hasFilters = selectedUser || selectedType || dateFrom || dateTo;
-
-  function clearFilters() {
-    setSelectedUser(null);
-    setSelectedType(null);
-    setDateFrom("");
-    setDateTo("");
+  // Client-side search filter
+  if (search) {
+    const q = search.toLowerCase();
+    activities = activities.filter(
+      (a: any) =>
+        a.title.toLowerCase().includes(q) ||
+        a.location?.toLowerCase().includes(q)
+    );
   }
 
-  function toggleDesc(id: string) {
-    setExpandedDesc((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  const hasFilters = selectedUser || selectedType || dateFrom || dateTo || search;
+
+  function clearFilters() {
+    setSelectedUser("");
+    setSelectedType("");
+    setDateFrom("");
+    setDateTo("");
+    setSearch("");
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Historial</h1>
-        <p className="text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Registro completo de actividades del equipo
         </p>
       </div>
 
-      {/* Filters */}
-      <div className="space-y-4">
-        {/* User badges */}
-        <div>
-          <Label className="text-xs text-muted-foreground mb-2 block">
-            Filtrar por persona
-          </Label>
-          <div className="flex flex-wrap gap-1.5">
-            {(Array.isArray(members) ? members : []).map((member: any) => (
-              <Badge
-                key={member.id}
-                variant={selectedUser === member.id ? "default" : "outline"}
-                className="cursor-pointer transition-colors"
-                onClick={() =>
-                  setSelectedUser(
-                    selectedUser === member.id ? null : member.id
-                  )
-                }
-              >
-                {member.name}
-              </Badge>
-            ))}
-          </div>
+      {/* Filter bar */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[180px] max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 h-9"
+          />
         </div>
-
-        {/* Type + Date filters */}
-        <div className="flex flex-wrap items-end gap-4">
-          <div>
-            <Label className="text-xs text-muted-foreground mb-2 block">
-              Tipo
-            </Label>
-            <div className="flex flex-wrap gap-1.5">
-              {Object.entries(ACTIVITY_TYPE_LABELS).map(([key, label]) => (
-                <Badge
-                  key={key}
-                  variant="outline"
-                  className={`cursor-pointer transition-colors ${
-                    selectedType === key
-                      ? TYPE_COLORS[key]
-                      : "hover:bg-muted"
-                  }`}
-                  onClick={() =>
-                    setSelectedType(selectedType === key ? null : key)
-                  }
-                >
-                  {label}
-                </Badge>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex gap-2 items-end">
-            <div>
-              <Label htmlFor="from" className="text-xs text-muted-foreground mb-2 block">
-                Desde
-              </Label>
-              <Input
-                id="from"
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="w-36 h-8 text-sm"
-              />
-            </div>
-            <div>
-              <Label htmlFor="to" className="text-xs text-muted-foreground mb-2 block">
-                Hasta
-              </Label>
-              <Input
-                id="to"
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="w-36 h-8 text-sm"
-              />
-            </div>
-          </div>
-
-          {hasFilters && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearFilters}
-              className="text-muted-foreground"
-            >
-              <X className="h-3 w-3 mr-1" />
-              Limpiar
-            </Button>
-          )}
-        </div>
+        <select
+          value={selectedUser}
+          onChange={(e) => setSelectedUser(e.target.value)}
+          className="h-9 rounded-md border border-input bg-background px-3 text-sm min-w-[140px]"
+        >
+          <option value="">Todas las personas</option>
+          {(Array.isArray(members) ? members : []).map((m: any) => (
+            <option key={m.id} value={m.id}>{m.name}</option>
+          ))}
+        </select>
+        <select
+          value={selectedType}
+          onChange={(e) => setSelectedType(e.target.value)}
+          className="h-9 rounded-md border border-input bg-background px-3 text-sm min-w-[120px]"
+        >
+          <option value="">Todos los tipos</option>
+          {Object.entries(ACTIVITY_TYPE_LABELS).map(([key, label]) => (
+            <option key={key} value={key}>{label}</option>
+          ))}
+        </select>
+        <Input
+          type="date"
+          value={dateFrom}
+          onChange={(e) => setDateFrom(e.target.value)}
+          className="h-9 w-[140px] text-sm"
+          placeholder="Desde"
+        />
+        <Input
+          type="date"
+          value={dateTo}
+          onChange={(e) => setDateTo(e.target.value)}
+          className="h-9 w-[140px] text-sm"
+          placeholder="Hasta"
+        />
+        {hasFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearFilters}
+            className="h-9 text-muted-foreground"
+          >
+            <X className="h-3.5 w-3.5 mr-1" />
+            Limpiar
+          </Button>
+        )}
       </div>
 
       {/* Results */}
       {isLoading ? (
-        <p className="text-sm text-muted-foreground">Cargando...</p>
-      ) : activities.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No se encontraron actividades con los filtros seleccionados.
-        </p>
-      ) : (
-        <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            {data?.total || activities.length} actividades
-          </p>
-          {activities.map((activity: any) => (
-            <Link key={activity.id} to={`/actividades/${activity.id}`}>
-            <Card className="overflow-hidden py-0 gap-0 hover:bg-muted/50 hover:shadow-sm transition-all cursor-pointer">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-sm leading-none">
-                        {activity.title}
-                      </h3>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-muted-foreground">
-                      <span>{formatDate(activity.startDate)}</span>
-                      {activity.location && (
-                        <span className="flex items-center gap-0.5">
-                          <MapPin className="h-3 w-3" />
-                          {activity.location}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Participants */}
-                    {activity.attendees && activity.attendees.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {activity.attendees.map((a: any) => (
-                          <Badge
-                            key={a.id}
-                            variant="secondary"
-                            className="text-[10px] px-1.5 py-0"
-                          >
-                            {a.name}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex gap-1.5 shrink-0">
-                    <Badge
-                      variant="outline"
-                      className={`text-xs ${TYPE_COLORS[activity.type] || ""}`}
-                    >
-                      {ACTIVITY_TYPE_LABELS[activity.type] || activity.type}
-                    </Badge>
-                    <StatusBadge status={activity.status} className="text-xs" />
-                  </div>
-                </div>
-
-                {/* Description */}
-                {activity.description && (
-                  <div className="mt-3">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        toggleDesc(activity.id);
-                      }}
-                      className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
-                    >
-                      {expandedDesc.has(activity.id) ? (
-                        <ChevronUp className="h-3.5 w-3.5" />
-                      ) : (
-                        <ChevronDown className="h-3.5 w-3.5" />
-                      )}
-                      Descripción
-                    </button>
-                    {expandedDesc.has(activity.id) && (
-                      <div
-                        className="mt-2 p-3 rounded-md bg-muted/50 text-sm [&_p]:mb-1 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:mb-0.5 [&_strong]:font-semibold [&_a]:underline"
-                        dangerouslySetInnerHTML={{ __html: activity.description }}
-                      />
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-            </Link>
+        <div className="rounded-lg border divide-y">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4 px-4 py-3">
+              <div className="flex-1 space-y-1.5">
+                <Skeleton className="h-4 w-48" />
+                <Skeleton className="h-3 w-32" />
+              </div>
+              <Skeleton className="h-5 w-16 rounded-full" />
+              <Skeleton className="h-5 w-16 rounded-full" />
+            </div>
           ))}
         </div>
+      ) : activities.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <CalendarX className="h-10 w-10 text-muted-foreground/50 mb-3" />
+          <p className="text-sm text-muted-foreground">
+            No se encontraron actividades
+          </p>
+        </div>
+      ) : (
+        <>
+          <p className="text-xs text-muted-foreground">
+            {activities.length} resultado{activities.length !== 1 ? "s" : ""}
+          </p>
+          <div className="rounded-lg border divide-y">
+            {activities.map((activity: any) => (
+              <Link
+                key={activity.id}
+                to={`/actividades/${activity.id}`}
+                className="flex items-center gap-4 px-4 py-3 hover:bg-muted/50 transition-colors group"
+              >
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-medium truncate group-hover:text-primary transition-colors">
+                    {activity.title}
+                  </h3>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5 text-xs text-muted-foreground">
+                    <span>{formatDate(activity.startDate)}</span>
+                    {activity.location && (
+                      <span className="flex items-center gap-0.5">
+                        <MapPin className="h-3 w-3" />
+                        {activity.location}
+                      </span>
+                    )}
+                    {activity.attendees && activity.attendees.length > 0 && (
+                      <span>
+                        {activity.attendees.map((a: any) => a.name).join(", ")}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Badge
+                    variant="outline"
+                    className={`text-[11px] ${TYPE_COLORS[activity.type] || ""}`}
+                  >
+                    {ACTIVITY_TYPE_LABELS[activity.type] || activity.type}
+                  </Badge>
+                  <StatusBadge status={activity.status} className="text-[11px]" />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

@@ -8,18 +8,40 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function MiembroDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { isAdmin } = useAuth();
   const { data: member, isLoading } = useMember(id!);
 
-  if (isLoading || !member) {
+  if (isLoading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold tracking-tight">
-          {isLoading ? "Cargando..." : "Miembro no encontrado"}
-        </h1>
+        <div className="flex items-start gap-4">
+          <Skeleton className="h-16 w-16 rounded-full" />
+          <div className="space-y-2">
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-4 w-32" />
+          </div>
+        </div>
+        <div className="grid gap-6 lg:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Card key={i}><CardContent className="pt-6 space-y-3">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-4 w-32" />
+            </CardContent></Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (!member) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold tracking-tight">Miembro no encontrado</h1>
       </div>
     );
   }

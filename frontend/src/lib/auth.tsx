@@ -15,6 +15,7 @@ interface User {
   tenantId: number;
   tenantName?: string;
   tenantSlug?: string;
+  theme?: string;
 }
 
 export interface Tenant {
@@ -42,6 +43,15 @@ interface AuthContextType {
   logout: () => void;
 }
 
+function applyTheme(theme?: string) {
+  const t = theme && theme !== "default" ? theme : null;
+  if (t) {
+    document.documentElement.setAttribute("data-theme", t);
+  } else {
+    document.documentElement.removeAttribute("data-theme");
+  }
+}
+
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -64,6 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then((u) => {
         setUser(u);
         localStorage.setItem("user", JSON.stringify(u));
+        applyTheme(u.theme);
       })
       .catch(() => {
         setUser(null);
@@ -81,6 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("token", result.token);
     localStorage.setItem("user", JSON.stringify(result.user));
     setUser(result.user);
+    applyTheme(result.user.theme);
 
     // If multiple tenants, show selector — return false to prevent navigation
     if (result.tenants && result.tenants.length > 1) {
@@ -99,6 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("user", JSON.stringify(result.user));
     setUser(result.user);
     setPendingTenants(null);
+    applyTheme(result.user.theme);
   }
 
   function clearPendingTenants() {

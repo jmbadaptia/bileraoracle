@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LogOut, KeyRound } from "lucide-react";
+import { LogOut, KeyRound, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api-client";
@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { MobileNav } from "./mobile-nav";
+import { useNavigate } from "react-router";
 import { ROLE_LABELS } from "@/lib/constants";
 
 interface HeaderProps {
@@ -34,6 +35,7 @@ interface HeaderProps {
 
 export function Header({ userName, userEmail, userRole, pageTitle }: HeaderProps) {
   const { logout } = useAuth();
+  const navigate = useNavigate();
   const [pwdOpen, setPwdOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -107,6 +109,16 @@ export function Header({ userName, userEmail, userRole, pageTitle }: HeaderProps
               <KeyRound className="mr-2 h-4 w-4" />
               Cambiar contraseña
             </DropdownMenuItem>
+            {userRole === "ADMIN" && (
+              <DropdownMenuItem
+                onClick={() => navigate("/admin")}
+                className="cursor-pointer"
+              >
+                <Settings className="mr-2 h-4 w-4" />
+                Configuración
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => logout()}
               className="text-destructive cursor-pointer"

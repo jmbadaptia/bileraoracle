@@ -1,29 +1,45 @@
 export const APP_NAME = "Bilera";
 
-export const NAV_ITEMS = [
-  { label: "Panel Principal", href: "/", icon: "LayoutDashboard" },
+export const NAV_SECTIONS = [
   {
-    label: "Gestión",
-    href: "/actividades",
-    icon: "CalendarDays",
-    children: [
-      { label: "Tareas", href: "/actividades/tareas" },
-      { label: "Calendario", href: "/actividades" },
-      { label: "Historial", href: "/actividades/historial" },
+    items: [
+      { label: "Panel Principal", href: "/", icon: "LayoutDashboard" },
     ],
   },
-  { label: "Miembros", href: "/miembros", icon: "Users" },
-  { label: "Grupos", href: "/grupos", icon: "UsersRound" },
-  { label: "Documentos", href: "/documentos", icon: "FileText" },
-  { label: "Galería", href: "/galeria", icon: "Image" },
-  { label: "Contactos", href: "/contactos", icon: "Contact" },
-  { label: "Asistente IA", href: "/asistente", icon: "BotMessageSquare" },
-  { label: "Guia de uso", href: "/guia", icon: "BookOpen" },
+  {
+    label: "Actividad",
+    items: [
+      { label: "Tareas", href: "/actividades/tareas", icon: "SquareKanban" },
+      { label: "Calendario", href: "/actividades", icon: "CalendarDays" },
+      { label: "Historial", href: "/actividades/historial", icon: "History" },
+    ],
+  },
+  {
+    label: "Personas",
+    items: [
+      { label: "Miembros", href: "/miembros", icon: "Users" },
+      { label: "Grupos", href: "/grupos", icon: "UsersRound" },
+      { label: "Contactos", href: "/contactos", icon: "Contact" },
+    ],
+  },
+  {
+    label: "Recursos",
+    items: [
+      { label: "Documentos", href: "/documentos", icon: "FileText" },
+      { label: "Galería", href: "/galeria", icon: "Image" },
+    ],
+  },
+  {
+    label: "Ayuda",
+    items: [
+      { label: "Guia de uso", href: "/guia", icon: "BookOpen" },
+      { label: "Asistente IA", href: "/asistente", icon: "BotMessageSquare" },
+    ],
+  },
 ] as const;
 
 export const ADMIN_NAV_ITEMS = [
-  { label: "Administración", href: "/admin", icon: "Shield" },
-  { label: "Equipo", href: "/admin/usuarios", icon: "Users" },
+  { label: "Configuración", href: "/admin", icon: "Settings" },
 ] as const;
 
 export const ACTIVITY_TYPE_LABELS: Record<string, string> = {
