@@ -1,12 +1,17 @@
 model_list:
-  # Embeddings - Gemini
-  - model_name: embeddings
-    litellm_params:
-      model: gemini/gemini-embedding-001
-      api_key: os.environ/GEMINI_API_KEY
-
-  # Chat/LLM - Gemini
+  # Chat/LLM - OCI GenAI (Cohere Small)
   - model_name: chat
     litellm_params:
-      model: gemini/gemini-2.5-flash
-      api_key: os.environ/GEMINI_API_KEY
+      model: oci/cohere.command-r-08-2024
+      oci_user: os.environ/OCI_USER
+      oci_fingerprint: os.environ/OCI_FINGERPRINT
+      oci_tenancy: os.environ/OCI_TENANCY
+      oci_key_file: /root/.oci/kaia-private-key.pem
+      oci_region: eu-frankfurt-1
+      oci_compartment_id: os.environ/OCI_TENANCY
+      oci_serving_mode: ON_DEMAND
+
+litellm_settings:
+  num_retries: 0
+  request_timeout: 60
+  drop_params: true

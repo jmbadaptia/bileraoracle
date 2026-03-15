@@ -23,6 +23,13 @@ export const NAV_SECTIONS = [
     ],
   },
   {
+    label: "Espacios",
+    items: [
+      { label: "Espacios", href: "/espacios", icon: "Building2" },
+      { label: "Reservas", href: "/reservas", icon: "CalendarCheck" },
+    ],
+  },
+  {
     label: "Recursos",
     items: [
       { label: "Documentos", href: "/documentos", icon: "FileText" },

@@ -154,7 +154,7 @@ export async function activityRoutes(app: FastifyInstance) {
     const {
       title, description, type, status, priority,
       startDate, location, visibility, ownerId,
-      attendeeIds, tagIds, contactIds,
+      attendeeIds, tagIds, contactIds, spaceId,
     } = request.body as {
       title?: string;
       description?: string;
@@ -168,6 +168,7 @@ export async function activityRoutes(app: FastifyInstance) {
       attendeeIds?: string[];
       tagIds?: string[];
       contactIds?: Array<{ id: string; role?: string }>;
+      spaceId?: string;
     };
 
     if (!title || title.trim().length === 0) {
@@ -176,6 +177,19 @@ export async function activityRoutes(app: FastifyInstance) {
 
     return withTenant(request.user.tenantId, request.user.id, async (conn) => {
       const id = crypto.randomUUID();
+
+      // If spaceId provided, resolve space name as location
+      let resolvedLocation = location || null;
+      if (spaceId) {
+        const spaceResult = await conn.execute<any>(
+          `SELECT name FROM spaces WHERE id = :spaceId`,
+          { spaceId },
+          { outFormat: oracledb.OUT_FORMAT_OBJECT }
+        );
+        if (spaceResult.rows?.length) {
+          resolvedLocation = spaceResult.rows[0].NAME;
+        }
+      }
 
       await conn.execute(
         `INSERT INTO activities (id, tenant_id, title, description, type, status, priority, start_date, location, visibility, owner_id, created_by)
@@ -189,12 +203,39 @@ export async function activityRoutes(app: FastifyInstance) {
           status: status || "PENDING",
           priority: priority || "MEDIUM",
           startDate: startDate ? new Date(startDate) : null,
-          location: location || null,
+          location: resolvedLocation,
           visibility: visibility || "GENERAL",
           ownerId: ownerId || request.user.id,
           createdBy: request.user.id,
         }
       );
+
+      // Auto-create booking if space selected and dates available
+      if (spaceId && startDate) {
+        const endDate = new Date(new Date(startDate).getTime() + 3600000).toISOString().slice(0, 16); // +1h default
+        const bookingId = crypto.randomUUID();
+        try {
+          await conn.execute(
+            `INSERT INTO bookings (id, tenant_id, space_id, title, start_date, end_date, activity_id, booked_by)
+             VALUES (:id, :tenantId, :spaceId, :title,
+                     TO_TIMESTAMP(:startDate, 'YYYY-MM-DD"T"HH24:MI'),
+                     TO_TIMESTAMP(:endDate, 'YYYY-MM-DD"T"HH24:MI'),
+                     :activityId, :bookedBy)`,
+            {
+              id: bookingId,
+              tenantId: request.user.tenantId,
+              spaceId,
+              title: title.trim(),
+              startDate,
+              endDate,
+              activityId: id,
+              bookedBy: request.user.id,
+            }
+          );
+        } catch {
+          // Booking creation is best-effort — don't fail the activity
+        }
+      }
 
       // Add attendees
       if (attendeeIds?.length) {
@@ -388,7 +429,7 @@ export async function activityRoutes(app: FastifyInstance) {
     const {
       title, description, type, status, priority,
       startDate, location, visibility, ownerId,
-      attendeeIds, tagIds, contactIds,
+      attendeeIds, tagIds, contactIds, spaceId,
     } = request.body as {
       title?: string;
       description?: string;
@@ -402,6 +443,7 @@ export async function activityRoutes(app: FastifyInstance) {
       attendeeIds?: string[];
       tagIds?: string[];
       contactIds?: Array<{ id: string; role?: string }>;
+      spaceId?: string;
     };
 
     if (!title || title.trim().length === 0) {
@@ -418,6 +460,19 @@ export async function activityRoutes(app: FastifyInstance) {
         return reply.code(404).send({ error: "Actividad no encontrada" });
       }
 
+      // If spaceId provided, resolve space name as location
+      let resolvedLocation = location || null;
+      if (spaceId) {
+        const spaceResult = await conn.execute<any>(
+          `SELECT name FROM spaces WHERE id = :spaceId`,
+          { spaceId },
+          { outFormat: oracledb.OUT_FORMAT_OBJECT }
+        );
+        if (spaceResult.rows?.length) {
+          resolvedLocation = spaceResult.rows[0].NAME;
+        }
+      }
+
       await conn.execute(
         `UPDATE activities SET title = :title, description = :description, type = :type,
                 status = :status, priority = :priority, start_date = :startDate,
@@ -432,7 +487,7 @@ export async function activityRoutes(app: FastifyInstance) {
           status: status || "PENDING",
           priority: priority || "MEDIUM",
           startDate: startDate ? new Date(startDate) : null,
-          location: location || null,
+          location: resolvedLocation,
           visibility: visibility || "GENERAL",
           ownerId: ownerId || request.user.id,
         }

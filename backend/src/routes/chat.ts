@@ -310,10 +310,21 @@ Reglas:
 
           try {
             const parsed = JSON.parse(data);
-            const delta = parsed.choices?.[0]?.delta?.content;
+            const choice = parsed.choices?.[0];
+            const finish = choice?.finish_reason;
+            const delta = choice?.delta?.content;
             if (delta) {
-              fullText += delta;
-              reply.raw.write(`data: ${JSON.stringify({ text: delta })}\n\n`);
+              // OCI/Cohere via LiteLLM sends a final chunk containing the
+              // complete response text. Detect and skip it:
+              // - has finish_reason set, OR
+              // - single chunk is >= accumulated text (duplicate summary)
+              const isDuplicate = !!finish || (fullText.length > 0 && delta.length >= fullText.length);
+              if (isDuplicate) {
+                console.log(`[STREAM SKIP] duplicate chunk (${delta.length} chars, finish=${finish})`);
+              } else {
+                fullText += delta;
+                reply.raw.write(`data: ${JSON.stringify({ text: delta })}\n\n`);
+              }
             }
           } catch {
             // skip malformed chunks

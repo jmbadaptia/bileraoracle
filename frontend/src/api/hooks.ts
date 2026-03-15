@@ -559,6 +559,100 @@ export function useRemoveGroupMember(groupId: string) {
   });
 }
 
+// ---- Spaces ----
+export function useSpaces(params?: Record<string, string>) {
+  const search = new URLSearchParams(params).toString();
+  return useQuery({
+    queryKey: ["spaces", params],
+    queryFn: () => api.get<any>(`/spaces${search ? `?${search}` : ""}`),
+  });
+}
+
+export function useSpace(id: string) {
+  return useQuery({
+    queryKey: ["spaces", id],
+    queryFn: () => api.get<any>(`/spaces/${id}`),
+    enabled: !!id,
+  });
+}
+
+export function useCreateSpace() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => api.post("/spaces", data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["spaces"] }),
+  });
+}
+
+export function useUpdateSpace(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => api.put(`/spaces/${id}`, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["spaces"] });
+      qc.invalidateQueries({ queryKey: ["spaces", id] });
+    },
+  });
+}
+
+export function useDeleteSpace() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/spaces/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["spaces"] }),
+  });
+}
+
+// ---- Bookings ----
+export function useBookings(params?: Record<string, string>) {
+  const search = new URLSearchParams(params).toString();
+  return useQuery({
+    queryKey: ["bookings", params],
+    queryFn: () => api.get<any>(`/bookings${search ? `?${search}` : ""}`),
+  });
+}
+
+export function useBookingsForCalendar(from: string, to: string) {
+  return useQuery({
+    queryKey: ["bookings", "calendar", from, to],
+    queryFn: () => api.get<any>(`/bookings?from=${from}&to=${to}&limit=500`),
+    enabled: !!from && !!to,
+  });
+}
+
+export function useCreateBooking() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => api.post("/bookings", data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["bookings"] });
+      qc.invalidateQueries({ queryKey: ["spaces"] });
+    },
+  });
+}
+
+export function useUpdateBooking(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => api.put(`/bookings/${id}`, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["bookings"] });
+      qc.invalidateQueries({ queryKey: ["spaces"] });
+    },
+  });
+}
+
+export function useDeleteBooking() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/bookings/${id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["bookings"] });
+      qc.invalidateQueries({ queryKey: ["spaces"] });
+    },
+  });
+}
+
 // ---- AI ----
 export function useAIChat() {
   return useMutation({

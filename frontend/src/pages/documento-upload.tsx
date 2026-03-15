@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Upload, File, X, Loader2 } from "lucide-react";
 import { api } from "@/lib/api-client";
@@ -28,6 +29,7 @@ function formatFileSize(bytes: number) {
 export function DocumentoUploadPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
@@ -103,6 +105,7 @@ export function DocumentoUploadPage() {
       formData.set("description", description);
 
       await api.upload<{ id: string }>("/documents", formData);
+      await queryClient.invalidateQueries({ queryKey: ["documents"] });
       toast.success("Documento subido correctamente");
       navigate("/documentos");
     } catch (err: any) {

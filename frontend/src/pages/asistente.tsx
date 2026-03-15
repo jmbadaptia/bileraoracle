@@ -175,6 +175,7 @@ export function AsistentePage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const streamingRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -190,6 +191,8 @@ export function AsistentePage() {
   }, [activeConversationId, conversationData?.title, setPageTitle]);
 
   useEffect(() => {
+    // Don't overwrite messages while streaming — the stream updates state directly
+    if (streamingRef.current) return;
     if (conversationData?.messages) {
       setMessages(
         conversationData.messages.map((m: any) => ({
@@ -239,6 +242,7 @@ export function AsistentePage() {
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setLoading(true);
+    streamingRef.current = true;
 
     // Add empty assistant message for streaming
     const assistantMessage: ChatMessage = { role: "assistant", content: "", sources: [] };
@@ -323,14 +327,18 @@ export function AsistentePage() {
         }
       }
 
-      // Background refresh to sync any missed updates
-      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      streamingRef.current = false;
 
-      // Navigate after stream completes
+      // Refresh sidebar conversation list only (exact match, not the individual conversation)
+      queryClient.invalidateQueries({ queryKey: ["conversations"], exact: true });
+
+      // Update URL without remounting — use window.history to avoid React Router
+      // remounting the component via key change in AsistenteWrapper
       if (justCreated && convId) {
-        navigate(`/asistente/${convId}`, { replace: true });
+        window.history.replaceState(null, "", `/asistente/${convId}`);
       }
     } catch (error) {
+      streamingRef.current = false;
       setMessages((prev) => {
         const updated = [...prev];
         updated[updated.length - 1] = {

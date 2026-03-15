@@ -16,14 +16,32 @@ services:
       retries: 20
       start_period: 180s
 
+  oci-embeddings:
+    build: ./oci-embeddings
+    volumes:
+      - ./backend/.oci:/root/.oci:ro
+    environment:
+      OCI_COMPARTMENT_ID: ocid1.tenancy.oc1..aaaaaaaa7ysb77f6zn2m3f5ifgfbwcxuu4vzjimnocf6v7yyairg6trizluq
+      OCI_REGION: eu-frankfurt-1
+      OCI_EMBED_MODEL: cohere.embed-multilingual-v3.0
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
   litellm:
     image: ghcr.io/berriai/litellm:main-latest
     ports:
       - "4100:4000"
     volumes:
       - ./litellm-config.yaml:/app/config.yaml
+      - ./backend/.oci:/root/.oci:ro
     environment:
-      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      OCI_USER: ocid1.user.oc1..aaaaaaaangq3nsu5nygznva4soqw5xm2irj5dgugpy5hcj4qhp4e4xvuqyuq
+      OCI_FINGERPRINT: "e7:29:10:1e:a0:b2:25:ef:39:49:af:d2:c6:2b:6b:6e"
+      OCI_TENANCY: ocid1.tenancy.oc1..aaaaaaaa7ysb77f6zn2m3f5ifgfbwcxuu4vzjimnocf6v7yyairg6trizluq
     command: ["--config", "/app/config.yaml"]
     healthcheck:
       test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:4000/health/liveliness')\""]
@@ -47,6 +65,7 @@ services:
       UPLOAD_DIR: /app/uploads
       NLS_LANG: AMERICAN_AMERICA.AL32UTF8
       LITELLM_URL: http://litellm:4000
+      EMBEDDINGS_URL: http://oci-embeddings:8000
     volumes:
       - ./backend/src:/app/src
       - uploads:/app/uploads
@@ -54,6 +73,8 @@ services:
       db:
         condition: service_healthy
       litellm:
+        condition: service_healthy
+      oci-embeddings:
         condition: service_healthy
 
   frontend:

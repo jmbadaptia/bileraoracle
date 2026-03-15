@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import {
   LayoutDashboard,
@@ -13,11 +13,14 @@ import {
   BookOpen,
   SquareKanban,
   History,
+  Building2,
+  CalendarCheck,
   Plus,
   Trash2,
   MessageSquare,
   PanelLeftClose,
   PanelLeft,
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_NAME, NAV_SECTIONS } from "@/lib/constants";
@@ -37,6 +40,8 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   BookOpen,
   SquareKanban,
   History,
+  Building2,
+  CalendarCheck,
 };
 
 interface SidebarProps {
@@ -72,12 +77,52 @@ const API_BASE =
   import.meta.env.VITE_API_URL ||
   `${window.location.protocol}//${window.location.hostname}:4000/api`;
 
+const STORAGE_KEY = "bilera-sidebar-sections";
+
+function loadExpandedSections(): Set<number> {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) return new Set(JSON.parse(stored));
+  } catch {}
+  // Default: all sections expanded
+  return new Set(NAV_SECTIONS.map((_, i) => i));
+}
+
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { data: conversations = [] } = useConversations();
   const deleteConversation = useDeleteConversation();
   const [logoError, setLogoError] = useState(false);
+  const [expandedSections, setExpandedSections] = useState<Set<number>>(loadExpandedSections);
+
+  const toggleSection = useCallback((idx: number) => {
+    setExpandedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([...next]));
+      return next;
+    });
+  }, []);
+
+  // Auto-expand section containing the active route
+  useEffect(() => {
+    const activeIdx = NAV_SECTIONS.findIndex((s) =>
+      s.items.some((item) => {
+        if (item.href === "/") return pathname === "/";
+        return pathname === item.href || pathname.startsWith(item.href + "/");
+      })
+    );
+    if (activeIdx >= 0 && !expandedSections.has(activeIdx)) {
+      setExpandedSections((prev) => {
+        const next = new Set(prev);
+        next.add(activeIdx);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify([...next]));
+        return next;
+      });
+    }
+  }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const groups = useMemo(() => groupByDate(conversations), [conversations]);
 
@@ -149,20 +194,33 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
       {/* Nav sections */}
       <div className="flex-1 overflow-y-auto">
-        {NAV_SECTIONS.map((section, sIdx) => (
+        {NAV_SECTIONS.map((section, sIdx) => {
+          const isExpanded = expandedSections.has(sIdx);
+          return (
           <div key={sIdx} className={cn(collapsed ? "px-2" : "px-3", sIdx === 0 ? "pt-4" : "pt-2")}>
             {/* Section label */}
             {section.label && !collapsed && (
-              <p className="px-3 pb-1 text-[10px] font-semibold text-sidebar-foreground/40 uppercase tracking-wider">
-                {section.label}
-              </p>
+              <button
+                onClick={() => toggleSection(sIdx)}
+                className="w-full flex items-center justify-between px-3 pb-1 group"
+              >
+                <span className="text-[10px] font-semibold text-sidebar-foreground/40 uppercase tracking-wider">
+                  {section.label}
+                </span>
+                <ChevronDown
+                  className={cn(
+                    "h-3 w-3 text-sidebar-foreground/30 group-hover:text-sidebar-foreground/60 transition-transform duration-200",
+                    !isExpanded && "-rotate-90"
+                  )}
+                />
+              </button>
             )}
             {section.label && collapsed && (
               <div className="my-1 mx-2 border-t border-sidebar-border" />
             )}
 
             {/* Section items */}
-            <div className="space-y-0.5">
+            <div className={cn("space-y-0.5", section.label && !collapsed && !isExpanded && "hidden")}>
               {section.items.map((item) => {
                 const Icon = iconMap[item.icon];
                 const active = isActive(item.href);
@@ -265,7 +323,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               })}
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
     </aside>

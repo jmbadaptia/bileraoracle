@@ -1,9 +1,9 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
 import { toast } from "sonner";
 import {
   CalendarDays, FileText, X, Upload, Plus, Users, MapPin,
-  Paperclip, ClipboardList, UserCircle,
+  Paperclip, ClipboardList, UserCircle, Building2,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import {
@@ -14,6 +14,7 @@ import {
   useUploadDocument,
   useCreateActivity,
   useUpdateActivity,
+  useSpaces,
 } from "@/api/hooks";
 import { ACTIVITY_TYPE_LABELS, ACTIVITY_STATUS_LABELS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
@@ -75,10 +76,12 @@ export function ActividadFormPage() {
   const uploadDocument = useUploadDocument();
   const createActivity = useCreateActivity();
   const updateActivity = useUpdateActivity(id || "");
+  const { data: spacesData } = useSpaces({ active: "1" });
 
   const members = membersData?.members || [];
   const allContacts = contactsData?.contacts || [];
   const allDocs = docsData?.documents || [];
+  const spaces = spacesData?.spaces || [];
 
   const [loading, setLoading] = useState(false);
   const [selectedType, setSelectedType] = useState(activity?.type || "MEETING");
@@ -90,7 +93,26 @@ export function ActividadFormPage() {
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [showDocDialog, setShowDocDialog] = useState(false);
   const [synced, setSynced] = useState(false);
+  const [locationValue, setLocationValue] = useState(activity?.location || "");
+  const [selectedSpaceId, setSelectedSpaceId] = useState("");
+  const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const locationRef = useRef<HTMLDivElement>(null);
+
+  // Close location suggestions on click outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (locationRef.current && !locationRef.current.contains(e.target as Node)) {
+        setShowLocationSuggestions(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredSpaces = spaces.filter((s: any) =>
+    s.name.toLowerCase().includes(locationValue.toLowerCase())
+  );
 
   // Sync state when activity loads (edit mode)
   if (isEdit && activity && !synced) {
@@ -115,6 +137,7 @@ export function ActividadFormPage() {
     if (activity.documents) {
       setSelectedDocuments(activity.documents.map((d: any) => d.id || d.documentId));
     }
+    setLocationValue(activity.location || "");
     setSynced(true);
   }
 
@@ -150,18 +173,21 @@ export function ActividadFormPage() {
       .filter((p) => p.kind === "contact")
       .map((p) => ({ id: p.id, role: p.role || undefined }));
 
-    const data = {
+    const data: Record<string, any> = {
       ownerId,
       type: selectedType,
       status: selectedStatus,
       title: formData.get("title") as string,
       startDate: (formData.get("startDate") as string) || undefined,
-      location: (formData.get("location") as string) || undefined,
+      location: locationValue || undefined,
       description: notesContent || undefined,
       attendeeIds: attendeeIds.length > 0 ? attendeeIds : undefined,
       contactIds: contactIds.length > 0 ? contactIds : undefined,
       documentIds: selectedDocuments.length > 0 ? selectedDocuments : undefined,
     };
+    if (selectedSpaceId) {
+      data.spaceId = selectedSpaceId;
+    }
 
     try {
       if (isEdit) {
@@ -271,15 +297,45 @@ export function ActividadFormPage() {
 
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Lugar</Label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <div className="relative" ref={locationRef}>
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
                 <Input
                   id="location"
-                  name="location"
-                  defaultValue={activity?.location || ""}
+                  value={locationValue}
+                  onChange={(e) => {
+                    setLocationValue(e.target.value);
+                    setSelectedSpaceId("");
+                    setShowLocationSuggestions(true);
+                  }}
+                  onFocus={() => setShowLocationSuggestions(true)}
                   placeholder="Ej: Sala de juntas / Teams"
                   className="pl-9"
+                  autoComplete="off"
                 />
+                {showLocationSuggestions && filteredSpaces.length > 0 && (
+                  <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md max-h-48 overflow-y-auto">
+                    {filteredSpaces.map((space: any) => (
+                      <button
+                        key={space.id}
+                        type="button"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left hover:bg-muted transition-colors"
+                        onClick={() => {
+                          setLocationValue(space.name);
+                          setSelectedSpaceId(space.id);
+                          setShowLocationSuggestions(false);
+                        }}
+                      >
+                        <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <span className="truncate">{space.name}</span>
+                        {space.capacity && (
+                          <span className="text-xs text-muted-foreground ml-auto shrink-0">
+                            {space.capacity} pers.
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>

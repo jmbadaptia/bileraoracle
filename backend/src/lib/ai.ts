@@ -1,4 +1,5 @@
 const LITELLM_URL = process.env.LITELLM_URL || "http://litellm:4000";
+const EMBEDDINGS_URL = process.env.EMBEDDINGS_URL || "http://oci-embeddings:8000";
 
 // --- Embedding helpers ---
 
@@ -30,13 +31,12 @@ export function buildAlbumText(
 
 export async function getEmbedding(text: string): Promise<number[] | null> {
   try {
-    const res = await fetch(`${LITELLM_URL}/v1/embeddings`, {
+    const res = await fetch(`${EMBEDDINGS_URL}/v1/embeddings`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "embeddings",
         input: text.substring(0, 2048),
-        dimensions: 768,
       }),
     });
     if (!res.ok) {

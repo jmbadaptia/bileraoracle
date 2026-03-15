@@ -26,6 +26,11 @@ import { GruposPage } from "@/pages/grupos";
 import { GrupoDetailPage } from "@/pages/grupo-detail";
 import { GrupoFormPage } from "@/pages/grupo-form";
 import { AsistentePage } from "@/pages/asistente";
+import { EspaciosPage } from "@/pages/espacios";
+import { EspacioFormPage } from "@/pages/espacio-form";
+import { EspacioDetailPage } from "@/pages/espacio-detail";
+import { ReservaFormPage } from "@/pages/reserva-form";
+import { ReservasCalendarPage } from "@/pages/reservas-calendar";
 import { GuiaPage } from "@/pages/guia";
 import { useParams } from "react-router";
 
@@ -71,6 +76,12 @@ export function App() {
         <Route path="documentos" element={<DocumentosPage />} />
         <Route path="documentos/subir" element={<DocumentoUploadPage />} />
         <Route path="documentos/:id" element={<DocumentoDetailPage />} />
+        <Route path="espacios" element={<EspaciosPage />} />
+        <Route path="espacios/nuevo" element={<AdminRoute><EspacioFormPage /></AdminRoute>} />
+        <Route path="espacios/:id" element={<EspacioDetailPage />} />
+        <Route path="espacios/:id/editar" element={<AdminRoute><EspacioFormPage /></AdminRoute>} />
+        <Route path="reservas" element={<ReservasCalendarPage />} />
+        <Route path="reservas/nueva" element={<ReservaFormPage />} />
         <Route path="galeria" element={<GaleriaPage />} />
         <Route path="galeria/nuevo" element={<AlbumFormPage />} />
         <Route path="galeria/:id" element={<AlbumDetailPage />} />
