@@ -1,8 +1,8 @@
 model_list:
-  # Chat/LLM - OCI GenAI (Cohere Small)
+  # Chat/LLM - OCI GenAI (Meta Llama 3.3 70B)
   - model_name: chat
     litellm_params:
-      model: oci/cohere.command-r-08-2024
+      model: oci/meta.llama-3.3-70b-instruct
       oci_user: os.environ/OCI_USER
       oci_fingerprint: os.environ/OCI_FINGERPRINT
       oci_tenancy: os.environ/OCI_TENANCY

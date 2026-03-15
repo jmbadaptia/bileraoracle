@@ -12,15 +12,18 @@ async function backfill() {
 
   console.log("Connected to Oracle. Starting backfill...");
 
-  // Activities
+  // Activities (always regenerate — embedding includes date/status/priority)
+  const forceAll = process.argv.includes("--force");
   const acts = await conn.execute<any>(
-    `SELECT id, title, description, type, location FROM activities WHERE embedding IS NULL`,
+    forceAll
+      ? `SELECT id, title, description, type, location, start_date, status, priority FROM activities`
+      : `SELECT id, title, description, type, location, start_date, status, priority FROM activities WHERE embedding IS NULL`,
     {},
     { outFormat: oracledb.OUT_FORMAT_OBJECT }
   );
-  console.log(`Activities without embeddings: ${acts.rows?.length || 0}`);
+  console.log(`Activities to embed: ${acts.rows?.length || 0}${forceAll ? " (forced)" : ""}`);
   for (const row of acts.rows || []) {
-    const text = buildActivityText(row.TITLE, row.DESCRIPTION, row.TYPE, row.LOCATION);
+    const text = buildActivityText(row.TITLE, row.DESCRIPTION, row.TYPE, row.LOCATION, row.START_DATE, row.STATUS, row.PRIORITY);
     const emb = await getEmbedding(text);
     if (emb) {
       await conn.execute(

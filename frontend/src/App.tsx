@@ -32,12 +32,9 @@ import { EspacioDetailPage } from "@/pages/espacio-detail";
 import { ReservaFormPage } from "@/pages/reserva-form";
 import { ReservasCalendarPage } from "@/pages/reservas-calendar";
 import { GuiaPage } from "@/pages/guia";
-import { useParams } from "react-router";
 
 function AsistenteWrapper() {
-  const { conversationId } = useParams<{ conversationId?: string }>();
-  const key = conversationId === "nueva" || !conversationId ? "new" : conversationId;
-  return <AsistentePage key={key} />;
+  return <AsistentePage />;
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {

@@ -7,9 +7,24 @@ export function buildActivityText(
   title: string,
   description?: string | null,
   type?: string,
-  location?: string | null
+  location?: string | null,
+  startDate?: string | Date | null,
+  status?: string | null,
+  priority?: string | null
 ): string {
-  return [title, description, type, location].filter(Boolean).join(" | ");
+  const parts = [title];
+  if (description) parts.push(description);
+  if (type) parts.push(`Tipo: ${type}`);
+  if (status) parts.push(`Estado: ${status}`);
+  if (priority) parts.push(`Prioridad: ${priority}`);
+  if (startDate) {
+    const d = startDate instanceof Date ? startDate : new Date(startDate);
+    if (!isNaN(d.getTime())) {
+      parts.push(`Fecha: ${d.toLocaleDateString("es-ES", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}`);
+    }
+  }
+  if (location) parts.push(`Lugar: ${location}`);
+  return parts.join(" | ");
 }
 
 export function buildDocumentText(

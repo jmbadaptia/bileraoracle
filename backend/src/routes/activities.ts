@@ -7,9 +7,10 @@ import { logActivity } from "../lib/audit.js";
 
 async function updateActivityEmbedding(
   id: string, tenantId: number, userId: string,
-  title: string, description?: string | null, type?: string, location?: string | null
+  title: string, description?: string | null, type?: string, location?: string | null,
+  startDate?: string | Date | null, status?: string | null, priority?: string | null
 ) {
-  const text = buildActivityText(title, description, type, location);
+  const text = buildActivityText(title, description, type, location, startDate, status, priority);
   const embedding = await getEmbedding(text);
   if (!embedding) return;
   await withTenant(tenantId, userId, async (conn) => {
@@ -271,7 +272,7 @@ export async function activityRoutes(app: FastifyInstance) {
       await logActivity(conn, request.user.tenantId, id, request.user.id, request.user.name, "CREATED", `Creo la actividad "${title.trim()}"`);
 
       // Fire-and-forget embedding generation
-      updateActivityEmbedding(id, request.user.tenantId, request.user.id, title.trim(), description, type, location)
+      updateActivityEmbedding(id, request.user.tenantId, request.user.id, title.trim(), description, type || "TASK", resolvedLocation, startDate, status || "PENDING", priority || "MEDIUM")
         .catch(err => console.warn("Activity embedding failed:", err));
 
       return reply.code(201).send({
@@ -530,7 +531,7 @@ export async function activityRoutes(app: FastifyInstance) {
       await logActivity(conn, request.user.tenantId, id, request.user.id, request.user.name, "UPDATED", "Actualizo la actividad");
 
       // Fire-and-forget embedding update
-      updateActivityEmbedding(id, request.user.tenantId, request.user.id, title.trim(), description, type, location)
+      updateActivityEmbedding(id, request.user.tenantId, request.user.id, title.trim(), description, type, resolvedLocation, startDate, status, priority)
         .catch(err => console.warn("Activity embedding update failed:", err));
 
       return { id, title: title.trim(), status: status || "PENDING" };

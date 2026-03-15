@@ -332,10 +332,9 @@ export function AsistentePage() {
       // Refresh sidebar conversation list only (exact match, not the individual conversation)
       queryClient.invalidateQueries({ queryKey: ["conversations"], exact: true });
 
-      // Update URL without remounting — use window.history to avoid React Router
-      // remounting the component via key change in AsistenteWrapper
+      // Navigate to the new conversation URL
       if (justCreated && convId) {
-        window.history.replaceState(null, "", `/asistente/${convId}`);
+        navigate(`/asistente/${convId}`, { replace: true });
       }
     } catch (error) {
       streamingRef.current = false;

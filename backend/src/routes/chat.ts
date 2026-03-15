@@ -4,6 +4,53 @@ import { withTenant } from "../lib/db.js";
 import { requireAuth } from "../middleware/auth.js";
 import { getEmbedding, chatCompletion } from "../lib/ai.js";
 
+function detectTemporalRange(message: string): { from: Date; to: Date } | null {
+  const lower = message.toLowerCase();
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const dayMs = 86400000;
+
+  // "esta semana" = from today to end of week (Sunday)
+  if (/esta semana|semana actual/.test(lower)) {
+    const dayOfWeek = today.getDay(); // 0=Sun
+    const daysUntilSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
+    const sunday = new Date(today.getTime() + daysUntilSunday * dayMs);
+    return { from: today, to: sunday };
+  }
+  if (/próxima semana|semana que viene/.test(lower)) {
+    const dayOfWeek = today.getDay();
+    const daysUntilNextMon = dayOfWeek === 0 ? 1 : 8 - dayOfWeek;
+    const nextMonday = new Date(today.getTime() + daysUntilNextMon * dayMs);
+    const nextSunday = new Date(nextMonday.getTime() + 6 * dayMs);
+    return { from: nextMonday, to: nextSunday };
+  }
+  if (/este mes|mes actual/.test(lower)) {
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    return { from: today, to: lastDay };
+  }
+  if (/pr[oó]ximo mes|mes que viene/.test(lower)) {
+    const firstDay = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 2, 0);
+    return { from: firstDay, to: lastDay };
+  }
+  if (/hoy|de hoy/.test(lower)) {
+    return { from: today, to: new Date(today.getTime() + dayMs - 1) };
+  }
+  if (/mañana/.test(lower)) {
+    const tomorrow = new Date(today.getTime() + dayMs);
+    return { from: tomorrow, to: new Date(tomorrow.getTime() + dayMs - 1) };
+  }
+  if (/pr[oó]ximos?\s*(\d+)\s*d[ií]as/.test(lower)) {
+    const match = lower.match(/pr[oó]ximos?\s*(\d+)\s*d[ií]as/);
+    const days = parseInt(match![1]);
+    return { from: today, to: new Date(today.getTime() + days * dayMs) };
+  }
+  if (/pr[oó]ximos?\s*d[ií]as/.test(lower)) {
+    return { from: today, to: new Date(today.getTime() + 7 * dayMs) };
+  }
+  return null;
+}
+
 async function generateTitle(
   conn: import("oracledb").Connection,
   conversationId: string,
@@ -72,9 +119,39 @@ export async function chatRoutes(app: FastifyInstance) {
         });
       }
 
-      // 1. Embed the question
-      const emb = await getEmbedding(message.trim());
-      const queryVec = emb ? new Float32Array(emb) : null;
+      // 1. Rewrite query for better search + embed (skip for very short messages)
+      let searchQuery = message.trim();
+      let queryVec: Float32Array | null = null;
+      let temporalRange: { from: Date; to: Date } | null = null;
+
+      if (searchQuery.length >= 10) {
+        // Rewrite the query: expand temporal references and optimize for search
+        const today = new Date().toISOString().split("T")[0];
+        const rewritten = await chatCompletion(
+          `Eres un asistente que reescribe preguntas para optimizar búsquedas semánticas. Fecha actual: ${today}.
+Reglas:
+- Reemplaza referencias temporales vagas ("esta semana", "mañana", "el mes pasado") por fechas concretas.
+- Expande abreviaciones y sinónimos.
+- Mantén el idioma original.
+- Responde SOLO con la pregunta reescrita, sin explicaciones.
+Ejemplo: "qué tenemos esta semana" → "actividades y eventos programados entre ${today} y dentro de 7 días"`,
+          searchQuery
+        );
+        if (rewritten) {
+          console.log(`[RAG] Query rewrite: "${searchQuery}" → "${rewritten}"`);
+          searchQuery = rewritten;
+        }
+
+        // Detect temporal intent for hybrid SQL search
+        const temporal = detectTemporalRange(message.trim());
+        if (temporal) {
+          temporalRange = temporal;
+          console.log(`[RAG] Temporal range detected: ${temporal.from.toISOString()} → ${temporal.to.toISOString()}`);
+        }
+
+        const emb = await getEmbedding(searchQuery);
+        queryVec = emb ? new Float32Array(emb) : null;
+      }
 
       // 2. Get inventory of what exists in the association
       let inventoryContext = "";
@@ -206,11 +283,45 @@ export async function chatRoutes(app: FastifyInstance) {
         });
       }
 
-      // 4. Filter relevant sources (relaxed threshold for chunks with content)
-      const relevant = sources
-        .filter((s) => s.distance < 0.5)
-        .sort((a, b) => a.distance - b.distance)
+      // 3b. Hybrid: temporal SQL search for date-based queries
+      if (temporalRange) {
+        await withTenant(tenantId, userId, async (conn) => {
+          const result = await conn.execute<any>(
+            `SELECT id, title, description, type, status, priority, start_date, location
+             FROM activities
+             WHERE start_date >= :fromDate AND start_date <= :toDate
+             ORDER BY start_date`,
+            { fromDate: temporalRange!.from, toDate: temporalRange!.to },
+            { outFormat: oracledb.OUT_FORMAT_OBJECT }
+          );
+          for (const row of result.rows || []) {
+            // Avoid duplicates from vector search
+            if (!sources.find(s => s.type === "activity" && s.id === row.ID)) {
+              const dateStr = row.START_DATE ? new Date(row.START_DATE).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" }) : "";
+              sources.push({
+                type: "activity",
+                id: row.ID,
+                title: row.TITLE,
+                description: `${row.DESCRIPTION || ""} | ${row.TYPE} | ${row.STATUS} | ${dateStr}${row.LOCATION ? ` | ${row.LOCATION}` : ""}`.trim(),
+                extra: `Fecha: ${dateStr}, Estado: ${row.STATUS}`,
+                distance: 0, // exact SQL match = highest relevance
+              });
+            }
+          }
+        });
+      }
+
+      // 4. Filter relevant sources
+      const sorted = sources.sort((a, b) => a.distance - b.distance);
+      console.log(`[RAG] "${message.substring(0, 50)}" → ${sorted.length} sources: ${sorted.map(s => `${s.type}:${s.title}(${s.distance?.toFixed(3)})`).join(", ")}`);
+      const relevant = sorted
+        .filter((s) => s.distance < 0.3)
         .slice(0, 8);
+      if (relevant.length > 0) {
+        console.log(`[RAG] ${relevant.length} relevant (threshold <0.3): ${relevant.map(s => `${s.title}(${s.distance?.toFixed(3)})`).join(", ")}`);
+      } else {
+        console.log(`[RAG] No relevant sources found`);
+      }
 
       // 5. Build context
       let context = "";
@@ -248,6 +359,8 @@ Reglas:
 - Si un documento está "pendiente" o "procesando", indica que aún se está procesando y que pruebe en unos momentos.
 - Si un documento tiene "error" o "sin texto", indica que no se pudo extraer el contenido (puede ser un PDF escaneado).
 - Cuando haya contexto relevante de los documentos, úsalo para responder con detalle.
+- NUNCA inventes información que no esté en el contexto proporcionado. Si no tienes datos sobre algo, di claramente que no hay información disponible sobre ese tema en el sistema.
+- No inventes nombres de actividades, documentos, eventos ni datos que no aparezcan en el contexto.
 - Sé conciso y directo.`;
 
       const userMsg = context
@@ -314,13 +427,10 @@ Reglas:
             const finish = choice?.finish_reason;
             const delta = choice?.delta?.content;
             if (delta) {
-              // OCI/Cohere via LiteLLM sends a final chunk containing the
-              // complete response text. Detect and skip it:
-              // - has finish_reason set, OR
-              // - single chunk is >= accumulated text (duplicate summary)
-              const isDuplicate = !!finish || (fullText.length > 0 && delta.length >= fullText.length);
-              if (isDuplicate) {
-                console.log(`[STREAM SKIP] duplicate chunk (${delta.length} chars, finish=${finish})`);
+              // Some providers (e.g. OCI/Cohere) send a final chunk with
+              // finish_reason containing the complete response — skip it
+              if (finish) {
+                console.log(`[STREAM SKIP] final chunk (${delta.length} chars)`);
               } else {
                 fullText += delta;
                 reply.raw.write(`data: ${JSON.stringify({ text: delta })}\n\n`);
