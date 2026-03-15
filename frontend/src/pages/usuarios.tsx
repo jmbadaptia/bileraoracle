@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import { Plus, UserX } from "lucide-react";
+import { Plus, UserX, Send } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
-import { useUsers, useDeleteUser } from "@/api/hooks";
+import { useUsers, useDeleteUser, useResendInvite } from "@/api/hooks";
 import { formatDate } from "@/lib/utils";
 import { ROLE_LABELS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
@@ -33,9 +33,10 @@ export function UsuariosPage() {
   const { user: currentUser } = useAuth();
   const { data, isLoading } = useUsers();
   const deleteUser = useDeleteUser();
+  const resendInvite = useResendInvite();
   const [deactivateUser, setDeactivateUser] = useState<any>(null);
 
-  const users = data?.users || data || [];
+  const users = data?.members || data?.users || data || [];
 
   function handleDeactivate() {
     if (!deactivateUser) return;
@@ -135,6 +136,22 @@ export function UsuariosPage() {
                           Editar
                         </Button>
                       </Link>
+                      {!user.active && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={resendInvite.isPending}
+                          onClick={() =>
+                            resendInvite.mutate(user.id, {
+                              onSuccess: () => toast.success(`Invitación reenviada a ${user.name}`),
+                              onError: (err: any) => toast.error(err?.message || "Error al reenviar"),
+                            })
+                          }
+                        >
+                          <Send className="mr-1 h-3 w-3" />
+                          Reenviar
+                        </Button>
+                      )}
                       {user.active && user.id !== currentUser?.id && (
                         <Button
                           variant="ghost"
@@ -189,6 +206,21 @@ export function UsuariosPage() {
                       Editar
                     </Button>
                   </Link>
+                  {!user.active && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={resendInvite.isPending}
+                      onClick={() =>
+                        resendInvite.mutate(user.id, {
+                          onSuccess: () => toast.success(`Invitación reenviada a ${user.name}`),
+                          onError: (err: any) => toast.error(err?.message || "Error al reenviar"),
+                        })
+                      }
+                    >
+                      <Send className="h-3 w-3" />
+                    </Button>
+                  )}
                   {user.active && user.id !== currentUser?.id && (
                     <Button
                       variant="ghost"

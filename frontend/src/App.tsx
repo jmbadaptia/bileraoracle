@@ -32,6 +32,8 @@ import { EspacioDetailPage } from "@/pages/espacio-detail";
 import { ReservaFormPage } from "@/pages/reserva-form";
 import { ReservasCalendarPage } from "@/pages/reservas-calendar";
 import { GuiaPage } from "@/pages/guia";
+import { RecuperarPage } from "@/pages/recuperar";
+import { VerificarPage } from "@/pages/verificar";
 
 function AsistenteWrapper() {
   return <AsistentePage />;
@@ -55,6 +57,8 @@ export function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/recuperar" element={<RecuperarPage />} />
+      <Route path="/verificar" element={<VerificarPage />} />
       <Route
         path="/"
         element={

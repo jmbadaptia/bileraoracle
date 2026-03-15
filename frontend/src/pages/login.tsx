@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, Link } from "react-router";
 import { Shield, Download, Building2 } from "lucide-react";
 import { usePwaInstall } from "@/lib/use-pwa-install";
 
@@ -160,6 +160,11 @@ export function LoginPage() {
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Iniciando sesion..." : "Iniciar sesion"}
             </Button>
+            <div className="text-center">
+              <Link to="/recuperar" className="text-sm text-muted-foreground hover:underline">
+                ¿Has olvidado tu contraseña?
+              </Link>
+            </div>
           </form>
         </CardContent>
       </Card>

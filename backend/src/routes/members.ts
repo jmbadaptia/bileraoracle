@@ -1,8 +1,10 @@
 import { FastifyInstance } from "fastify";
+import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import oracledb from "oracledb";
 import { withTenant } from "../lib/db.js";
 import { requireAuth, requireAdmin } from "../middleware/auth.js";
+import { sendInviteEmail } from "../lib/email.js";
 
 export async function memberRoutes(app: FastifyInstance) {
   // GET /api/members — list members of current tenant
@@ -186,11 +188,13 @@ export async function memberRoutes(app: FastifyInstance) {
       } else {
         // Create new user
         userId = crypto.randomUUID();
+        const isInvite = !password;
         const passwordHash = await bcrypt.hash(password || crypto.randomUUID(), 12);
+        const inviteToken = isInvite ? crypto.randomBytes(32).toString("hex") : null;
 
         await conn.execute(
-          `INSERT INTO users (id, email, password_hash, name, phone, bio, active)
-           VALUES (:id, :email, :passwordHash, :name, :phone, :bio, 1)`,
+          `INSERT INTO users (id, email, password_hash, name, phone, bio, active, invite_token, invite_token_expires)
+           VALUES (:id, :email, :passwordHash, :name, :phone, :bio, :active, :inviteToken, ${isInvite ? "SYSTIMESTAMP + INTERVAL '7' DAY" : "NULL"})`,
           {
             id: userId,
             email: email.toLowerCase(),
@@ -198,8 +202,18 @@ export async function memberRoutes(app: FastifyInstance) {
             name: name.trim(),
             phone: phone || null,
             bio: bio || null,
+            active: isInvite ? 0 : 1,
+            inviteToken,
           }
         );
+
+        if (isInvite && inviteToken) {
+          try {
+            await sendInviteEmail(email.toLowerCase(), name.trim(), inviteToken);
+          } catch (err) {
+            console.error("Error sending invite email:", err);
+          }
+        }
       }
 
       // Create membership
@@ -215,12 +229,14 @@ export async function memberRoutes(app: FastifyInstance) {
         }
       );
 
+      const isInvited = !password;
       return reply.code(201).send({
         id: userId,
         name: name.trim(),
         email: email.toLowerCase(),
         role: role === "ADMIN" ? "ADMIN" : "MEMBER",
-        active: true,
+        active: !isInvited,
+        invited: isInvited,
       });
     });
   });
@@ -286,6 +302,45 @@ export async function memberRoutes(app: FastifyInstance) {
         phone: phone || null,
         bio: bio || null,
       };
+    });
+  });
+
+  // POST /api/members/:id/resend-invite — resend invitation email
+  app.post("/api/members/:id/resend-invite", { preHandler: [requireAdmin] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+
+    return withTenant(request.user.tenantId, request.user.id, async (conn) => {
+      const result = await conn.execute<any>(
+        `SELECT u.id, u.email, u.name, u.active
+         FROM users u
+         JOIN memberships m ON m.user_id = u.id
+         WHERE u.id = :id`,
+        { id },
+        { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      );
+
+      const user = result.rows?.[0];
+      if (!user) {
+        return reply.code(404).send({ error: "Miembro no encontrado" });
+      }
+      if (user.ACTIVE) {
+        return reply.code(400).send({ error: "La cuenta ya está activa" });
+      }
+
+      const token = crypto.randomBytes(32).toString("hex");
+      await conn.execute(
+        `UPDATE users SET invite_token = :token, invite_token_expires = SYSTIMESTAMP + INTERVAL '7' DAY, updated_at = SYSTIMESTAMP WHERE id = :id`,
+        { token, id }
+      );
+
+      try {
+        await sendInviteEmail(user.EMAIL, user.NAME, token);
+      } catch (err) {
+        console.error("Error resending invite email:", err);
+        return reply.code(500).send({ error: "Error al enviar el email" });
+      }
+
+      return { ok: true };
     });
   });
 

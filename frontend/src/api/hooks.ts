@@ -386,6 +386,12 @@ export function useDeleteUser() {
   });
 }
 
+export function useResendInvite() {
+  return useMutation({
+    mutationFn: (id: string) => api.post(`/members/${id}/resend-invite`, {}),
+  });
+}
+
 // ---- Tags ----
 export function useTags() {
   return useQuery({

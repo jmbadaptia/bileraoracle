@@ -1,8 +1,10 @@
 import { FastifyInstance } from "fastify";
+import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import oracledb from "oracledb";
 import { withConnection } from "../lib/db.js";
 import { requireAuth } from "../middleware/auth.js";
+import { sendResetEmail } from "../lib/email.js";
 
 export async function authRoutes(app: FastifyInstance) {
   // POST /api/auth/login
@@ -161,6 +163,145 @@ export async function authRoutes(app: FastifyInstance) {
         tenantSlug: user.TENANT_SLUG,
         theme: user.TENANT_THEME || "default",
       };
+    });
+  });
+
+  // GET /api/auth/verify?token= — validate invite token
+  app.get("/api/auth/verify", async (request, reply) => {
+    const { token } = request.query as { token?: string };
+    if (!token) {
+      return reply.code(400).send({ error: "Token requerido" });
+    }
+
+    return withConnection(async (conn) => {
+      const result = await conn.execute<any>(
+        `SELECT id, name, active, invite_token_expires FROM users WHERE invite_token = :token`,
+        { token },
+        { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      );
+
+      const user = result.rows?.[0];
+      if (!user) {
+        return reply.code(400).send({ error: "Token inválido o expirado" });
+      }
+
+      if (user.INVITE_TOKEN_EXPIRES && new Date(user.INVITE_TOKEN_EXPIRES) < new Date()) {
+        return reply.code(400).send({ error: "El enlace ha expirado. Contacta con un administrador para que te reenvíe la invitación." });
+      }
+
+      if (user.ACTIVE) {
+        return { name: user.NAME, alreadyActive: true };
+      }
+
+      return { name: user.NAME, alreadyActive: false };
+    });
+  });
+
+  // POST /api/auth/activate — set password and activate account
+  app.post("/api/auth/activate", async (request, reply) => {
+    const { token, password } = request.body as { token?: string; password?: string };
+
+    if (!token || !password) {
+      return reply.code(400).send({ error: "Token y contraseña son obligatorios" });
+    }
+    if (password.length < 6) {
+      return reply.code(400).send({ error: "La contraseña debe tener al menos 6 caracteres" });
+    }
+
+    return withConnection(async (conn) => {
+      const result = await conn.execute<any>(
+        `SELECT id, active, invite_token_expires FROM users WHERE invite_token = :token`,
+        { token },
+        { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      );
+
+      const user = result.rows?.[0];
+      if (!user) {
+        return reply.code(400).send({ error: "Token inválido o expirado" });
+      }
+
+      if (user.INVITE_TOKEN_EXPIRES && new Date(user.INVITE_TOKEN_EXPIRES) < new Date()) {
+        return reply.code(400).send({ error: "El enlace ha expirado. Contacta con un administrador para que te reenvíe la invitación." });
+      }
+
+      if (user.ACTIVE) {
+        return reply.code(400).send({ error: "La cuenta ya está activa" });
+      }
+
+      const passwordHash = await bcrypt.hash(password, 12);
+      await conn.execute(
+        `UPDATE users SET password_hash = :passwordHash, active = 1, invite_token = NULL, invite_token_expires = NULL, updated_at = SYSTIMESTAMP WHERE id = :id`,
+        { passwordHash, id: user.ID }
+      );
+
+      return { ok: true };
+    });
+  });
+
+  // POST /api/auth/forgot-password — request password reset email
+  app.post("/api/auth/forgot-password", async (request) => {
+    const { email } = request.body as { email?: string };
+
+    // Always return ok (anti-enumeration)
+    if (!email) return { ok: true };
+
+    try {
+      await withConnection(async (conn) => {
+        const result = await conn.execute<any>(
+          `SELECT id, name, active FROM users WHERE email = :email`,
+          { email: email.toLowerCase() },
+          { outFormat: oracledb.OUT_FORMAT_OBJECT }
+        );
+
+        const user = result.rows?.[0];
+        if (!user || !user.ACTIVE) return;
+
+        const token = crypto.randomBytes(32).toString("hex");
+        await conn.execute(
+          `UPDATE users SET reset_token = :token, reset_token_expires = SYSTIMESTAMP + INTERVAL '15' MINUTE, updated_at = SYSTIMESTAMP WHERE id = :id`,
+          { token, id: user.ID }
+        );
+
+        await sendResetEmail(email.toLowerCase(), user.NAME, token);
+      });
+    } catch (err) {
+      // Log but don't expose errors
+      console.error("Error in forgot-password:", err);
+    }
+
+    return { ok: true };
+  });
+
+  // POST /api/auth/reset-password — reset password with token
+  app.post("/api/auth/reset-password", async (request, reply) => {
+    const { token, password } = request.body as { token?: string; password?: string };
+
+    if (!token || !password) {
+      return reply.code(400).send({ error: "Token y contraseña son obligatorios" });
+    }
+    if (password.length < 6) {
+      return reply.code(400).send({ error: "La contraseña debe tener al menos 6 caracteres" });
+    }
+
+    return withConnection(async (conn) => {
+      const result = await conn.execute<any>(
+        `SELECT id FROM users WHERE reset_token = :token AND reset_token_expires > SYSTIMESTAMP AND active = 1`,
+        { token },
+        { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      );
+
+      const user = result.rows?.[0];
+      if (!user) {
+        return reply.code(400).send({ error: "Token inválido o expirado" });
+      }
+
+      const passwordHash = await bcrypt.hash(password, 12);
+      await conn.execute(
+        `UPDATE users SET password_hash = :passwordHash, reset_token = NULL, reset_token_expires = NULL, updated_at = SYSTIMESTAMP WHERE id = :id`,
+        { passwordHash, id: user.ID }
+      );
+
+      return { ok: true };
     });
   });
 }
