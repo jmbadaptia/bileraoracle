@@ -1,0 +1,26 @@
+---
+const APP_URL = import.meta.env.PUBLIC_APP_URL || "http://localhost:3001";
+---
+
+<header class="fixed top-0 inset-x-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
+  <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+    <a href="/" class="flex items-center gap-2">
+      <div class="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+        <span class="text-white font-bold text-sm">B</span>
+      </div>
+      <span class="font-bold text-lg">Bilera</span>
+    </a>
+
+    <nav class="hidden sm:flex items-center gap-8 text-sm text-gray-600">
+      <a href="#features" class="hover:text-gray-900 transition-colors">Funcionalidades</a>
+      <a href="#pricing" class="hover:text-gray-900 transition-colors">Precios</a>
+    </nav>
+
+    <a
+      href={`${APP_URL}/registro`}
+      class="inline-flex items-center px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors"
+    >
+      Empezar gratis
+    </a>
+  </div>
+</header>

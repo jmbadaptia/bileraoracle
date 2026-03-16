@@ -1,0 +1,92 @@
+---
+const APP_URL = import.meta.env.PUBLIC_APP_URL || "http://localhost:3001";
+---
+
+<section id="pricing" class="py-20 px-6">
+  <div class="max-w-4xl mx-auto">
+    <div class="text-center mb-16">
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">Precios claros, sin sorpresas</h2>
+      <p class="mt-4 text-lg text-gray-600">
+        Empieza gratis y crece a tu ritmo.
+      </p>
+    </div>
+
+    <div class="grid sm:grid-cols-2 gap-6">
+      <!-- FREE -->
+      <div class="rounded-2xl border-2 border-primary p-8 relative">
+        <div class="absolute -top-3 left-6 bg-primary text-white text-xs font-semibold px-3 py-1 rounded-full">
+          Popular
+        </div>
+        <h3 class="text-xl font-bold">Gratis</h3>
+        <div class="mt-4 flex items-baseline gap-1">
+          <span class="text-4xl font-extrabold">0 &euro;</span>
+          <span class="text-gray-500">/ mes</span>
+        </div>
+        <p class="mt-4 text-sm text-gray-600">Ideal para empezar y para equipos pequeños.</p>
+
+        <ul class="mt-6 space-y-3 text-sm">
+          <li class="flex items-center gap-2">
+            <span class="text-primary font-bold">&#10003;</span> Hasta 10 usuarios
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="text-primary font-bold">&#10003;</span> 100 actividades
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="text-primary font-bold">&#10003;</span> 50 documentos
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="text-primary font-bold">&#10003;</span> 5 espacios
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="text-primary font-bold">&#10003;</span> 500 MB de almacenamiento
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="text-primary font-bold">&#10003;</span> Asistente con IA incluido
+          </li>
+        </ul>
+
+        <a
+          href={`${APP_URL}/registro`}
+          class="mt-8 block text-center px-6 py-3 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 transition-colors"
+        >
+          Empieza gratis
+        </a>
+      </div>
+
+      <!-- PRO -->
+      <div class="rounded-2xl border border-gray-200 p-8 bg-gray-50/50">
+        <h3 class="text-xl font-bold">Pro</h3>
+        <div class="mt-4 flex items-baseline gap-1">
+          <span class="text-4xl font-extrabold text-gray-400">--</span>
+          <span class="text-gray-400">/ mes</span>
+        </div>
+        <p class="mt-4 text-sm text-gray-500">Para organizaciones que necesitan crecer sin límites.</p>
+
+        <ul class="mt-6 space-y-3 text-sm text-gray-500">
+          <li class="flex items-center gap-2">
+            <span class="font-bold">&#10003;</span> Usuarios ilimitados
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="font-bold">&#10003;</span> Actividades ilimitadas
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="font-bold">&#10003;</span> Documentos ilimitados
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="font-bold">&#10003;</span> Espacios ilimitados
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="font-bold">&#10003;</span> 10 GB de almacenamiento
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="font-bold">&#10003;</span> Soporte prioritario
+          </li>
+        </ul>
+
+        <div class="mt-8 block text-center px-6 py-3 rounded-xl border border-gray-300 text-gray-400 font-semibold cursor-default">
+          Muy pronto
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

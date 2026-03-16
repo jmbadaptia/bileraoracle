@@ -91,6 +91,17 @@ services:
       mailpit:
         condition: service_started
 
+  landing:
+    build:
+      context: ./landing
+      target: dev
+    ports:
+      - "127.0.0.1:3000:4321"
+    environment:
+      PUBLIC_APP_URL: http://localhost:3001
+    volumes:
+      - ./landing/src:/app/src
+
   frontend:
     build:
       context: ./frontend

@@ -1,0 +1,55 @@
+---
+const features = [
+  {
+    icon: "👥",
+    title: "Gestión de personas",
+    description: "Lleva el control de tu equipo, asociados y colaboradores. Invítalos por email en un clic.",
+  },
+  {
+    icon: "📅",
+    title: "Actividades y eventos",
+    description: "Organiza reuniones, eventos y tareas. Lleva el seguimiento y la asistencia sin complicaciones.",
+  },
+  {
+    icon: "📄",
+    title: "Documentos inteligentes",
+    description: "Sube actas, informes o cualquier documento. La IA extrae el contenido y te deja buscarlo al instante.",
+  },
+  {
+    icon: "📸",
+    title: "Galería de fotos",
+    description: "Guarda las fotos de tus eventos y actividades, organizadas en álbumes.",
+  },
+  {
+    icon: "🏢",
+    title: "Espacios y reservas",
+    description: "¿Tienes salas o locales? Gestiona las reservas con un calendario compartido.",
+  },
+  {
+    icon: "🤖",
+    title: "Asistente con IA",
+    description: "Hazle preguntas sobre tus documentos y actividades. Te responde con información de tu organización.",
+  },
+];
+---
+
+<section id="features" class="py-20 px-6 bg-gray-50/50">
+  <div class="max-w-6xl mx-auto">
+    <div class="text-center mb-16">
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">Todo lo que necesitas, en un solo sitio</h2>
+      <p class="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
+        Da igual si sois una asociación de vecinos, un partido político o un club deportivo. Bilera se adapta a vosotros.
+      </p>
+    </div>
+
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {features.map((f) => (
+        <div class="bg-white rounded-xl p-6 border border-gray-100 hover:border-gray-200 hover:shadow-sm transition-all">
+          <div class="text-3xl mb-4">{f.icon}</div>
+          <h3 class="font-semibold text-lg mb-2">{f.title}</h3>
+          <p class="text-gray-600 text-sm leading-relaxed">{f.description}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
