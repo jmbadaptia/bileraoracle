@@ -5,6 +5,7 @@ import path from "path";
 import oracledb from "oracledb";
 import { withTenant } from "../lib/db.js";
 import { requireAuth, requireAdmin } from "../middleware/auth.js";
+import { getPlanUsage } from "../lib/plan-limits.js";
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || "./uploads";
 
@@ -168,6 +169,13 @@ export async function dashboardRoutes(app: FastifyInstance) {
 
     const buffer = await readFile(LOGO_PATH);
     return reply.type("image/png").send(buffer);
+  });
+
+  // GET /api/admin/plan-usage — current plan usage and limits
+  app.get("/api/admin/plan-usage", { preHandler: [requireAuth] }, async (request) => {
+    return withTenant(request.user.tenantId, request.user.id, async (conn) => {
+      return getPlanUsage(conn, request.user.tenantId);
+    });
   });
 
   // PUT /api/admin/setup-complete — mark tenant onboarding as done

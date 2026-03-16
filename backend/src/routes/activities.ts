@@ -4,6 +4,7 @@ import { withTenant } from "../lib/db.js";
 import { requireAuth } from "../middleware/auth.js";
 import { getEmbedding, buildActivityText } from "../lib/ai.js";
 import { logActivity } from "../lib/audit.js";
+import { checkPlanLimit, PlanLimitError } from "../lib/plan-limits.js";
 
 async function updateActivityEmbedding(
   id: string, tenantId: number, userId: string,
@@ -176,7 +177,9 @@ export async function activityRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: "El título es obligatorio" });
     }
 
-    return withTenant(request.user.tenantId, request.user.id, async (conn) => {
+    try {
+    return await withTenant(request.user.tenantId, request.user.id, async (conn) => {
+      await checkPlanLimit(conn, request.user.tenantId, "activities");
       const id = crypto.randomUUID();
 
       // If spaceId provided, resolve space name as location
@@ -283,6 +286,10 @@ export async function activityRoutes(app: FastifyInstance) {
         priority: priority || "MEDIUM",
       });
     });
+    } catch (err: any) {
+      if (err instanceof PlanLimitError) return reply.code(403).send({ error: err.message });
+      throw err;
+    }
   });
 
   // GET /api/activities/:id

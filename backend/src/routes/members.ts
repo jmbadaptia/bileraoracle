@@ -5,6 +5,7 @@ import oracledb from "oracledb";
 import { withTenant } from "../lib/db.js";
 import { requireAuth, requireAdmin } from "../middleware/auth.js";
 import { sendInviteEmail } from "../lib/email.js";
+import { checkPlanLimit, PlanLimitError } from "../lib/plan-limits.js";
 
 export async function memberRoutes(app: FastifyInstance) {
   // GET /api/members — list members of current tenant
@@ -164,7 +165,10 @@ export async function memberRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: "Nombre y email son obligatorios" });
     }
 
-    return withTenant(request.user.tenantId, request.user.id, async (conn) => {
+    try {
+    return await withTenant(request.user.tenantId, request.user.id, async (conn) => {
+      await checkPlanLimit(conn, request.user.tenantId, "members");
+
       // Check if user already exists
       const existing = await conn.execute<any>(
         `SELECT id FROM users WHERE email = :email`,
@@ -239,6 +243,10 @@ export async function memberRoutes(app: FastifyInstance) {
         invited: isInvited,
       });
     });
+    } catch (err: any) {
+      if (err instanceof PlanLimitError) return reply.code(403).send({ error: err.message });
+      throw err;
+    }
   });
 
   // PUT /api/members/:id — update member profile

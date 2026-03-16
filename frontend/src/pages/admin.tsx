@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { Link } from "react-router";
-import { Users, FileText, Database, Upload, ImageIcon, Palette, Check } from "lucide-react";
+import { Users, FileText, Database, Upload, ImageIcon, Palette, Check, Crown } from "lucide-react";
 import { toast } from "sonner";
 import { useAdminStats, useUpdateTheme } from "@/api/hooks";
 import { useAuth } from "@/lib/auth";
@@ -116,7 +116,7 @@ export function AdminPage() {
   } = data || {};
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Configuración</h1>
         <p className="text-muted-foreground">
@@ -124,147 +124,134 @@ export function AdminPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Usuarios</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalMembers}</div>
-          </CardContent>
-        </Card>
+      {/* ── Sección: Configuración ── */}
+      <div className="space-y-4">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Configuración</h2>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Gestión de usuarios
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Crea, edita o desactiva cuentas de acceso a la aplicación.
+              </p>
+              <Link to="/admin/usuarios">
+                <Button variant="outline">Gestionar usuarios</Button>
+              </Link>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Documentos</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalDocuments}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Actividades</CardTitle>
-            <Database className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalActivities}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Álbumes</CardTitle>
-            <ImageIcon className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalAlbums}</div>
-          </CardContent>
-        </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Crown className="h-4 w-4" />
+                Tu plan
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Consulta el uso actual de tu organización y los límites de tu plan.
+              </p>
+              <Link to="/admin/plan">
+                <Button variant="outline">Ver tu plan</Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
-      {/* Theme picker */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Palette className="h-4 w-4" />
-            Tema de colores
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Elige el color principal de la aplicación. Se aplicará a todos los usuarios de la organización.
-          </p>
-          <div className="flex flex-wrap gap-3">
-            {THEME_PRESETS.map((preset) => (
-              <button
-                key={preset.id}
-                onClick={() => handleThemeChange(preset.id)}
-                className="flex flex-col items-center gap-1.5 group"
-                title={preset.label}
-              >
-                <div
-                  className="h-10 w-10 rounded-full flex items-center justify-center ring-2 ring-offset-2 ring-offset-background transition-all"
-                  style={{
-                    backgroundColor: preset.color,
-                    ringColor: currentTheme === preset.id ? preset.color : "transparent",
+      {/* ── Sección: Apariencia ── */}
+      <div className="space-y-4">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Apariencia</h2>
+        <div className="grid gap-4 md:grid-cols-2">
+          {/* Theme picker */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Palette className="h-4 w-4" />
+                Tema de colores
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Elige el color principal. Se aplicará a todos los usuarios.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {THEME_PRESETS.map((preset) => (
+                  <button
+                    key={preset.id}
+                    onClick={() => handleThemeChange(preset.id)}
+                    className="flex flex-col items-center gap-1.5 group"
+                    title={preset.label}
+                  >
+                    <div
+                      className="h-10 w-10 rounded-full flex items-center justify-center ring-2 ring-offset-2 ring-offset-background transition-all"
+                      style={{
+                        backgroundColor: preset.color,
+                        ringColor: currentTheme === preset.id ? preset.color : "transparent",
+                      }}
+                    >
+                      {currentTheme === preset.id && (
+                        <Check className="h-4 w-4 text-white" />
+                      )}
+                    </div>
+                    <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
+                      {preset.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Logo upload */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <ImageIcon className="h-4 w-4" />
+                Logo del sitio
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex items-center gap-6">
+              <div className="h-20 w-20 rounded-lg border flex items-center justify-center overflow-hidden bg-muted shrink-0">
+                <img
+                  key={logoKey}
+                  src={`${API_BASE}/admin/logo?v=${logoKey}`}
+                  alt="Logo"
+                  className="h-full w-full object-contain"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = "none";
                   }}
+                />
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  PNG, JPG, SVG o WebP, máx. 2MB.
+                </p>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                  className="hidden"
+                  onChange={handleLogoUpload}
+                />
+                <Button
+                  variant="outline"
+                  disabled={uploading}
+                  onClick={() => fileRef.current?.click()}
                 >
-                  {currentTheme === preset.id && (
-                    <Check className="h-4 w-4 text-white" />
-                  )}
-                </div>
-                <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
-                  {preset.label}
-                </span>
-              </button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Logo upload */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <ImageIcon className="h-4 w-4" />
-            Logo del sitio
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex items-center gap-6">
-          <div className="h-20 w-20 rounded-lg border flex items-center justify-center overflow-hidden bg-muted">
-            <img
-              key={logoKey}
-              src={`${API_BASE}/admin/logo?v=${logoKey}`}
-              alt="Logo"
-              className="h-full w-full object-contain"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = "none";
-              }}
-            />
-          </div>
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">
-              Sube un logo (PNG, JPG, SVG o WebP, máx. 2MB). Aparecerá en el sidebar y en la página de login.
-            </p>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/png,image/jpeg,image/svg+xml,image/webp"
-              className="hidden"
-              onChange={handleLogoUpload}
-            />
-            <Button
-              variant="outline"
-              disabled={uploading}
-              onClick={() => fileRef.current?.click()}
-            >
-              <Upload className="mr-2 h-4 w-4" />
-              {uploading ? "Subiendo..." : "Subir logo"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Gestión de usuarios
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <p className="text-sm text-muted-foreground">
-            Crea, edita o desactiva cuentas de acceso a la aplicación.
-          </p>
-          <Link to="/admin/usuarios">
-            <Button variant="outline">Gestionar usuarios</Button>
-          </Link>
-        </CardContent>
-      </Card>
+                  <Upload className="mr-2 h-4 w-4" />
+                  {uploading ? "Subiendo..." : "Subir logo"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }

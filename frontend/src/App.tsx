@@ -36,6 +36,7 @@ import { RecuperarPage } from "@/pages/recuperar";
 import { VerificarPage } from "@/pages/verificar";
 import { RegistroPage } from "@/pages/registro";
 import { OnboardingPage } from "@/pages/onboarding";
+import { PlanPage } from "@/pages/plan";
 
 function AsistenteWrapper() {
   return <AsistentePage />;
@@ -107,6 +108,7 @@ export function App() {
         <Route path="admin/usuarios" element={<AdminRoute><UsuariosPage /></AdminRoute>} />
         <Route path="admin/usuarios/nuevo" element={<AdminRoute><UsuarioFormPage /></AdminRoute>} />
         <Route path="admin/usuarios/:id/editar" element={<AdminRoute><UsuarioFormPage /></AdminRoute>} />
+        <Route path="admin/plan" element={<AdminRoute><PlanPage /></AdminRoute>} />
       </Route>
     </Routes>
   );

@@ -392,6 +392,13 @@ export function useResendInvite() {
   });
 }
 
+export function usePlanUsage() {
+  return useQuery({
+    queryKey: ["plan-usage"],
+    queryFn: () => api.get<any>("/admin/plan-usage"),
+  });
+}
+
 export function useCompleteSetup() {
   return useMutation({
     mutationFn: () => api.put("/admin/setup-complete", {}),

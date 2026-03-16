@@ -6,6 +6,7 @@ import oracledb from "oracledb";
 import { withTenant } from "../lib/db.js";
 import { requireAuth, requireAdmin } from "../middleware/auth.js";
 import { processDocument } from "../lib/processor.js";
+import { checkPlanLimit, PlanLimitError } from "../lib/plan-limits.js";
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || "./uploads";
 
@@ -109,7 +110,11 @@ export async function documentRoutes(app: FastifyInstance) {
     await mkdir(docsDir, { recursive: true });
     await writeFile(filePath, buffer);
 
-    return withTenant(request.user.tenantId, request.user.id, async (conn) => {
+    try {
+    return await withTenant(request.user.tenantId, request.user.id, async (conn) => {
+      await checkPlanLimit(conn, request.user.tenantId, "documents");
+      await checkPlanLimit(conn, request.user.tenantId, "storage");
+
       await conn.execute(
         `INSERT INTO documents (id, tenant_id, title, description, file_path, file_name, file_type, file_size, status, visibility, uploaded_by)
          VALUES (:id, :tenantId, :title, :description, :filePath, :fileName, :fileType, :fileSize, 'PENDING', :visibility, :uploadedBy)`,
@@ -142,6 +147,10 @@ export async function documentRoutes(app: FastifyInstance) {
         status: "PENDING",
       });
     });
+    } catch (err: any) {
+      if (err instanceof PlanLimitError) return reply.code(403).send({ error: err.message });
+      throw err;
+    }
   });
 
   // GET /api/documents/:id

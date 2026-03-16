@@ -3,6 +3,7 @@ import crypto from "crypto";
 import oracledb from "oracledb";
 import { withTenant } from "../lib/db.js";
 import { requireAuth, requireAdmin } from "../middleware/auth.js";
+import { checkPlanLimit, PlanLimitError } from "../lib/plan-limits.js";
 
 export async function spaceRoutes(app: FastifyInstance) {
   // ─── Spaces ───
@@ -63,7 +64,9 @@ export async function spaceRoutes(app: FastifyInstance) {
 
     if (!name?.trim()) return reply.code(400).send({ error: "El nombre es obligatorio" });
 
-    return withTenant(request.user.tenantId, request.user.id, async (conn) => {
+    try {
+    return await withTenant(request.user.tenantId, request.user.id, async (conn) => {
+      await checkPlanLimit(conn, request.user.tenantId, "spaces");
       const id = crypto.randomUUID();
       await conn.execute(
         `INSERT INTO spaces (id, tenant_id, name, description, capacity, location, color, created_by)
@@ -81,6 +84,10 @@ export async function spaceRoutes(app: FastifyInstance) {
       );
       return reply.code(201).send({ id, name });
     });
+    } catch (err: any) {
+      if (err instanceof PlanLimitError) return reply.code(403).send({ error: err.message });
+      throw err;
+    }
   });
 
   // GET /api/spaces/:id
