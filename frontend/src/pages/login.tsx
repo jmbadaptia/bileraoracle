@@ -160,9 +160,12 @@ export function LoginPage() {
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Iniciando sesion..." : "Iniciar sesion"}
             </Button>
-            <div className="text-center">
-              <Link to="/recuperar" className="text-sm text-muted-foreground hover:underline">
+            <div className="text-center space-y-1">
+              <Link to="/recuperar" className="text-sm text-muted-foreground hover:underline block">
                 ¿Has olvidado tu contraseña?
+              </Link>
+              <Link to="/registro" className="text-sm text-muted-foreground hover:underline block">
+                ¿No tienes cuenta? Regístrate
               </Link>
             </div>
           </form>

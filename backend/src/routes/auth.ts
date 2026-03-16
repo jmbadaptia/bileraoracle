@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import oracledb from "oracledb";
 import { withConnection } from "../lib/db.js";
 import { requireAuth } from "../middleware/auth.js";
-import { sendResetEmail } from "../lib/email.js";
+import { sendInviteEmail, sendWelcomeEmail, sendResetEmail } from "../lib/email.js";
 
 export async function authRoutes(app: FastifyInstance) {
   // POST /api/auth/login
@@ -303,5 +303,113 @@ export async function authRoutes(app: FastifyInstance) {
 
       return { ok: true };
     });
+  });
+
+  // POST /api/auth/register — public self-service registration
+  app.post("/api/auth/register", async (request, reply) => {
+    const { orgName, name, email } = request.body as {
+      orgName?: string;
+      name?: string;
+      email?: string;
+    };
+
+    if (!orgName || !name || !email) {
+      return reply.code(400).send({ error: "Todos los campos son obligatorios" });
+    }
+
+    // Generate slug from org name
+    const baseSlug = orgName
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 45);
+
+    try {
+      await withConnection(async (conn) => {
+        // Find unique slug (append number if needed)
+        let slugClean = baseSlug || "org";
+        let suffix = 0;
+        while (true) {
+          const candidate = suffix === 0 ? slugClean : `${slugClean}-${suffix}`;
+          const slugCheck = await conn.execute<any>(
+            `SELECT id FROM tenants WHERE slug = :slug`,
+            { slug: candidate },
+            { outFormat: oracledb.OUT_FORMAT_OBJECT }
+          );
+          if (!slugCheck.rows?.length) {
+            slugClean = candidate;
+            break;
+          }
+          suffix++;
+        }
+
+        // Check email uniqueness (silently skip if exists — anti-enumeration)
+        const emailCheck = await conn.execute<any>(
+          `SELECT id FROM users WHERE email = :email`,
+          { email: email.toLowerCase() },
+          { outFormat: oracledb.OUT_FORMAT_OBJECT }
+        );
+        if (emailCheck.rows?.length) {
+          // Don't reveal that email exists — just return ok
+          return;
+        }
+
+        // Create tenant (IDENTITY column returns generated id)
+        const tenantResult = await conn.execute<any>(
+          `INSERT INTO tenants (name, slug) VALUES (:name, :slug) RETURNING id INTO :id`,
+          {
+            name: orgName.trim(),
+            slug: slugClean,
+            id: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER },
+          }
+        );
+        const tenantId = tenantResult.outBinds.id[0];
+
+        // Create user (inactive, with invite token)
+        const userId = crypto.randomUUID();
+        const passwordHash = await bcrypt.hash(crypto.randomUUID(), 12);
+        const inviteToken = crypto.randomBytes(32).toString("hex");
+
+        await conn.execute(
+          `INSERT INTO users (id, email, password_hash, name, active, invite_token, invite_token_expires)
+           VALUES (:id, :email, :passwordHash, :name, 0, :inviteToken, SYSTIMESTAMP + INTERVAL '7' DAY)`,
+          {
+            id: userId,
+            email: email.toLowerCase(),
+            passwordHash,
+            name: name.trim(),
+            inviteToken,
+          }
+        );
+
+        // Create membership (admin of new tenant)
+        await conn.execute(
+          `INSERT INTO memberships (id, tenant_id, user_id, role)
+           VALUES (:id, :tenantId, :userId, 'ADMIN')`,
+          {
+            id: crypto.randomUUID(),
+            tenantId,
+            userId,
+          }
+        );
+
+        // Send welcome email with activation link
+        try {
+          await sendWelcomeEmail(email.toLowerCase(), name.trim(), orgName.trim(), inviteToken);
+        } catch (err) {
+          console.error("Error sending registration email:", err);
+        }
+      });
+    } catch (err: any) {
+      if (err.statusCode === 409) {
+        return reply.code(409).send({ error: err.message });
+      }
+      console.error("Error in register:", err);
+      return reply.code(500).send({ error: "Error al crear la cuenta" });
+    }
+
+    return { ok: true };
   });
 }

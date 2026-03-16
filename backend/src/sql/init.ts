@@ -98,6 +98,7 @@ async function init() {
     connectString,
   });
   await runFile(adminConn, "000_admin_tables.sql");
+  await runFile(adminConn, "013_plan_limits.sql");
   await adminConn.close();
 
   // ── Phase 3: bilera — synonyms + app schema + seed ──

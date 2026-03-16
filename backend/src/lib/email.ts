@@ -45,6 +45,31 @@ ${content}
 </html>`;
 }
 
+export async function sendWelcomeEmail(to: string, name: string, orgName: string, token: string): Promise<void> {
+  const link = `${getAppUrl()}/verificar?token=${token}`;
+  const html = baseHtml(`
+    <h2 style="margin:0 0 8px;font-size:22px;color:#18181b">¡Bienvenido/a a Bilera, ${name}!</h2>
+    <p style="margin:0 0 24px;font-size:15px;color:#52525b;line-height:1.6">
+      Tu organización <strong>${orgName}</strong> ha sido creada correctamente. Solo falta un paso: activa tu cuenta y establece tu contraseña para empezar a usarla.
+    </p>
+    <a href="${link}" style="display:inline-block;background:#e11d48;color:#fff;text-decoration:none;padding:12px 32px;border-radius:8px;font-size:15px;font-weight:600">
+      Activar mi cuenta
+    </a>
+    <p style="margin:24px 0 0;font-size:13px;color:#a1a1aa;line-height:1.5">
+      Este enlace es válido durante 7 días.<br/>
+      Si no puedes hacer clic, copia esta URL en tu navegador:<br/>
+      <span style="color:#52525b;word-break:break-all">${link}</span>
+    </p>
+  `);
+
+  await getTransporter().sendMail({
+    from: getFrom(),
+    to,
+    subject: `Tu organización ${orgName} está lista — activa tu cuenta`,
+    html,
+  });
+}
+
 export async function sendInviteEmail(to: string, name: string, token: string): Promise<void> {
   const link = `${getAppUrl()}/verificar?token=${token}`;
   const html = baseHtml(`

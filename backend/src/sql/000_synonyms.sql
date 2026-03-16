@@ -8,3 +8,5 @@ CREATE OR REPLACE SYNONYM tenants FOR bilera_admin.tenants;
 CREATE OR REPLACE SYNONYM users FOR bilera_admin.users;
 
 CREATE OR REPLACE SYNONYM memberships FOR bilera_admin.memberships;
+
+CREATE OR REPLACE SYNONYM plan_limits FOR bilera_admin.plan_limits;

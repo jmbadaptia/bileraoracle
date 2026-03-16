@@ -34,6 +34,7 @@ import { ReservasCalendarPage } from "@/pages/reservas-calendar";
 import { GuiaPage } from "@/pages/guia";
 import { RecuperarPage } from "@/pages/recuperar";
 import { VerificarPage } from "@/pages/verificar";
+import { RegistroPage } from "@/pages/registro";
 
 function AsistenteWrapper() {
   return <AsistentePage />;
@@ -59,6 +60,7 @@ export function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/recuperar" element={<RecuperarPage />} />
       <Route path="/verificar" element={<VerificarPage />} />
+      <Route path="/registro" element={<RegistroPage />} />
       <Route
         path="/"
         element={
