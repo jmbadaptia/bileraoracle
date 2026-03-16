@@ -18,15 +18,10 @@ ALTER TABLE documents ADD (extracted_text CLOB);
 ALTER TABLE documents ADD (chunk_count NUMBER DEFAULT 0);
 ALTER TABLE documents ADD (processing_error VARCHAR2(1000));
 
--- VPD policy for chunks
-BEGIN
-  DBMS_RLS.ADD_POLICY(
-    object_schema   => USER,
-    object_name     => 'DOCUMENT_CHUNKS',
-    policy_name     => 'chunks_tenant_vpd',
-    function_schema => USER,
-    policy_function => 'VPD_TENANT_POLICY',
-    statement_types => 'SELECT,UPDATE,DELETE'
-  );
-END;
+-- VPD policies for chunks
+BEGIN DBMS_RLS.ADD_POLICY(USER,'DOCUMENT_CHUNKS','chunks_sel_vpd',USER,'VPD_TENANT_POLICY','SELECT'); END;
+/
+BEGIN DBMS_RLS.ADD_POLICY(USER,'DOCUMENT_CHUNKS','chunks_upd_vpd',USER,'VPD_TENANT_POLICY','UPDATE'); END;
+/
+BEGIN DBMS_RLS.ADD_POLICY(USER,'DOCUMENT_CHUNKS','chunks_del_vpd',USER,'VPD_TENANT_POLICY','DELETE'); END;
 /

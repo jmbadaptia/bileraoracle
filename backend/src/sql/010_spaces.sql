@@ -34,27 +34,18 @@ CREATE TABLE bookings (
 CREATE INDEX idx_bookings_tenant ON bookings(tenant_id);
 CREATE INDEX idx_bookings_space_dates ON bookings(space_id, start_date, end_date);
 
--- VPD policies
-BEGIN
-  DBMS_RLS.ADD_POLICY(
-    object_schema   => USER,
-    object_name     => 'SPACES',
-    policy_name     => 'spaces_tenant_policy',
-    function_schema => USER,
-    policy_function => 'VPD_TENANT_POLICY',
-    statement_types => 'SELECT,UPDATE,DELETE'
-  );
-END;
+-- VPD policies for spaces
+BEGIN DBMS_RLS.ADD_POLICY(USER,'SPACES','spaces_sel_vpd',USER,'VPD_TENANT_POLICY','SELECT'); END;
+/
+BEGIN DBMS_RLS.ADD_POLICY(USER,'SPACES','spaces_upd_vpd',USER,'VPD_TENANT_POLICY','UPDATE'); END;
+/
+BEGIN DBMS_RLS.ADD_POLICY(USER,'SPACES','spaces_del_vpd',USER,'VPD_TENANT_POLICY','DELETE'); END;
 /
 
-BEGIN
-  DBMS_RLS.ADD_POLICY(
-    object_schema   => USER,
-    object_name     => 'BOOKINGS',
-    policy_name     => 'bookings_tenant_policy',
-    function_schema => USER,
-    policy_function => 'VPD_TENANT_POLICY',
-    statement_types => 'SELECT,UPDATE,DELETE'
-  );
-END;
+-- VPD policies for bookings
+BEGIN DBMS_RLS.ADD_POLICY(USER,'BOOKINGS','bookings_sel_vpd',USER,'VPD_TENANT_POLICY','SELECT'); END;
+/
+BEGIN DBMS_RLS.ADD_POLICY(USER,'BOOKINGS','bookings_upd_vpd',USER,'VPD_TENANT_POLICY','UPDATE'); END;
+/
+BEGIN DBMS_RLS.ADD_POLICY(USER,'BOOKINGS','bookings_del_vpd',USER,'VPD_TENANT_POLICY','DELETE'); END;
 /

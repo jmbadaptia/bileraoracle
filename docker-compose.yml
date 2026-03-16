@@ -72,6 +72,8 @@ services:
       NLS_LANG: AMERICAN_AMERICA.AL32UTF8
       LITELLM_URL: http://litellm:4000
       EMBEDDINGS_URL: http://oci-embeddings:8000
+      DB_ADMIN_USER: bilera_admin
+      DB_ADMIN_PASSWORD: bilera_admin
       SMTP_HOST: mailpit
       SMTP_PORT: "1025"
       SMTP_FROM: "Bilera <noreply@bilera.es>"

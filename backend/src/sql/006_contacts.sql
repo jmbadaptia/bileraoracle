@@ -23,15 +23,10 @@ CREATE TABLE activity_contacts (
   PRIMARY KEY (activity_id, contact_id)
 );
 
--- VPD policy for contacts
-BEGIN
-  DBMS_RLS.ADD_POLICY(
-    object_schema   => USER,
-    object_name     => 'CONTACTS',
-    policy_name     => 'contacts_tenant_vpd',
-    function_schema => USER,
-    policy_function => 'VPD_TENANT_POLICY',
-    statement_types => 'SELECT,UPDATE,DELETE'
-  );
-END;
+-- VPD policies for contacts
+BEGIN DBMS_RLS.ADD_POLICY(USER,'CONTACTS','contacts_sel_vpd',USER,'VPD_TENANT_POLICY','SELECT'); END;
+/
+BEGIN DBMS_RLS.ADD_POLICY(USER,'CONTACTS','contacts_upd_vpd',USER,'VPD_TENANT_POLICY','UPDATE'); END;
+/
+BEGIN DBMS_RLS.ADD_POLICY(USER,'CONTACTS','contacts_del_vpd',USER,'VPD_TENANT_POLICY','DELETE'); END;
 /

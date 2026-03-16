@@ -1,2 +1,2 @@
--- Add theme column to tenants
-ALTER TABLE tenants ADD (theme VARCHAR2(20) DEFAULT 'default');
+-- Theme column now included in 000_admin_tables.sql (bilera_admin.tenants)
+-- This file is a no-op for fresh installs

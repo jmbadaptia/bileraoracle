@@ -30,42 +30,8 @@ END bilera_ctx_pkg;
 -- ============================================================
 -- Tables
 -- ============================================================
-
--- Tenants (organizations/associations)
-CREATE TABLE tenants (
-  id           NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  name         VARCHAR2(200)  NOT NULL,
-  slug         VARCHAR2(100)  NOT NULL UNIQUE,
-  logo_path    VARCHAR2(500),
-  plan         VARCHAR2(50)   DEFAULT 'FREE',
-  active       NUMBER(1)      DEFAULT 1,
-  created_at   TIMESTAMP      DEFAULT SYSTIMESTAMP,
-  updated_at   TIMESTAMP      DEFAULT SYSTIMESTAMP
-);
-
--- Users (global, can belong to multiple tenants via memberships)
-CREATE TABLE users (
-  id           VARCHAR2(36)   DEFAULT SYS_GUID() PRIMARY KEY,
-  email        VARCHAR2(255)  NOT NULL UNIQUE,
-  password_hash VARCHAR2(255) NOT NULL,
-  name         VARCHAR2(200)  NOT NULL,
-  avatar_path  VARCHAR2(500),
-  phone        VARCHAR2(50),
-  bio          CLOB,
-  active       NUMBER(1)      DEFAULT 1,
-  created_at   TIMESTAMP      DEFAULT SYSTIMESTAMP,
-  updated_at   TIMESTAMP      DEFAULT SYSTIMESTAMP
-);
-
--- Memberships (user <-> tenant with role)
-CREATE TABLE memberships (
-  id           VARCHAR2(36)   DEFAULT SYS_GUID() PRIMARY KEY,
-  tenant_id    NUMBER         NOT NULL REFERENCES tenants(id),
-  user_id      VARCHAR2(36)   NOT NULL REFERENCES users(id),
-  role         VARCHAR2(20)   DEFAULT 'MEMBER' CHECK (role IN ('ADMIN', 'MEMBER')),
-  created_at   TIMESTAMP      DEFAULT SYSTIMESTAMP,
-  UNIQUE (tenant_id, user_id)
-);
+-- NOTE: tenants, users, memberships live in bilera_admin schema
+-- and are accessed via synonyms (see 000_synonyms.sql)
 
 -- Groups (within a tenant)
 CREATE TABLE groups (
@@ -186,8 +152,6 @@ CREATE TABLE document_activities (
 -- ============================================================
 -- Indexes
 -- ============================================================
-CREATE INDEX idx_memberships_tenant ON memberships(tenant_id);
-CREATE INDEX idx_memberships_user ON memberships(user_id);
 CREATE INDEX idx_groups_tenant ON groups(tenant_id);
 CREATE INDEX idx_activities_tenant ON activities(tenant_id);
 CREATE INDEX idx_activities_status ON activities(tenant_id, status);

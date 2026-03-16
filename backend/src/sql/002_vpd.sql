@@ -1,5 +1,7 @@
 -- ============================================================
 -- VPD Policies - Automatic tenant isolation
+-- NOTE: INSERT policies not supported in Oracle Free edition
+-- (app sets tenant_id manually on INSERT anyway)
 -- ============================================================
 
 -- Policy function: returns WHERE clause for tenant filtering
@@ -17,74 +19,44 @@ BEGIN
 END;
 /
 
-BEGIN
-  DBMS_RLS.ADD_POLICY(
-    object_schema   => USER,
-    object_name     => 'GROUPS',
-    policy_name     => 'groups_tenant_vpd',
-    function_schema => USER,
-    policy_function => 'VPD_TENANT_POLICY',
-    statement_types => 'SELECT,INSERT,UPDATE,DELETE'
-  );
-END;
+-- GROUPS
+BEGIN DBMS_RLS.ADD_POLICY(USER,'GROUPS','groups_sel_vpd',USER,'VPD_TENANT_POLICY','SELECT'); END;
+/
+BEGIN DBMS_RLS.ADD_POLICY(USER,'GROUPS','groups_upd_vpd',USER,'VPD_TENANT_POLICY','UPDATE'); END;
+/
+BEGIN DBMS_RLS.ADD_POLICY(USER,'GROUPS','groups_del_vpd',USER,'VPD_TENANT_POLICY','DELETE'); END;
 /
 
-BEGIN
-  DBMS_RLS.ADD_POLICY(
-    object_schema   => USER,
-    object_name     => 'ACTIVITIES',
-    policy_name     => 'activities_tenant_vpd',
-    function_schema => USER,
-    policy_function => 'VPD_TENANT_POLICY',
-    statement_types => 'SELECT,INSERT,UPDATE,DELETE'
-  );
-END;
+-- ACTIVITIES
+BEGIN DBMS_RLS.ADD_POLICY(USER,'ACTIVITIES','act_sel_vpd',USER,'VPD_TENANT_POLICY','SELECT'); END;
+/
+BEGIN DBMS_RLS.ADD_POLICY(USER,'ACTIVITIES','act_upd_vpd',USER,'VPD_TENANT_POLICY','UPDATE'); END;
+/
+BEGIN DBMS_RLS.ADD_POLICY(USER,'ACTIVITIES','act_del_vpd',USER,'VPD_TENANT_POLICY','DELETE'); END;
 /
 
-BEGIN
-  DBMS_RLS.ADD_POLICY(
-    object_schema   => USER,
-    object_name     => 'TAGS',
-    policy_name     => 'tags_tenant_vpd',
-    function_schema => USER,
-    policy_function => 'VPD_TENANT_POLICY',
-    statement_types => 'SELECT,INSERT,UPDATE,DELETE'
-  );
-END;
+-- TAGS
+BEGIN DBMS_RLS.ADD_POLICY(USER,'TAGS','tags_sel_vpd',USER,'VPD_TENANT_POLICY','SELECT'); END;
+/
+BEGIN DBMS_RLS.ADD_POLICY(USER,'TAGS','tags_upd_vpd',USER,'VPD_TENANT_POLICY','UPDATE'); END;
+/
+BEGIN DBMS_RLS.ADD_POLICY(USER,'TAGS','tags_del_vpd',USER,'VPD_TENANT_POLICY','DELETE'); END;
 /
 
-BEGIN
-  DBMS_RLS.ADD_POLICY(
-    object_schema   => USER,
-    object_name     => 'DOCUMENTS',
-    policy_name     => 'documents_tenant_vpd',
-    function_schema => USER,
-    policy_function => 'VPD_TENANT_POLICY',
-    statement_types => 'SELECT,INSERT,UPDATE,DELETE'
-  );
-END;
+-- DOCUMENTS
+BEGIN DBMS_RLS.ADD_POLICY(USER,'DOCUMENTS','docs_sel_vpd',USER,'VPD_TENANT_POLICY','SELECT'); END;
+/
+BEGIN DBMS_RLS.ADD_POLICY(USER,'DOCUMENTS','docs_upd_vpd',USER,'VPD_TENANT_POLICY','UPDATE'); END;
+/
+BEGIN DBMS_RLS.ADD_POLICY(USER,'DOCUMENTS','docs_del_vpd',USER,'VPD_TENANT_POLICY','DELETE'); END;
 /
 
-BEGIN
-  DBMS_RLS.ADD_POLICY(
-    object_schema   => USER,
-    object_name     => 'ALBUMS',
-    policy_name     => 'albums_tenant_vpd',
-    function_schema => USER,
-    policy_function => 'VPD_TENANT_POLICY',
-    statement_types => 'SELECT,INSERT,UPDATE,DELETE'
-  );
-END;
+-- ALBUMS
+BEGIN DBMS_RLS.ADD_POLICY(USER,'ALBUMS','albums_sel_vpd',USER,'VPD_TENANT_POLICY','SELECT'); END;
+/
+BEGIN DBMS_RLS.ADD_POLICY(USER,'ALBUMS','albums_upd_vpd',USER,'VPD_TENANT_POLICY','UPDATE'); END;
+/
+BEGIN DBMS_RLS.ADD_POLICY(USER,'ALBUMS','albums_del_vpd',USER,'VPD_TENANT_POLICY','DELETE'); END;
 /
 
-BEGIN
-  DBMS_RLS.ADD_POLICY(
-    object_schema   => USER,
-    object_name     => 'MEMBERSHIPS',
-    policy_name     => 'memberships_tenant_vpd',
-    function_schema => USER,
-    policy_function => 'VPD_TENANT_POLICY',
-    statement_types => 'SELECT,INSERT,UPDATE,DELETE'
-  );
-END;
-/
+-- NOTE: MEMBERSHIPS VPD is applied cross-schema in 000_admin_vpd.sql (run as SYS)

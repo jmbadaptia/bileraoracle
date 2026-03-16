@@ -16,9 +16,9 @@ function splitSQL(sql: string): string[] {
     // Skip empty lines and comments
     if (!trimmed || trimmed.startsWith("--")) continue;
 
-    // Detect PL/SQL block start
+    // Detect PL/SQL block start (but not CREATE OR REPLACE SYNONYM which is regular DDL)
     if (
-      /^(CREATE\s+OR\s+REPLACE|BEGIN|DECLARE)/i.test(trimmed) &&
+      /^(CREATE\s+OR\s+REPLACE\s+(?!SYNONYM)|BEGIN|DECLARE)/i.test(trimmed) &&
       !inPlsql
     ) {
       inPlsql = true;
@@ -51,64 +51,98 @@ function splitSQL(sql: string): string[] {
   return statements;
 }
 
+const SKIP_ERRORS = [955, 1, 1430, 28003, 1920, 1921, 2261, 12006];
+
+async function runFile(conn: oracledb.Connection, file: string, label?: string) {
+  const name = label || file;
+  console.log(`Executing ${name}...`);
+  const sql = readFileSync(join(__dirname, file), "utf-8");
+  const statements = splitSQL(sql);
+
+  for (let i = 0; i < statements.length; i++) {
+    const stmt = statements[i];
+    try {
+      await conn.execute(stmt);
+    } catch (err: any) {
+      if (SKIP_ERRORS.includes(err.errorNum)) {
+        console.log(`  [${i + 1}] Skipped (already exists)`);
+      } else {
+        console.error(`  [${i + 1}] Error: ${err.message}`);
+        console.error(`       Statement: ${stmt.substring(0, 100)}...`);
+      }
+    }
+  }
+  await conn.commit();
+  console.log(`  Done.`);
+}
+
 async function init() {
+  const connectString = process.env.DB_CONNECT_STRING || "db:1521/FREEPDB1";
+
+  // ── Phase 1: SYS — grants + create bilera_admin user ──
+  console.log("Phase 1: SYS grants...");
+  const sysConn = await oracledb.getConnection({
+    user: "SYS",
+    password: process.env.ORACLE_PASSWORD || "oracle",
+    connectString,
+    privilege: oracledb.SYSDBA,
+  });
+  await runFile(sysConn, "000_grants.sql");
+  await sysConn.close();
+
+  // ── Phase 2: bilera_admin — identity tables ──
+  console.log("Phase 2: bilera_admin tables...");
+  const adminConn = await oracledb.getConnection({
+    user: process.env.DB_ADMIN_USER || "bilera_admin",
+    password: process.env.DB_ADMIN_PASSWORD || "bilera_admin",
+    connectString,
+  });
+  await runFile(adminConn, "000_admin_tables.sql");
+  await adminConn.close();
+
+  // ── Phase 3: bilera — synonyms + app schema + seed ──
+  console.log("Phase 3: bilera schema...");
   const conn = await oracledb.getConnection({
     user: process.env.DB_USER || "bilera",
     password: process.env.DB_PASSWORD || "bilera",
-    connectString: process.env.DB_CONNECT_STRING || "db:1521/FREEPDB1",
+    connectString,
   });
 
-  console.log("Connected to Oracle");
+  // Synonyms first (before any table that references identity tables)
+  await runFile(conn, "000_synonyms.sql");
 
-  // First run grants as SYSTEM
-  console.log("Running grants as SYSTEM...");
-  const sysConn = await oracledb.getConnection({
-    user: "SYSTEM",
-    password: process.env.ORACLE_PASSWORD || "oracle",
-    connectString: process.env.DB_CONNECT_STRING || "db:1521/FREEPDB1",
-  });
-
-  const grantsSql = readFileSync(join(__dirname, "000_grants.sql"), "utf-8");
-  for (const stmt of splitSQL(grantsSql)) {
-    try {
-      await sysConn.execute(stmt);
-    } catch (err: any) {
-      if (err.errorNum !== 1920 && err.errorNum !== 1921) {
-        console.error(`  Grant error: ${err.message}`);
-      }
-    }
-  }
-  await sysConn.commit();
-  await sysConn.close();
-  console.log("  Grants done.");
-
-  const sqlFiles = ["001_schema.sql", "002_vpd.sql", "003_seed.sql", "004_vectors.sql", "005_conversations.sql", "006_contacts.sql", "007_chunks.sql", "008_activity_log.sql", "009_theme.sql", "010_spaces.sql", "011_vector_1024.sql"];
+  // App tables + VPD + seed + migrations
+  const sqlFiles = [
+    "001_schema.sql",
+    "002_vpd.sql",
+    "003_seed.sql",
+    "004_vectors.sql",
+    "005_conversations.sql",
+    "006_contacts.sql",
+    "007_chunks.sql",
+    "008_activity_log.sql",
+    "009_theme.sql",
+    "010_spaces.sql",
+    "011_vector_1024.sql",
+    "012_auth_tokens.sql",
+  ];
 
   for (const file of sqlFiles) {
-    console.log(`Executing ${file}...`);
-    const sql = readFileSync(join(__dirname, file), "utf-8");
-    const statements = splitSQL(sql);
-
-    for (let i = 0; i < statements.length; i++) {
-      const stmt = statements[i];
-      try {
-        await conn.execute(stmt);
-      } catch (err: any) {
-        // Ignore "already exists" (955), "duplicate" (1), "name already used" (955)
-        // 955=already exists, 1=duplicate, 1430=column already exists, 28003=password
-        if (err.errorNum === 955 || err.errorNum === 1 || err.errorNum === 1430 || err.errorNum === 28003) {
-          console.log(`  [${i + 1}] Skipped (already exists)`);
-        } else {
-          console.error(`  [${i + 1}] Error: ${err.message}`);
-          console.error(`       Statement: ${stmt.substring(0, 80)}...`);
-        }
-      }
-    }
-    await conn.commit();
-    console.log(`  Done.`);
+    await runFile(conn, file);
   }
-
   await conn.close();
+
+  // ── Phase 4: SYS — cross-schema VPD for memberships ──
+  console.log("Phase 4: Cross-schema VPD...");
+  const sysConn2 = await oracledb.getConnection({
+    user: "SYS",
+    password: process.env.ORACLE_PASSWORD || "oracle",
+    connectString,
+    privilege: oracledb.SYSDBA,
+  });
+  await runFile(sysConn2, "000_admin_vpd.sql");
+  await sysConn2.close();
+
   console.log("Database initialized successfully");
 }
 
