@@ -38,7 +38,7 @@ export async function authRoutes(app: FastifyInstance) {
 
       // Get all memberships
       const membResult = await conn.execute<any>(
-        `SELECT m.tenant_id, m.role, t.name AS tenant_name, t.slug AS tenant_slug, t.theme AS tenant_theme
+        `SELECT m.tenant_id, m.role, t.name AS tenant_name, t.slug AS tenant_slug, t.theme AS tenant_theme, t.setup_complete AS tenant_setup_complete
          FROM memberships m
          JOIN tenants t ON t.id = m.tenant_id
          WHERE m.user_id = :userId AND t.active = 1
@@ -74,6 +74,7 @@ export async function authRoutes(app: FastifyInstance) {
           tenantName: membership.TENANT_NAME,
           tenantSlug: membership.TENANT_SLUG,
           theme: membership.TENANT_THEME || "default",
+          setupComplete: !!membership.TENANT_SETUP_COMPLETE,
         },
         // If multiple tenants, send list so frontend shows selector
         tenants: memberships.length > 1
@@ -94,7 +95,7 @@ export async function authRoutes(app: FastifyInstance) {
 
     return withConnection(async (conn) => {
       const result = await conn.execute<any>(
-        `SELECT m.tenant_id, m.role, t.name AS tenant_name, t.slug AS tenant_slug, t.theme AS tenant_theme
+        `SELECT m.tenant_id, m.role, t.name AS tenant_name, t.slug AS tenant_slug, t.theme AS tenant_theme, t.setup_complete AS tenant_setup_complete
          FROM memberships m
          JOIN tenants t ON t.id = m.tenant_id
          WHERE m.user_id = :userId AND m.tenant_id = :tenantId AND t.active = 1`,
@@ -126,6 +127,7 @@ export async function authRoutes(app: FastifyInstance) {
           tenantName: membership.TENANT_NAME,
           tenantSlug: membership.TENANT_SLUG,
           theme: membership.TENANT_THEME || "default",
+          setupComplete: !!membership.TENANT_SETUP_COMPLETE,
         },
       };
     });
@@ -136,7 +138,7 @@ export async function authRoutes(app: FastifyInstance) {
     return withConnection(async (conn) => {
       const result = await conn.execute<any>(
         `SELECT u.id, u.email, u.name, u.avatar_path, u.phone, u.bio,
-                m.role, t.name AS tenant_name, t.slug AS tenant_slug, t.theme AS tenant_theme
+                m.role, t.name AS tenant_name, t.slug AS tenant_slug, t.theme AS tenant_theme, t.setup_complete AS tenant_setup_complete
          FROM users u
          JOIN memberships m ON m.user_id = u.id AND m.tenant_id = :tenantId
          JOIN tenants t ON t.id = m.tenant_id
@@ -162,6 +164,7 @@ export async function authRoutes(app: FastifyInstance) {
         tenantName: user.TENANT_NAME,
         tenantSlug: user.TENANT_SLUG,
         theme: user.TENANT_THEME || "default",
+        setupComplete: !!user.TENANT_SETUP_COMPLETE,
       };
     });
   });

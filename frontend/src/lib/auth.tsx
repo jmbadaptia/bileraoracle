@@ -16,6 +16,7 @@ interface User {
   tenantName?: string;
   tenantSlug?: string;
   theme?: string;
+  setupComplete?: boolean;
 }
 
 export interface Tenant {

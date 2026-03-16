@@ -392,6 +392,12 @@ export function useResendInvite() {
   });
 }
 
+export function useCompleteSetup() {
+  return useMutation({
+    mutationFn: () => api.put("/admin/setup-complete", {}),
+  });
+}
+
 // ---- Tags ----
 export function useTags() {
   return useQuery({

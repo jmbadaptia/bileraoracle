@@ -169,4 +169,15 @@ export async function dashboardRoutes(app: FastifyInstance) {
     const buffer = await readFile(LOGO_PATH);
     return reply.type("image/png").send(buffer);
   });
+
+  // PUT /api/admin/setup-complete — mark tenant onboarding as done
+  app.put("/api/admin/setup-complete", { preHandler: [requireAdmin] }, async (request) => {
+    return withTenant(request.user.tenantId, request.user.id, async (conn) => {
+      await conn.execute(
+        `UPDATE tenants SET setup_complete = 1, updated_at = SYSTIMESTAMP WHERE id = :tenantId`,
+        { tenantId: request.user.tenantId }
+      );
+      return { ok: true };
+    });
+  });
 }

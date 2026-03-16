@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Outlet } from "react-router";
+import { Outlet, Navigate, useLocation } from "react-router";
 import { Sidebar } from "./sidebar";
 import { Header } from "./header";
 import { useAuth } from "@/lib/auth";
@@ -26,9 +26,15 @@ function useSidebarState() {
 
 export function DashboardLayout() {
   const { user } = useAuth();
+  const location = useLocation();
   const [pageTitle, setPageTitle] = useState("");
   const stableSetPageTitle = useCallback((t: string) => setPageTitle(t), []);
   const { collapsed, toggle } = useSidebarState();
+
+  // Redirect to onboarding if setup not complete (admin only)
+  if (user?.role === "ADMIN" && user?.setupComplete === false && location.pathname !== "/onboarding") {
+    return <Navigate to="/onboarding" replace />;
+  }
 
   return (
     <div className="h-screen">
