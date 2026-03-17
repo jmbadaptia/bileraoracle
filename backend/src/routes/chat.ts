@@ -119,28 +119,27 @@ export async function chatRoutes(app: FastifyInstance) {
         });
       }
 
-      // 1. Rewrite query for better search + embed (skip for very short messages)
+      // 1. Rewrite query for better search + embed
       let searchQuery = message.trim();
       let queryVec: Float32Array | null = null;
       let temporalRange: { from: Date; to: Date } | null = null;
 
-      if (searchQuery.length >= 10) {
-        // Rewrite the query: expand temporal references and optimize for search
-        const today = new Date().toISOString().split("T")[0];
-        const rewritten = await chatCompletion(
-          `Eres un asistente que reescribe preguntas para optimizar búsquedas semánticas. Fecha actual: ${today}.
-Reglas:
-- Reemplaza referencias temporales vagas ("esta semana", "mañana", "el mes pasado") por fechas concretas.
-- Expande abreviaciones y sinónimos.
-- Mantén el idioma original.
-- Responde SOLO con la pregunta reescrita, sin explicaciones.
-Ejemplo: "qué tenemos esta semana" → "actividades y eventos programados entre ${today} y dentro de 7 días"`,
-          searchQuery
-        );
-        if (rewritten) {
-          console.log(`[RAG] Query rewrite: "${searchQuery}" → "${rewritten}"`);
-          searchQuery = rewritten;
+      // For short messages ("sí", "vale", "cuéntame más"), use last user message from history as search query
+      if (searchQuery.length < 10 && history.length > 0) {
+        const lastUserMsg = [...history].reverse().find(m => m.role === "user");
+        if (lastUserMsg && lastUserMsg.content.length >= 10) {
+          searchQuery = lastUserMsg.content.trim();
+          console.log(`[RAG] Short message "${message.trim()}" → using history: "${searchQuery.substring(0, 60)}"`);
         }
+      }
+
+      if (searchQuery.length >= 10) {
+        // NOTE: Query rewrite via LLM was removed — it often degraded search quality
+        // (the LLM generated conversational responses instead of clean search queries).
+        // The original user query works better for embeddings. Cohere multilingual
+        // handles synonyms well natively. Temporal queries are handled by detectTemporalRange().
+        // If rewrite is needed in the future, use a stricter prompt with few-shot examples
+        // and validate the output is a clean query (not a conversational response).
 
         // Detect temporal intent for hybrid SQL search
         const temporal = detectTemporalRange(message.trim());
@@ -180,8 +179,8 @@ Ejemplo: "qué tenemos esta semana" → "actividades y eventos programados entre
           const parts: string[] = [];
           if (docs.length > 0) {
             const docLines = docs.map((d: any) => {
-              const status = d.STATUS === "READY" ? (d.CHUNK_COUNT > 0 ? "procesado" : "sin texto") : d.STATUS === "PROCESSING" ? "procesando" : d.STATUS === "PENDING" ? "pendiente" : "error";
-              return `  - "${d.TITLE}" (${status}${d.CHUNK_COUNT > 0 ? `, ${d.CHUNK_COUNT} fragmentos` : ""})`;
+              const status = d.STATUS === "READY" ? (d.CHUNK_COUNT > 0 ? "disponible" : "sin contenido extraíble") : d.STATUS === "PROCESSING" ? "procesando" : d.STATUS === "PENDING" ? "pendiente de procesar" : "error al procesar";
+              return `  - "${d.TITLE}" (${status})`;
             });
             parts.push(`Documentos disponibles (${docs.length}):\n${docLines.join("\n")}`);
           }
@@ -314,11 +313,13 @@ Ejemplo: "qué tenemos esta semana" → "actividades y eventos programados entre
       // 4. Filter relevant sources
       const sorted = sources.sort((a, b) => a.distance - b.distance);
       console.log(`[RAG] "${message.substring(0, 50)}" → ${sorted.length} sources: ${sorted.map(s => `${s.type}:${s.title}(${s.distance?.toFixed(3)})`).join(", ")}`);
+      // NOTE: Cohere multilingual embeddings produce higher distances than other models.
+      // Threshold 0.65 works well for relevance. Tune if switching embedding model.
       const relevant = sorted
-        .filter((s) => s.distance < 0.3)
+        .filter((s) => s.distance < 0.65)
         .slice(0, 8);
       if (relevant.length > 0) {
-        console.log(`[RAG] ${relevant.length} relevant (threshold <0.3): ${relevant.map(s => `${s.title}(${s.distance?.toFixed(3)})`).join(", ")}`);
+        console.log(`[RAG] ${relevant.length} relevant (threshold <0.65): ${relevant.map(s => `${s.title}(${s.distance?.toFixed(3)})`).join(", ")}`);
       } else {
         console.log(`[RAG] No relevant sources found`);
       }
@@ -356,9 +357,10 @@ Reglas:
 - NUNCA digas que no tienes acceso a documentos o información. Tienes acceso a todo lo que hay en la asociación.
 - Si te preguntan por un documento que no existe en el inventario, di que no lo encuentras entre los documentos disponibles y lista los que sí hay.
 - Si te preguntan qué documentos hay, lista los del inventario.
-- Si un documento está "pendiente" o "procesando", indica que aún se está procesando y que pruebe en unos momentos.
-- Si un documento tiene "error" o "sin texto", indica que no se pudo extraer el contenido (puede ser un PDF escaneado).
-- Cuando haya contexto relevante de los documentos, úsalo para responder con detalle.
+- Si un documento está "pendiente de procesar" o "procesando", indica que aún se está procesando y que pruebe en unos momentos.
+- Si un documento tiene "error" o "sin contenido extraíble", indica que no se pudo extraer el contenido.
+- Cuando haya contexto relevante de los documentos, ÚSALO DIRECTAMENTE para responder. No digas que "tienes fragmentos" o "podrías buscarlo" — ya lo tienes, responde con el contenido.
+- Si el usuario dice "sí", "vale", "cuéntame más", "adelante" o similar, interpreta que quiere que continúes con lo que estabas hablando. NO le pidas que repita la pregunta.
 - NUNCA inventes información que no esté en el contexto proporcionado. Si no tienes datos sobre algo, di claramente que no hay información disponible sobre ese tema en el sistema.
 - No inventes nombres de actividades, documentos, eventos ni datos que no aparezcan en el contexto.
 - Sé conciso y directo.`;

@@ -294,6 +294,11 @@ export function useDocuments(params?: Record<string, string>) {
   return useQuery({
     queryKey: ["documents", params],
     queryFn: () => api.get<any>(`/documents?${search}`),
+    refetchInterval: (query) => {
+      const docs = query.state.data?.documents || query.state.data || [];
+      const hasPending = Array.isArray(docs) && docs.some((d: any) => d.status === "PENDING" || d.status === "PROCESSING");
+      return hasPending ? 3000 : false;
+    },
   });
 }
 
