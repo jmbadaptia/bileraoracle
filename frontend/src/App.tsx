@@ -14,6 +14,7 @@ import { UsuariosPage } from "@/pages/usuarios";
 import { UsuarioFormPage } from "@/pages/usuario-form";
 import { HistorialPage } from "@/pages/historial";
 import { TareasPage } from "@/pages/tareas";
+import { CalendarioPage } from "@/pages/calendario";
 import { GaleriaPage } from "@/pages/galeria";
 import { AlbumDetailPage } from "@/pages/album-detail";
 import { AlbumFormPage } from "@/pages/album-form";
@@ -73,6 +74,7 @@ export function App() {
         }
       >
         <Route index element={<DashboardPage />} />
+        <Route path="calendario" element={<CalendarioPage />} />
         <Route path="actividades" element={<ActividadesPage />} />
         <Route path="actividades/tareas" element={<TareasPage />} />
         <Route path="actividades/historial" element={<HistorialPage />} />

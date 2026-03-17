@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import { MapPin, Search, X, CalendarX, History } from "lucide-react";
+import { MapPin, Search, X, CalendarX } from "lucide-react";
 import { useActivities, useMembers } from "@/api/hooks";
 import { formatDate } from "@/lib/utils";
 import { ACTIVITY_TYPE_LABELS } from "@/lib/constants";
@@ -58,11 +58,10 @@ export function HistorialPage() {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Historial</h1>
         <p className="text-sm text-muted-foreground">
-          Registro completo de actividades del equipo
+          Registro completo de actividades
         </p>
       </div>
 

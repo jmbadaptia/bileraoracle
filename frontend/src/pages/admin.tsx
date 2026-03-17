@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { Link } from "react-router";
-import { Users, FileText, Database, Upload, ImageIcon, Palette, Check, Crown } from "lucide-react";
+import { Users, FileText, Database, Upload, ImageIcon, Palette, Check, Crown, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAdminStats, useUpdateTheme } from "@/api/hooks";
 import { useAuth } from "@/lib/auth";
@@ -132,15 +132,32 @@ export function AdminPage() {
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Users className="h-4 w-4" />
-                Gestión de usuarios
+                Equipo
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               <p className="text-sm text-muted-foreground">
-                Crea, edita o desactiva cuentas de acceso a la aplicación.
+                Gestiona las personas que acceden y administran la aplicación.
               </p>
               <Link to="/admin/usuarios">
-                <Button variant="outline">Gestionar usuarios</Button>
+                <Button variant="outline">Gestionar equipo</Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Building2 className="h-4 w-4" />
+                Espacios
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Configura las salas y espacios disponibles para reservas.
+              </p>
+              <Link to="/espacios">
+                <Button variant="outline">Gestionar espacios</Button>
               </Link>
             </CardContent>
           </Card>

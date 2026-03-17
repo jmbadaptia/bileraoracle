@@ -7,30 +7,22 @@ export const NAV_SECTIONS = [
     ],
   },
   {
-    label: "Actividad",
+    label: "Gestión",
     items: [
       { label: "Tareas", href: "/actividades/tareas", icon: "SquareKanban" },
-      { label: "Calendario", href: "/actividades", icon: "CalendarDays" },
-      { label: "Historial", href: "/actividades/historial", icon: "History" },
+      { label: "Actividades", href: "/actividades", icon: "CalendarDays" },
+      { label: "Reservas", href: "/reservas", icon: "CalendarCheck" },
     ],
   },
   {
     label: "Personas",
     items: [
-      { label: "Miembros", href: "/miembros", icon: "Users" },
-      { label: "Grupos", href: "/grupos", icon: "UsersRound" },
-      { label: "Contactos", href: "/contactos", icon: "Contact" },
+      { label: "Colaboradores", href: "/contactos", icon: "Contact" },
+      { label: "Grupos de trabajo", href: "/grupos", icon: "UsersRound" },
     ],
   },
   {
-    label: "Espacios",
-    items: [
-      { label: "Espacios", href: "/espacios", icon: "Building2" },
-      { label: "Reservas", href: "/reservas", icon: "CalendarCheck" },
-    ],
-  },
-  {
-    label: "Recursos",
+    label: "Contenido",
     items: [
       { label: "Documentos", href: "/documentos", icon: "FileText" },
       { label: "Galería", href: "/galeria", icon: "Image" },
@@ -39,7 +31,7 @@ export const NAV_SECTIONS = [
   {
     label: "Ayuda",
     items: [
-      { label: "Guia de uso", href: "/guia", icon: "BookOpen" },
+      { label: "Guía de uso", href: "/guia", icon: "BookOpen" },
       { label: "Asistente IA", href: "/asistente", icon: "BotMessageSquare" },
     ],
   },

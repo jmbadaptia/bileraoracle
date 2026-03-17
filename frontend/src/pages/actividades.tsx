@@ -265,13 +265,13 @@ export function ActividadesPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Actividades</h1>
           <p className="text-muted-foreground">
-            Registro de reuniones, visitas y eventos
+            Cursos, charlas, reuniones y eventos
           </p>
         </div>
         <Link to="/actividades/nueva">
           <Button>
             <Plus className="mr-2 h-4 w-4" />
-            Nueva Actividad
+            Nueva
           </Button>
         </Link>
       </div>

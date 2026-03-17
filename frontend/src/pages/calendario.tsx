@@ -37,7 +37,7 @@ interface CalendarActivity {
   id: string;
   title: string;
   type: string;
-  date: string;
+  startDate: string;
   location?: string | null;
   attendees: { member: { id: string; name: string } }[];
 }
@@ -82,7 +82,7 @@ export function CalendarioPage() {
     const activities: CalendarActivity[] = data?.activities || [];
 
     for (const activity of activities) {
-      const dayKey = format(new Date(activity.date), "yyyy-MM-dd");
+      const dayKey = format(new Date(activity.startDate), "yyyy-MM-dd");
       if (!map.has(dayKey)) map.set(dayKey, []);
       map.get(dayKey)!.push(activity);
     }
@@ -99,7 +99,10 @@ export function CalendarioPage() {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Calendario</h1>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Calendario</h1>
+          <p className="text-muted-foreground">Vista unificada de tareas y actividades</p>
+        </div>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"

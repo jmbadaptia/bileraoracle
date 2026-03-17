@@ -199,7 +199,7 @@ function DroppableColumn({
   );
 }
 
-export function TareasPage() {
+export function KanbanBoard() {
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
 
@@ -288,7 +288,7 @@ export function TareasPage() {
         <Link to="/actividades/nueva">
           <Button>
             <Plus className="mr-2 h-4 w-4" />
-            Nueva Actividad
+            Nueva
           </Button>
         </Link>
       </div>
@@ -393,3 +393,5 @@ export function TareasPage() {
     </div>
   );
 }
+
+export const TareasPage = KanbanBoard;
