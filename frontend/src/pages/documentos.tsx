@@ -8,6 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 function formatFileSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -104,7 +112,52 @@ export function DocumentosPage() {
           )}
         </div>
       ) : (
-        <div className="rounded-lg border divide-y">
+        <>
+        {/* Desktop table */}
+        <div className="hidden md:block rounded-lg border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Documento</TableHead>
+                <TableHead>Subido por</TableHead>
+                <TableHead>Fecha</TableHead>
+                <TableHead>Tamaño</TableHead>
+                <TableHead>Estado</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {documents.map((doc: any) => (
+                <TableRow key={doc.id} className="group">
+                  <TableCell>
+                    <Link to={`/documentos/${doc.id}`} className="flex items-center gap-2 min-w-0">
+                      <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div className="min-w-0">
+                        <span className="text-sm font-medium group-hover:text-primary transition-colors block truncate">
+                          {doc.title}
+                        </span>
+                        <span className="text-xs text-muted-foreground truncate block">{doc.fileName}</span>
+                      </div>
+                    </Link>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{doc.uploaderName}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{formatDate(doc.createdAt)}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{formatFileSize(doc.fileSize)}</TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={doc.status === "READY" ? "default" : doc.status === "ERROR" ? "destructive" : "secondary"}
+                      className="text-[11px]"
+                    >
+                      {DOCUMENT_STATUS_LABELS[doc.status]}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* Mobile list */}
+        <div className="md:hidden rounded-lg border divide-y">
           {documents.map((doc: any) => (
             <Link
               key={doc.id}
@@ -117,17 +170,11 @@ export function DocumentosPage() {
                   {doc.title}
                 </h3>
                 <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                  {doc.uploaderName} · {formatDate(doc.createdAt)} · {formatFileSize(doc.fileSize)} · {doc.fileName}
+                  {doc.uploaderName} · {formatDate(doc.createdAt)} · {formatFileSize(doc.fileSize)}
                 </p>
               </div>
               <Badge
-                variant={
-                  doc.status === "READY"
-                    ? "default"
-                    : doc.status === "ERROR"
-                      ? "destructive"
-                      : "secondary"
-                }
+                variant={doc.status === "READY" ? "default" : doc.status === "ERROR" ? "destructive" : "secondary"}
                 className="text-[11px] shrink-0"
               >
                 {DOCUMENT_STATUS_LABELS[doc.status]}
@@ -135,6 +182,7 @@ export function DocumentosPage() {
             </Link>
           ))}
         </div>
+        </>
       )}
     </div>
   );

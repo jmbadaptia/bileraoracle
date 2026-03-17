@@ -37,6 +37,12 @@ const sourceLabel: Record<string, string> = {
   album: "Álbum",
 };
 
+const sourceColor: Record<string, string> = {
+  activity: "bg-blue-50 text-blue-600 hover:bg-blue-100",
+  document: "bg-orange-50 text-orange-600 hover:bg-orange-100",
+  album: "bg-violet-50 text-violet-600 hover:bg-violet-100",
+};
+
 // --- Citation handling ---
 
 /** Replace [1], [Fuente 1], [1, 2, 3] etc. with clickable superscript links */
@@ -148,7 +154,7 @@ function SourcesList({ sources }: { sources: Source[] }) {
           <Link
             key={`${source.type}-${source.id}`}
             to={`${sourceRoute[source.type] || ""}/${source.id}`}
-            className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full bg-background/60 hover:bg-background transition-colors"
+            className={`inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full transition-colors ${sourceColor[source.type] || "bg-background/60 hover:bg-background"}`}
           >
             <Icon className="h-3 w-3" />
             <span className="max-w-[150px] truncate">{source.title}</span>
