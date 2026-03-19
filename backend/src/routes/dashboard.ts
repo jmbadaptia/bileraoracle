@@ -6,6 +6,7 @@ import oracledb from "oracledb";
 import { withTenant } from "../lib/db.js";
 import { requireAuth, requireAdmin } from "../middleware/auth.js";
 import { getPlanUsage } from "../lib/plan-limits.js";
+import { getAiUsageStats } from "../lib/ai-usage.js";
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || "./uploads";
 
@@ -176,6 +177,12 @@ export async function dashboardRoutes(app: FastifyInstance) {
     return withTenant(request.user.tenantId, request.user.id, async (conn) => {
       return getPlanUsage(conn, request.user.tenantId);
     });
+  });
+
+  // GET /api/admin/ai-usage?month=YYYY-MM — AI usage stats per tenant
+  app.get("/api/admin/ai-usage", { preHandler: [requireAdmin] }, async (request) => {
+    const { month } = request.query as { month?: string };
+    return getAiUsageStats(request.user.tenantId, month);
   });
 
   // PUT /api/admin/setup-complete — mark tenant onboarding as done

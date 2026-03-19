@@ -42,16 +42,33 @@ export function buildAlbumText(
   return [title, description].filter(Boolean).join(" | ");
 }
 
+// --- Types ---
+
+export interface EmbeddingResult {
+  embedding: number[];
+  usage: { inputChars: number };
+}
+
+export interface ChatResult {
+  content: string;
+  usage: { promptTokens: number; completionTokens: number };
+}
+
+export function estimateTokens(text: string): number {
+  return Math.ceil((text?.length || 0) / 4);
+}
+
 // --- LiteLLM API calls ---
 
-export async function getEmbedding(text: string): Promise<number[] | null> {
+export async function getEmbedding(text: string): Promise<EmbeddingResult | null> {
   try {
+    const truncated = text.substring(0, 2048);
     const res = await fetch(`${EMBEDDINGS_URL}/v1/embeddings`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "embeddings",
-        input: text.substring(0, 2048),
+        input: truncated,
       }),
     });
     if (!res.ok) {
@@ -59,7 +76,10 @@ export async function getEmbedding(text: string): Promise<number[] | null> {
       throw new Error(`LiteLLM ${res.status}: ${errBody}`);
     }
     const data = (await res.json()) as any;
-    return data.data[0].embedding;
+    return {
+      embedding: data.data[0].embedding,
+      usage: { inputChars: truncated.length },
+    };
   } catch (err) {
     console.warn("Embedding generation failed:", err);
     return null;
@@ -69,7 +89,7 @@ export async function getEmbedding(text: string): Promise<number[] | null> {
 export async function chatCompletion(
   systemPrompt: string,
   userMessage: string
-): Promise<string | null> {
+): Promise<ChatResult | null> {
   try {
     const res = await fetch(`${LITELLM_URL}/v1/chat/completions`, {
       method: "POST",
@@ -88,7 +108,14 @@ export async function chatCompletion(
       throw new Error(`LiteLLM ${res.status}: ${errBody}`);
     }
     const data = (await res.json()) as any;
-    return data.choices[0].message.content;
+    const content = data.choices[0].message.content;
+    return {
+      content,
+      usage: {
+        promptTokens: data.usage?.prompt_tokens ?? estimateTokens(systemPrompt + userMessage),
+        completionTokens: data.usage?.completion_tokens ?? estimateTokens(content),
+      },
+    };
   } catch (err) {
     console.warn("Chat completion failed:", err);
     return null;

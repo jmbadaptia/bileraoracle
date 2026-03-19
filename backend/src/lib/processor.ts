@@ -3,6 +3,7 @@ import { withTenant } from "./db.js";
 import { extractText } from "./extractor.js";
 import { chunkText } from "./chunker.js";
 import { getEmbedding, chatCompletion, buildDocumentText } from "./ai.js";
+import { trackAiUsage } from "./ai-usage.js";
 
 export async function processDocument(
   documentId: string,
@@ -78,7 +79,10 @@ export async function processDocument(
     // 6. Generate embeddings and insert chunks
     let successCount = 0;
     for (const chunk of chunks) {
-      const embedding = await getEmbedding(chunk.text);
+      const embResult = await getEmbedding(chunk.text);
+      if (embResult) {
+        trackAiUsage({ tenantId, userId, callType: "EMBEDDING", model: "cohere-embed-v3", inputChars: embResult.usage.inputChars });
+      }
 
       await withTenant(tenantId, userId, async (conn) => {
         await conn.execute(
@@ -90,8 +94,8 @@ export async function processDocument(
             docId: documentId,
             idx: chunk.index,
             content: chunk.text,
-            emb: embedding
-              ? { val: new Float32Array(embedding), type: oracledb.DB_TYPE_VECTOR }
+            emb: embResult
+              ? { val: new Float32Array(embResult.embedding), type: oracledb.DB_TYPE_VECTOR }
               : null,
           }
         );
@@ -107,15 +111,16 @@ export async function processDocument(
     // 7. Auto-generate description if missing
     if (!description && text.length > 50) {
       try {
-        const summary = await chatCompletion(
+        const summaryResult = await chatCompletion(
           "Genera un resumen muy breve (2-3 frases) en espanol del siguiente documento. Solo responde con el resumen, sin introduccion.",
           text.substring(0, 3000)
         );
-        if (summary) {
+        if (summaryResult) {
+          trackAiUsage({ tenantId, userId, callType: "SUMMARY", model: "llama-3.3-70b", inputTokens: summaryResult.usage.promptTokens, outputTokens: summaryResult.usage.completionTokens });
           await withTenant(tenantId, userId, async (conn) => {
             await conn.execute(
               `UPDATE documents SET description = :desc, updated_at = SYSTIMESTAMP WHERE id = :id`,
-              { id: documentId, desc: summary.trim().substring(0, 2000) }
+              { id: documentId, desc: summaryResult.content.trim().substring(0, 2000) }
             );
           });
         }
@@ -158,12 +163,13 @@ async function generateMetadataEmbedding(
   title: string, description: string | null, fileName: string
 ) {
   const text = buildDocumentText(title, description, fileName);
-  const embedding = await getEmbedding(text);
-  if (!embedding) return;
+  const embResult = await getEmbedding(text);
+  if (!embResult) return;
+  trackAiUsage({ tenantId, userId, callType: "EMBEDDING", model: "cohere-embed-v3", inputChars: embResult.usage.inputChars });
   await withTenant(tenantId, userId, async (conn) => {
     await conn.execute(
       `UPDATE documents SET embedding = :emb WHERE id = :id`,
-      { emb: { val: new Float32Array(embedding), type: oracledb.DB_TYPE_VECTOR }, id }
+      { emb: { val: new Float32Array(embResult.embedding), type: oracledb.DB_TYPE_VECTOR }, id }
     );
   });
 }

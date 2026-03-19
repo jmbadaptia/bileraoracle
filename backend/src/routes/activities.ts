@@ -5,6 +5,7 @@ import { requireAuth } from "../middleware/auth.js";
 import { getEmbedding, buildActivityText } from "../lib/ai.js";
 import { logActivity } from "../lib/audit.js";
 import { checkPlanLimit, PlanLimitError } from "../lib/plan-limits.js";
+import { trackAiUsage } from "../lib/ai-usage.js";
 
 async function updateActivityEmbedding(
   id: string, tenantId: number, userId: string,
@@ -12,12 +13,13 @@ async function updateActivityEmbedding(
   startDate?: string | Date | null, status?: string | null, priority?: string | null
 ) {
   const text = buildActivityText(title, description, type, location, startDate, status, priority);
-  const embedding = await getEmbedding(text);
-  if (!embedding) return;
+  const embResult = await getEmbedding(text);
+  if (!embResult) return;
+  trackAiUsage({ tenantId, userId, callType: "EMBEDDING", model: "cohere-embed-v3", inputChars: embResult.usage.inputChars });
   await withTenant(tenantId, userId, async (conn) => {
     await conn.execute(
       `UPDATE activities SET embedding = :emb WHERE id = :id`,
-      { emb: { val: new Float32Array(embedding), type: oracledb.DB_TYPE_VECTOR }, id }
+      { emb: { val: new Float32Array(embResult.embedding), type: oracledb.DB_TYPE_VECTOR }, id }
     );
   });
 }

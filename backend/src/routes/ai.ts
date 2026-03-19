@@ -3,6 +3,7 @@ import oracledb from "oracledb";
 import { withTenant } from "../lib/db.js";
 import { requireAuth } from "../middleware/auth.js";
 import { getEmbedding, chatCompletion } from "../lib/ai.js";
+import { trackAiUsage, checkAiCostLimit } from "../lib/ai-usage.js";
 
 export async function aiRoutes(app: FastifyInstance) {
   // POST /api/ai/chat — RAG: search context + LLM answer
@@ -13,12 +14,19 @@ export async function aiRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: "La pregunta debe tener al menos 3 caracteres" });
     }
 
+    // Check AI cost limit
+    const aiCheck = await checkAiCostLimit(request.user.tenantId);
+    if (!aiCheck.allowed) {
+      return reply.code(429).send({ error: `Has alcanzado el límite mensual de IA ($${aiCheck.limit.toFixed(2)}). Coste actual: $${aiCheck.currentCost.toFixed(2)}.` });
+    }
+
     // 1. Embed the question
-    const emb = await getEmbedding(question.trim());
-    if (!emb) {
+    const embResult = await getEmbedding(question.trim());
+    if (!embResult) {
       return reply.code(503).send({ error: "Servicio de IA no disponible" });
     }
-    const queryVec = new Float32Array(emb);
+    trackAiUsage({ tenantId: request.user.tenantId, userId: request.user.id, callType: "EMBEDDING", model: "cohere-embed-v3", inputChars: embResult.usage.inputChars });
+    const queryVec = new Float32Array(embResult.embedding);
 
     // 2. Vector search for context
     const sources: any[] = [];
@@ -110,14 +118,16 @@ export async function aiRoutes(app: FastifyInstance) {
       ? `Contexto de la asociación:\n${context}\n\nPregunta: ${question.trim()}`
       : question.trim();
 
-    const answer = await chatCompletion(systemPrompt, userMsg);
+    const chatResult = await chatCompletion(systemPrompt, userMsg);
 
-    if (!answer) {
+    if (!chatResult) {
       return reply.code(503).send({ error: "Servicio de IA no disponible" });
     }
 
+    trackAiUsage({ tenantId: request.user.tenantId, userId: request.user.id, callType: "CHAT", model: "llama-3.3-70b", inputTokens: chatResult.usage.promptTokens, outputTokens: chatResult.usage.completionTokens });
+
     return {
-      answer,
+      answer: chatResult.content,
       sources: relevant.map(s => ({ type: s.type, id: s.id, title: s.title, distance: s.distance })),
     };
   });
@@ -128,6 +138,12 @@ export async function aiRoutes(app: FastifyInstance) {
 
     if (!activityId) {
       return reply.code(400).send({ error: "activityId requerido" });
+    }
+
+    // Check AI cost limit
+    const aiCheck = await checkAiCostLimit(request.user.tenantId);
+    if (!aiCheck.allowed) {
+      return reply.code(429).send({ error: `Has alcanzado el límite mensual de IA ($${aiCheck.limit.toFixed(2)}). Coste actual: $${aiCheck.currentCost.toFixed(2)}.` });
     }
 
     const activityData = await withTenant(request.user.tenantId, request.user.id, async (conn) => {
@@ -188,15 +204,17 @@ export async function aiRoutes(app: FastifyInstance) {
       activityData.description ? `Descripción: ${activityData.description}` : null,
     ].filter(Boolean).join("\n");
 
-    const summary = await chatCompletion(
+    const summaryResult = await chatCompletion(
       "Eres un asistente para una asociación. Genera un resumen conciso en español (2-3 frases) de la siguiente actividad.",
       details
     );
 
-    if (!summary) {
+    if (!summaryResult) {
       return reply.code(503).send({ error: "Servicio de IA no disponible" });
     }
 
-    return { summary };
+    trackAiUsage({ tenantId: request.user.tenantId, userId: request.user.id, callType: "SUMMARY", model: "llama-3.3-70b", inputTokens: summaryResult.usage.promptTokens, outputTokens: summaryResult.usage.completionTokens });
+
+    return { summary: summaryResult.content };
   });
 }

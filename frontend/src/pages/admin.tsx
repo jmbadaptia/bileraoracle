@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { Link } from "react-router";
-import { Users, FileText, Database, Upload, ImageIcon, Palette, Check, Crown, Building2 } from "lucide-react";
+import { Users, FileText, Database, Upload, ImageIcon, Palette, Check, Crown, Building2, Bot } from "lucide-react";
 import { toast } from "sonner";
 import { useAdminStats, useUpdateTheme } from "@/api/hooks";
 import { useAuth } from "@/lib/auth";
@@ -175,6 +175,23 @@ export function AdminPage() {
               </p>
               <Link to="/admin/plan">
                 <Button variant="outline">Ver tu plan</Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Bot className="h-4 w-4" />
+                Costes de IA
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Consulta el consumo y costes de inteligencia artificial por usuario.
+              </p>
+              <Link to="/admin/ai-usage">
+                <Button variant="outline">Ver costes</Button>
               </Link>
             </CardContent>
           </Card>

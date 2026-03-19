@@ -8,18 +8,20 @@ import oracledb from "oracledb";
 import { withTenant } from "../lib/db.js";
 import { requireAuth } from "../middleware/auth.js";
 import { getEmbedding, buildAlbumText } from "../lib/ai.js";
+import { trackAiUsage } from "../lib/ai-usage.js";
 
 async function updateAlbumEmbedding(
   id: string, tenantId: number, userId: string,
   title: string, description?: string | null
 ) {
   const text = buildAlbumText(title, description);
-  const embedding = await getEmbedding(text);
-  if (!embedding) return;
+  const embResult = await getEmbedding(text);
+  if (!embResult) return;
+  trackAiUsage({ tenantId, userId, callType: "EMBEDDING", model: "cohere-embed-v3", inputChars: embResult.usage.inputChars });
   await withTenant(tenantId, userId, async (conn) => {
     await conn.execute(
       `UPDATE albums SET embedding = :emb WHERE id = :id`,
-      { emb: { val: new Float32Array(embedding), type: oracledb.DB_TYPE_VECTOR }, id }
+      { emb: { val: new Float32Array(embResult.embedding), type: oracledb.DB_TYPE_VECTOR }, id }
     );
   });
 }

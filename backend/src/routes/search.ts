@@ -3,6 +3,7 @@ import oracledb from "oracledb";
 import { withTenant } from "../lib/db.js";
 import { requireAuth } from "../middleware/auth.js";
 import { getEmbedding } from "../lib/ai.js";
+import { trackAiUsage } from "../lib/ai-usage.js";
 
 export async function searchRoutes(app: FastifyInstance) {
   // GET /api/search?q=...&type=...&limit=...&mode=...
@@ -26,9 +27,10 @@ export async function searchRoutes(app: FastifyInstance) {
     // Get query embedding for semantic/hybrid modes
     let queryEmbedding: Float32Array | null = null;
     if (searchMode !== "text") {
-      const emb = await getEmbedding(q.trim());
-      if (emb) {
-        queryEmbedding = new Float32Array(emb);
+      const embResult = await getEmbedding(q.trim());
+      if (embResult) {
+        queryEmbedding = new Float32Array(embResult.embedding);
+        trackAiUsage({ tenantId: request.user.tenantId, userId: request.user.id, callType: "EMBEDDING", model: "cohere-embed-v3", inputChars: embResult.usage.inputChars });
       }
     }
 

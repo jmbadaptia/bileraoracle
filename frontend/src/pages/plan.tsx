@@ -1,5 +1,5 @@
 import { usePlanUsage } from "@/api/hooks";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Users, CalendarDays, FileText, Building2, HardDrive, Crown } from "lucide-react";

@@ -2,7 +2,8 @@ import { FastifyInstance } from "fastify";
 import oracledb from "oracledb";
 import { withTenant } from "../lib/db.js";
 import { requireAuth } from "../middleware/auth.js";
-import { getEmbedding, chatCompletion } from "../lib/ai.js";
+import { getEmbedding, chatCompletion, estimateTokens } from "../lib/ai.js";
+import { trackAiUsage, checkAiCostLimit } from "../lib/ai-usage.js";
 
 function detectTemporalRange(message: string): { from: Date; to: Date } | null {
   const lower = message.toLowerCase();
@@ -55,16 +56,19 @@ async function generateTitle(
   conn: import("oracledb").Connection,
   conversationId: string,
   userMessage: string,
-  assistantMessage: string
+  assistantMessage: string,
+  tenantId: number,
+  userId: string
 ): Promise<string | null> {
   try {
-    const title = await chatCompletion(
+    const result = await chatCompletion(
       "Genera un título muy corto (máximo 5 palabras) en español que describa el tema o intención de esta conversación. No resumas los mensajes literalmente, captura la esencia. Si es un saludo genérico sin tema concreto, usa algo como 'Conversación general'. Solo responde con el título, sin comillas ni puntuación final.",
       `Usuario: ${userMessage}\n\nAsistente: ${assistantMessage.slice(0, 300)}`
     );
 
-    if (title) {
-      const clean = title.trim().slice(0, 100);
+    if (result) {
+      trackAiUsage({ tenantId, userId, callType: "TITLE", model: "llama-3.3-70b", inputTokens: result.usage.promptTokens, outputTokens: result.usage.completionTokens });
+      const clean = result.content.trim().slice(0, 100);
       await conn.execute(
         `UPDATE conversations SET title = :title, updated_at = SYSTIMESTAMP WHERE id = :id`,
         { title: clean, id: conversationId }
@@ -91,6 +95,12 @@ export async function chatRoutes(app: FastifyInstance) {
 
     if (!message || message.trim().length === 0) {
       return reply.code(400).send({ error: "El mensaje no puede estar vacío" });
+    }
+
+    // Check AI cost limit
+    const aiCheck = await checkAiCostLimit(tenantId);
+    if (!aiCheck.allowed) {
+      return reply.code(429).send({ error: `Has alcanzado el límite mensual de IA ($${aiCheck.limit.toFixed(2)}). Coste actual: $${aiCheck.currentCost.toFixed(2)}.` });
     }
 
     // Verify conversation ownership if provided
@@ -148,8 +158,11 @@ export async function chatRoutes(app: FastifyInstance) {
           console.log(`[RAG] Temporal range detected: ${temporal.from.toISOString()} → ${temporal.to.toISOString()}`);
         }
 
-        const emb = await getEmbedding(searchQuery);
-        queryVec = emb ? new Float32Array(emb) : null;
+        const embResult = await getEmbedding(searchQuery);
+        if (embResult) {
+          queryVec = new Float32Array(embResult.embedding);
+          trackAiUsage({ tenantId, userId, callType: "EMBEDDING", model: "cohere-embed-v3", inputChars: embResult.usage.inputChars });
+        }
       }
 
       // 2. Get inventory of what exists in the association
@@ -395,6 +408,7 @@ Reglas:
           messages: messages_payload,
           max_tokens: 1024,
           stream: true,
+          stream_options: { include_usage: true },
         }),
       });
 
@@ -406,6 +420,7 @@ Reglas:
       }
 
       let fullText = "";
+      let streamUsage: { prompt_tokens?: number; completion_tokens?: number } | null = null;
       const reader = llmRes.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
@@ -425,6 +440,9 @@ Reglas:
 
           try {
             const parsed = JSON.parse(data);
+            if (parsed.usage) {
+              streamUsage = parsed.usage;
+            }
             const choice = parsed.choices?.[0];
             const finish = choice?.finish_reason;
             const delta = choice?.delta?.content;
@@ -443,6 +461,14 @@ Reglas:
           }
         }
       }
+
+      // Track streaming chat usage
+      const allInputText = messages_payload.map(m => m.content).join("");
+      trackAiUsage({
+        tenantId, userId, callType: "CHAT", model: "llama-3.3-70b",
+        inputTokens: streamUsage?.prompt_tokens ?? estimateTokens(allInputText),
+        outputTokens: streamUsage?.completion_tokens ?? estimateTokens(fullText),
+      });
 
       // Send sources
       const sourcesPayload = relevant.map((s, i) => ({
@@ -484,7 +510,7 @@ Reglas:
           const messageCount = countResult.rows?.[0]?.CNT || 0;
 
           if (messageCount === 2) {
-            const title = await generateTitle(conn, conversationId, message, fullText);
+            const title = await generateTitle(conn, conversationId, message, fullText, tenantId, userId);
             if (title) {
               reply.raw.write(`data: ${JSON.stringify({ title })}\n\n`);
             }

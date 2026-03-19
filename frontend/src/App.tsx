@@ -38,6 +38,7 @@ import { VerificarPage } from "@/pages/verificar";
 import { RegistroPage } from "@/pages/registro";
 import { OnboardingPage } from "@/pages/onboarding";
 import { PlanPage } from "@/pages/plan";
+import { AiUsagePage } from "@/pages/ai-usage";
 
 function AsistenteWrapper() {
   return <AsistentePage />;
@@ -111,6 +112,7 @@ export function App() {
         <Route path="admin/usuarios/nuevo" element={<AdminRoute><UsuarioFormPage /></AdminRoute>} />
         <Route path="admin/usuarios/:id/editar" element={<AdminRoute><UsuarioFormPage /></AdminRoute>} />
         <Route path="admin/plan" element={<AdminRoute><PlanPage /></AdminRoute>} />
+        <Route path="admin/ai-usage" element={<AdminRoute><AiUsagePage /></AdminRoute>} />
       </Route>
     </Routes>
   );

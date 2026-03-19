@@ -404,6 +404,13 @@ export function usePlanUsage() {
   });
 }
 
+export function useAiUsage(month?: string) {
+  return useQuery({
+    queryKey: ["ai-usage", month],
+    queryFn: () => api.get<any>(`/admin/ai-usage${month ? `?month=${month}` : ""}`),
+  });
+}
+
 export function useCompleteSetup() {
   return useMutation({
     mutationFn: () => api.put("/admin/setup-complete", {}),
