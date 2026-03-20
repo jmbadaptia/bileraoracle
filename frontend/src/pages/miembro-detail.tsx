@@ -120,14 +120,14 @@ export function MiembroDetailPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Actividades propias</span>
+              <span className="text-muted-foreground">Eventos propios</span>
               <span className="font-medium">
                 {member.activitiesOwned?.length ?? 0}
               </span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">
-                Asistencias a actividades
+                Asistencias a eventos
               </span>
               <span className="font-medium">
                 {member.activitiesAttended?.length ?? 0}
@@ -154,13 +154,13 @@ export function MiembroDetailPage() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <CalendarDays className="h-4 w-4" />
-            Actividades Recientes
+            Eventos Recientes
           </CardTitle>
         </CardHeader>
         <CardContent>
           {!member.activitiesOwned || member.activitiesOwned.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No hay actividades registradas para este miembro.
+              No hay eventos registrados para este miembro.
             </p>
           ) : (
             <div className="space-y-2">

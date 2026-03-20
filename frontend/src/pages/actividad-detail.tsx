@@ -75,7 +75,7 @@ export function ActividadDetailPage() {
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-bold tracking-tight">
-          {isLoading ? "Cargando..." : "Actividad no encontrada"}
+          {isLoading ? "Cargando..." : "Evento no encontrado"}
         </h1>
       </div>
     );
@@ -507,7 +507,7 @@ export function ActividadDetailPage() {
                       <div className="h-2 w-2 rounded-full bg-primary/60 mt-1.5" />
                     </div>
                     <div>
-                      <p className="text-sm">{activity.createdByName} creo la actividad</p>
+                      <p className="text-sm">{activity.createdByName} creo el evento</p>
                       <p className="text-xs text-muted-foreground">{formatDateTime(activity.createdAt)}</p>
                     </div>
                   </div>
@@ -745,7 +745,7 @@ function AddParticipantDialog({
         <Input placeholder={tab === "members" ? "Buscar miembro..." : "Buscar contacto..."} value={search} onChange={(e) => setSearch(e.target.value)} />
         {tab === "contacts" && (
           <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Rol en esta actividad (opcional)</Label>
+            <Label className="text-xs text-muted-foreground">Rol en este evento (opcional)</Label>
             <Input placeholder="Ej: ponente, organizador, proveedor..." value={role} onChange={(e) => setRole(e.target.value)} />
           </div>
         )}
@@ -790,3 +790,4 @@ function AddParticipantDialog({
     </Dialog>
   );
 }
+

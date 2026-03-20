@@ -39,6 +39,10 @@ import { RegistroPage } from "@/pages/registro";
 import { OnboardingPage } from "@/pages/onboarding";
 import { PlanPage } from "@/pages/plan";
 import { AiUsagePage } from "@/pages/ai-usage";
+import { InscribirsePage } from "@/pages/inscribirse";
+import { InscripcionesPage } from "@/pages/inscripciones";
+import { InscripcionFormPage } from "@/pages/inscripcion-form";
+import { InscripcionDetailPage } from "@/pages/inscripcion-detail";
 
 function AsistenteWrapper() {
   return <AsistentePage />;
@@ -65,6 +69,7 @@ export function App() {
       <Route path="/recuperar" element={<RecuperarPage />} />
       <Route path="/verificar" element={<VerificarPage />} />
       <Route path="/registro" element={<RegistroPage />} />
+      <Route path="/inscribirse/:activityId" element={<InscribirsePage />} />
       <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
       <Route
         path="/"
@@ -104,6 +109,10 @@ export function App() {
         <Route path="contactos/nuevo" element={<ContactoFormPage />} />
         <Route path="contactos/:id" element={<ContactoDetailPage />} />
         <Route path="contactos/:id/editar" element={<ContactoFormPage />} />
+        <Route path="inscripciones" element={<InscripcionesPage />} />
+        <Route path="inscripciones/nueva" element={<InscripcionFormPage />} />
+        <Route path="inscripciones/:id" element={<InscripcionDetailPage />} />
+        <Route path="inscripciones/:id/editar" element={<InscripcionFormPage />} />
         <Route path="guia" element={<GuiaPage />} />
         <Route path="asistente" element={<AsistenteWrapper />} />
         <Route path="asistente/:conversationId" element={<AsistenteWrapper />} />

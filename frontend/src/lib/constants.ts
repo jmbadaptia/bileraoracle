@@ -10,8 +10,9 @@ export const NAV_SECTIONS = [
     label: "Gestión",
     items: [
       { label: "Tareas", href: "/actividades/tareas", icon: "SquareKanban" },
-      { label: "Actividades", href: "/actividades", icon: "CalendarDays" },
-      { label: "Reservas", href: "/reservas", icon: "CalendarCheck" },
+      { label: "Eventos", href: "/actividades", icon: "CalendarDays" },
+      { label: "Inscripciones", href: "/inscripciones", icon: "ClipboardList" },
+      { label: "Espacios", href: "/espacios", icon: "Building2" },
     ],
   },
   {

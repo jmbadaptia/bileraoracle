@@ -27,7 +27,7 @@ async function updateActivityEmbedding(
 export async function activityRoutes(app: FastifyInstance) {
   // GET /api/activities
   app.get("/api/activities", { preHandler: [requireAuth] }, async (request) => {
-    const { userId, participantId, type, status, from, to, page, limit } =
+    const { userId, participantId, type, status, from, to, page, limit, enrollmentEnabled } =
       request.query as {
         userId?: string;
         participantId?: string;
@@ -37,6 +37,7 @@ export async function activityRoutes(app: FastifyInstance) {
         to?: string;
         page?: string;
         limit?: string;
+        enrollmentEnabled?: string;
       };
 
     const pageNum = parseInt(page || "1");
@@ -47,6 +48,12 @@ export async function activityRoutes(app: FastifyInstance) {
       let whereClause = "WHERE 1=1";
       const countBinds: any = {};
       const listBinds: any = { limitNum, offset };
+
+      if (enrollmentEnabled === "1") {
+        whereClause += " AND a.enrollment_enabled = 1";
+      } else if (enrollmentEnabled === "0") {
+        whereClause += " AND (a.enrollment_enabled = 0 OR a.enrollment_enabled IS NULL)";
+      }
 
       if (userId) {
         whereClause += " AND a.owner_id = :userId";
@@ -96,7 +103,11 @@ export async function activityRoutes(app: FastifyInstance) {
         `SELECT a.id, a.title, a.description, a.type, a.status, a.priority,
                 a.start_date, a.location, a.visibility, a.owner_id, a.created_by,
                 a.created_at, a.updated_at,
-                u.name AS owner_name
+                a.enrollment_enabled, a.enrollment_mode, a.max_capacity,
+                a.enrollment_price, a.enrollment_deadline,
+                a.publish_status, a.publish_date,
+                u.name AS owner_name,
+                (SELECT COUNT(*) FROM enrollments e WHERE e.activity_id = a.id AND e.status IN ('CONFIRMED', 'PENDING')) AS enrollment_count
          FROM activities a
          LEFT JOIN users u ON u.id = a.owner_id
          ${whereClause}
@@ -137,6 +148,14 @@ export async function activityRoutes(app: FastifyInstance) {
           createdBy: row.CREATED_BY,
           createdAt: row.CREATED_AT,
           updatedAt: row.UPDATED_AT,
+          enrollmentEnabled: !!row.ENROLLMENT_ENABLED,
+          enrollmentMode: row.ENROLLMENT_MODE,
+          maxCapacity: row.MAX_CAPACITY,
+          enrollmentPrice: row.ENROLLMENT_PRICE,
+          enrollmentDeadline: row.ENROLLMENT_DEADLINE,
+          enrollmentCount: row.ENROLLMENT_COUNT,
+          publishStatus: row.PUBLISH_STATUS || "PUBLISHED",
+          publishDate: row.PUBLISH_DATE,
           attendees: (attResult.rows || []).map((a: any) => ({
             id: a.ID,
             name: a.NAME,
@@ -159,6 +178,8 @@ export async function activityRoutes(app: FastifyInstance) {
       title, description, type, status, priority,
       startDate, location, visibility, ownerId,
       attendeeIds, tagIds, contactIds, spaceId,
+      enrollmentEnabled, enrollmentMode, maxCapacity, enrollmentPrice, enrollmentDeadline,
+      publishStatus, publishDate,
     } = request.body as {
       title?: string;
       description?: string;
@@ -173,6 +194,13 @@ export async function activityRoutes(app: FastifyInstance) {
       tagIds?: string[];
       contactIds?: Array<{ id: string; role?: string }>;
       spaceId?: string;
+      enrollmentEnabled?: boolean;
+      enrollmentMode?: string;
+      maxCapacity?: number;
+      enrollmentPrice?: number;
+      enrollmentDeadline?: string;
+      publishStatus?: string;
+      publishDate?: string;
     };
 
     if (!title || title.trim().length === 0) {
@@ -198,8 +226,12 @@ export async function activityRoutes(app: FastifyInstance) {
       }
 
       await conn.execute(
-        `INSERT INTO activities (id, tenant_id, title, description, type, status, priority, start_date, location, visibility, owner_id, created_by)
-         VALUES (:id, :tenantId, :title, :description, :type, :status, :priority, :startDate, :location, :visibility, :ownerId, :createdBy)`,
+        `INSERT INTO activities (id, tenant_id, title, description, type, status, priority, start_date, location, visibility, owner_id, created_by,
+         enrollment_enabled, enrollment_mode, max_capacity, enrollment_price, enrollment_deadline,
+         publish_status, publish_date)
+         VALUES (:id, :tenantId, :title, :description, :type, :status, :priority, :startDate, :location, :visibility, :ownerId, :createdBy,
+         :enrollmentEnabled, :enrollmentMode, :maxCapacity, :enrollmentPrice, :enrollmentDeadline,
+         :publishStatus, :publishDate)`,
         {
           id,
           tenantId: request.user.tenantId,
@@ -213,6 +245,13 @@ export async function activityRoutes(app: FastifyInstance) {
           visibility: visibility || "GENERAL",
           ownerId: ownerId || request.user.id,
           createdBy: request.user.id,
+          enrollmentEnabled: enrollmentEnabled ? 1 : 0,
+          enrollmentMode: enrollmentMode || "FIFO",
+          maxCapacity: maxCapacity || null,
+          enrollmentPrice: enrollmentPrice || 0,
+          enrollmentDeadline: enrollmentDeadline ? new Date(enrollmentDeadline) : null,
+          publishStatus: publishStatus || "PUBLISHED",
+          publishDate: publishDate ? new Date(publishDate) : null,
         }
       );
 
@@ -303,8 +342,12 @@ export async function activityRoutes(app: FastifyInstance) {
         `SELECT a.id, a.title, a.description, a.type, a.status, a.priority,
                 a.start_date, a.location, a.visibility, a.owner_id, a.created_by,
                 a.created_at, a.updated_at,
+                a.enrollment_enabled, a.enrollment_mode, a.max_capacity,
+                a.enrollment_price, a.enrollment_deadline,
+                a.publish_status, a.publish_date,
                 u.name AS owner_name,
-                cb.name AS created_by_name
+                cb.name AS created_by_name,
+                (SELECT COUNT(*) FROM enrollments e WHERE e.activity_id = a.id AND e.status IN ('CONFIRMED', 'PENDING')) AS enrollment_count
          FROM activities a
          LEFT JOIN users u ON u.id = a.owner_id
          LEFT JOIN users cb ON cb.id = a.created_by
@@ -377,6 +420,14 @@ export async function activityRoutes(app: FastifyInstance) {
         createdByName: activity.CREATED_BY_NAME,
         createdAt: activity.CREATED_AT,
         updatedAt: activity.UPDATED_AT,
+        enrollmentEnabled: !!activity.ENROLLMENT_ENABLED,
+        enrollmentMode: activity.ENROLLMENT_MODE,
+        maxCapacity: activity.MAX_CAPACITY,
+        enrollmentPrice: activity.ENROLLMENT_PRICE,
+        enrollmentDeadline: activity.ENROLLMENT_DEADLINE,
+        enrollmentCount: activity.ENROLLMENT_COUNT,
+        publishStatus: activity.PUBLISH_STATUS || "PUBLISHED",
+        publishDate: activity.PUBLISH_DATE,
         attendees: (attResult.rows || []).map((a: any) => ({
           id: a.ID,
           name: a.NAME,
@@ -440,6 +491,8 @@ export async function activityRoutes(app: FastifyInstance) {
       title, description, type, status, priority,
       startDate, location, visibility, ownerId,
       attendeeIds, tagIds, contactIds, spaceId,
+      enrollmentEnabled, enrollmentMode, maxCapacity, enrollmentPrice, enrollmentDeadline,
+      publishStatus, publishDate,
     } = request.body as {
       title?: string;
       description?: string;
@@ -454,6 +507,13 @@ export async function activityRoutes(app: FastifyInstance) {
       tagIds?: string[];
       contactIds?: Array<{ id: string; role?: string }>;
       spaceId?: string;
+      enrollmentEnabled?: boolean;
+      enrollmentMode?: string;
+      maxCapacity?: number;
+      enrollmentPrice?: number;
+      enrollmentDeadline?: string;
+      publishStatus?: string;
+      publishDate?: string;
     };
 
     if (!title || title.trim().length === 0) {
@@ -487,6 +547,10 @@ export async function activityRoutes(app: FastifyInstance) {
         `UPDATE activities SET title = :title, description = :description, type = :type,
                 status = :status, priority = :priority, start_date = :startDate,
                 location = :location, visibility = :visibility, owner_id = :ownerId,
+                enrollment_enabled = :enrollmentEnabled, enrollment_mode = :enrollmentMode,
+                max_capacity = :maxCapacity, enrollment_price = :enrollmentPrice,
+                enrollment_deadline = :enrollmentDeadline,
+                publish_status = :publishStatus, publish_date = :publishDate,
                 updated_at = SYSTIMESTAMP
          WHERE id = :id`,
         {
@@ -500,6 +564,13 @@ export async function activityRoutes(app: FastifyInstance) {
           location: resolvedLocation,
           visibility: visibility || "GENERAL",
           ownerId: ownerId || request.user.id,
+          enrollmentEnabled: enrollmentEnabled ? 1 : 0,
+          enrollmentMode: enrollmentMode || "FIFO",
+          maxCapacity: maxCapacity || null,
+          enrollmentPrice: enrollmentPrice || 0,
+          enrollmentDeadline: enrollmentDeadline ? new Date(enrollmentDeadline) : null,
+          publishStatus: publishStatus || "PUBLISHED",
+          publishDate: publishDate ? new Date(publishDate) : null,
         }
       );
 

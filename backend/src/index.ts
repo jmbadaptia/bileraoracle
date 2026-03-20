@@ -17,6 +17,7 @@ import { contactRoutes } from "./routes/contacts.js";
 import { conversationRoutes } from "./routes/conversations.js";
 import { chatRoutes } from "./routes/chat.js";
 import { spaceRoutes } from "./routes/spaces.js";
+import { enrollmentRoutes } from "./routes/enrollments.js";
 
 const app = Fastify({ logger: true });
 
@@ -53,6 +54,7 @@ async function start() {
   await app.register(conversationRoutes);
   await app.register(chatRoutes);
   await app.register(spaceRoutes);
+  await app.register(enrollmentRoutes);
 
   // Health check
   app.get("/api/health", async () => ({ status: "ok" }));

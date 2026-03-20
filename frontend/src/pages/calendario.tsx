@@ -101,7 +101,7 @@ export function CalendarioPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Calendario</h1>
-          <p className="text-muted-foreground">Vista unificada de tareas y actividades</p>
+          <p className="text-muted-foreground">Vista unificada de tareas y eventos</p>
         </div>
         <div className="flex items-center gap-2">
           <Button

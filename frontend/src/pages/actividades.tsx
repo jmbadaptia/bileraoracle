@@ -190,10 +190,10 @@ function ListView() {
         <CardContent className="flex flex-col items-center justify-center py-12">
           <CalendarDays className="h-12 w-12 text-muted-foreground mb-4" />
           <p className="text-muted-foreground">
-            No hay actividades registradas.
+            No hay eventos registrados.
           </p>
           <Link to="/actividades/nueva" className="mt-4">
-            <Button variant="outline">Registrar primera actividad</Button>
+            <Button variant="outline">Registrar primer evento</Button>
           </Link>
         </CardContent>
       </Card>
@@ -263,7 +263,7 @@ export function ActividadesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Actividades</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Eventos</h1>
           <p className="text-muted-foreground">
             Cursos, charlas, reuniones y eventos
           </p>

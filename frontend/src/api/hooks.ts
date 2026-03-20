@@ -411,6 +411,50 @@ export function useAiUsage(month?: string) {
   });
 }
 
+// --- Enrollments ---
+
+export function useEnrollments(activityId: string, params?: Record<string, string>) {
+  const search = params ? new URLSearchParams(params).toString() : "";
+  return useQuery({
+    queryKey: ["enrollments", activityId, params],
+    queryFn: () => api.get<any>(`/activities/${activityId}/enrollments${search ? `?${search}` : ""}`),
+    enabled: !!activityId,
+  });
+}
+
+export function useCancelEnrollment(activityId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (enrollmentId: string) => api.patch(`/enrollments/${enrollmentId}/cancel`, {}),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["enrollments", activityId] });
+      qc.invalidateQueries({ queryKey: ["activities", activityId] });
+    },
+  });
+}
+
+export function useConfirmEnrollment(activityId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (enrollmentId: string) => api.patch(`/enrollments/${enrollmentId}/confirm`, {}),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["enrollments", activityId] });
+      qc.invalidateQueries({ queryKey: ["activities", activityId] });
+    },
+  });
+}
+
+export function useRunLottery(activityId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.post(`/activities/${activityId}/enrollments/lottery`, {}),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["enrollments", activityId] });
+      qc.invalidateQueries({ queryKey: ["activities", activityId] });
+    },
+  });
+}
+
 export function useCompleteSetup() {
   return useMutation({
     mutationFn: () => api.put("/admin/setup-complete", {}),

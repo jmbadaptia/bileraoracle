@@ -96,6 +96,11 @@ export function ActividadFormPage() {
   const [locationValue, setLocationValue] = useState(activity?.location || "");
   const [selectedSpaceId, setSelectedSpaceId] = useState("");
   const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
+  const [enrollmentEnabled, setEnrollmentEnabled] = useState(false);
+  const [enrollmentMode, setEnrollmentMode] = useState("FIFO");
+  const [maxCapacity, setMaxCapacity] = useState("");
+  const [enrollmentPrice, setEnrollmentPrice] = useState("");
+  const [enrollmentDeadline, setEnrollmentDeadline] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const locationRef = useRef<HTMLDivElement>(null);
 
@@ -138,6 +143,11 @@ export function ActividadFormPage() {
       setSelectedDocuments(activity.documents.map((d: any) => d.id || d.documentId));
     }
     setLocationValue(activity.location || "");
+    setEnrollmentEnabled(!!activity.enrollmentEnabled);
+    setEnrollmentMode(activity.enrollmentMode || "FIFO");
+    setMaxCapacity(activity.maxCapacity ? String(activity.maxCapacity) : "");
+    setEnrollmentPrice(activity.enrollmentPrice ? String(activity.enrollmentPrice) : "");
+    setEnrollmentDeadline(activity.enrollmentDeadline ? activity.enrollmentDeadline.slice(0, 16) : "");
     setSynced(true);
   }
 
@@ -188,18 +198,25 @@ export function ActividadFormPage() {
     if (selectedSpaceId) {
       data.spaceId = selectedSpaceId;
     }
+    data.enrollmentEnabled = enrollmentEnabled;
+    if (enrollmentEnabled) {
+      data.enrollmentMode = enrollmentMode;
+      data.maxCapacity = maxCapacity ? parseInt(maxCapacity) : undefined;
+      data.enrollmentPrice = enrollmentPrice ? parseFloat(enrollmentPrice) : 0;
+      data.enrollmentDeadline = enrollmentDeadline || undefined;
+    }
 
     try {
       if (isEdit) {
         await updateActivity.mutateAsync(data);
-        toast.success("Actividad actualizada correctamente");
+        toast.success("Evento actualizado correctamente");
       } else {
         await createActivity.mutateAsync(data);
-        toast.success("Actividad creada correctamente");
+        toast.success("Evento creado correctamente");
       }
       navigate("/actividades");
     } catch {
-      toast.error("Error al guardar la actividad");
+      toast.error("Error al guardar el evento");
     }
 
     setLoading(false);
@@ -218,7 +235,7 @@ export function ActividadFormPage() {
             <CalendarDays className="h-5 w-5 text-primary" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight">
-            {isEdit ? "Editar actividad" : "Nueva actividad"}
+            {isEdit ? "Editar evento" : "Nuevo evento"}
           </h1>
         </div>
         <button
@@ -238,7 +255,7 @@ export function ActividadFormPage() {
             name="title"
             required
             defaultValue={activity?.title}
-            placeholder="Título de la actividad..."
+            placeholder="Título del evento..."
             className="w-full text-lg font-semibold bg-transparent border-b border-border pb-3 outline-none placeholder:text-muted-foreground/40 focus:border-primary transition-colors"
           />
         </div>
@@ -507,7 +524,7 @@ export function ActividadFormPage() {
             disabled={loading}
             className="px-8"
           >
-            {loading ? "Guardando..." : isEdit ? "Guardar cambios" : "Guardar actividad"}
+            {loading ? "Guardando..." : isEdit ? "Guardar cambios" : "Guardar evento"}
           </Button>
         </div>
       </form>

@@ -58,7 +58,7 @@ export function DashboardPage() {
         </div>
         <div className="grid gap-6 lg:grid-cols-2 min-w-0">
           <Card>
-            <CardHeader><CardTitle className="text-lg">Actividades Recientes</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-lg">Eventos Recientes</CardTitle></CardHeader>
             <CardContent><ListSkeleton /></CardContent>
           </Card>
           <Card>
@@ -105,7 +105,7 @@ export function DashboardPage() {
         <Link to="/actividades">
           <Card className="h-full transition-all hover:bg-muted/50 hover:shadow-sm cursor-pointer">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Actividades del Mes</CardTitle>
+              <CardTitle className="text-sm font-medium">Eventos del Mes</CardTitle>
               <CalendarDays className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -143,11 +143,11 @@ export function DashboardPage() {
       <div className="grid gap-6 lg:grid-cols-2 min-w-0 overflow-hidden">
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Actividades Recientes</CardTitle>
+            <CardTitle className="text-lg">Eventos Recientes</CardTitle>
           </CardHeader>
           <CardContent>
             {recentActivities.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No hay actividades registradas.</p>
+              <p className="text-sm text-muted-foreground">No hay eventos registrados.</p>
             ) : (
               <div className="space-y-1">
                 {recentActivities.map((activity: any) => (

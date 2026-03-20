@@ -191,7 +191,7 @@ function DroppableColumn({
         ))}
         {activities.length === 0 && (
           <p className="text-xs text-muted-foreground text-center py-8">
-            Sin actividades
+            Sin eventos
           </p>
         )}
       </div>
@@ -282,7 +282,7 @@ export function KanbanBoard() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Tareas</h1>
           <p className="text-muted-foreground">
-            Tablero Kanban de actividades
+            Tablero Kanban de eventos
           </p>
         </div>
         <Link to="/actividades/nueva">

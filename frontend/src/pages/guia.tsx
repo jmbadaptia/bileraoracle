@@ -75,7 +75,7 @@ export function GuiaPage() {
       <div className="p-4 rounded-lg border bg-muted/30">
         <p className="text-sm">
           <strong>Bilera</strong> es la herramienta de gestion de tu asociacion. Aqui puedes organizar
-          actividades, gestionar documentos, coordinar grupos de trabajo y mucho mas. A continuacion
+          eventos, gestionar documentos, coordinar grupos de trabajo y mucho mas. A continuacion
           te explicamos cada seccion.
         </p>
       </div>
@@ -88,16 +88,16 @@ export function GuiaPage() {
           defaultOpen={true}
         >
           <p>
-            Es la pagina de inicio. Muestra un resumen rapido de la actividad de la asociacion:
+            Es la pagina de inicio. Muestra un resumen rapido de la actividad reciente de la asociacion:
           </p>
           <ul className="list-disc pl-4 space-y-1">
             <li><strong>Miembros activos</strong> — cuantas personas forman parte de la asociacion</li>
-            <li><strong>Actividades del mes</strong> — reuniones, tareas y eventos de este mes</li>
+            <li><strong>Eventos del mes</strong> — reuniones, tareas y eventos de este mes</li>
             <li><strong>Documentos</strong> — total de documentos subidos</li>
             <li><strong>Proximos eventos</strong> — lo que viene en los proximos dias</li>
           </ul>
           <p>
-            Tambien veras las <strong>actividades recientes</strong> y los <strong>documentos recientes</strong>.
+            Tambien veras los <strong>eventos recientes</strong> y los <strong>documentos recientes</strong>.
             Haz clic en cualquier elemento para ir directamente a su detalle.
           </p>
           <Tip>Cada tarjeta del panel es clicable. Pulsa en "Miembros Activos" para ver el directorio completo.</Tip>
@@ -106,30 +106,30 @@ export function GuiaPage() {
         {/* Actividades */}
         <Section
           icon={<CalendarDays className="h-5 w-5 text-primary" />}
-          title="Actividades (Calendario)"
+          title="Eventos (Calendario)"
         >
           <p>
-            Aqui se registran todas las actividades de la asociacion: reuniones, eventos, visitas, etc.
+            Aqui se registran todos los eventos de la asociacion: reuniones, actos, visitas, etc.
             Tiene dos vistas:
           </p>
           <ul className="list-disc pl-4 space-y-1">
-            <li><strong>Calendario</strong> — vista mensual con las actividades marcadas por color segun tipo</li>
-            <li><strong>Lista</strong> — todas las actividades ordenadas, con filtros</li>
+            <li><strong>Calendario</strong> — vista mensual con los eventos marcados por color segun tipo</li>
+            <li><strong>Lista</strong> — todos los eventos ordenados, con filtros</li>
           </ul>
-          <p className="font-medium text-foreground">Crear una actividad:</p>
-          <Step icon={<Plus className="h-3.5 w-3.5" />} text="Pulsa 'Nueva Actividad' arriba a la derecha" />
+          <p className="font-medium text-foreground">Crear un evento:</p>
+          <Step icon={<Plus className="h-3.5 w-3.5" />} text="Pulsa 'Nueva' arriba a la derecha" />
           <Step icon={<Pencil className="h-3.5 w-3.5" />} text="Rellena titulo, tipo (tarea, reunion, evento...), fecha, lugar y descripcion" />
           <Step icon={<UserPlus className="h-3.5 w-3.5" />} text="Anade participantes: miembros de la asociacion y/o contactos externos" />
 
-          <p className="font-medium text-foreground">Detalle de actividad:</p>
-          <p>Al entrar en una actividad veras dos columnas:</p>
+          <p className="font-medium text-foreground">Detalle de evento:</p>
+          <p>Al entrar en un evento veras dos columnas:</p>
           <ul className="list-disc pl-4 space-y-1">
             <li><strong>Izquierda</strong> — notas/acta, documentos adjuntos y albums de fotos</li>
             <li><strong>Derecha</strong> — detalles (fecha, lugar, responsable), participantes y timeline</li>
           </ul>
           <Step icon={<Paperclip className="h-3.5 w-3.5" />} text="Puedes adjuntar documentos existentes o subir uno nuevo directamente" />
-          <Step icon={<BotMessageSquare className="h-3.5 w-3.5" />} text="Pulsa 'Resumir con IA' para generar un resumen automatico de la actividad" />
-          <Tip>Puedes apuntarte o desapuntarte de una actividad con los botones "Unirme" / "Salir".</Tip>
+          <Step icon={<BotMessageSquare className="h-3.5 w-3.5" />} text="Pulsa 'Resumir con IA' para generar un resumen automatico del evento" />
+          <Tip>Puedes apuntarte o desapuntarte de un evento con los botones "Unirme" / "Salir".</Tip>
         </Section>
 
         {/* Tareas (Kanban) */}
@@ -148,7 +148,7 @@ export function GuiaPage() {
           <Step icon={<GripVertical className="h-3.5 w-3.5" />} text="Arrastra una tarjeta de una columna a otra para cambiar su estado" />
           <Step icon={<ListChecks className="h-3.5 w-3.5" />} text="Usa los filtros de persona y tipo para encontrar tareas concretas" />
           <p>
-            Haz clic en cualquier tarjeta para ir al detalle completo de la actividad.
+            Haz clic en cualquier tarjeta para ir al detalle completo del evento.
           </p>
           <Tip>Puedes marcar una tarea como "Hecho" directamente con el icono de check en la tarjeta.</Tip>
         </Section>
@@ -159,16 +159,16 @@ export function GuiaPage() {
           title="Historial"
         >
           <p>
-            El historial muestra un registro completo de todas las actividades. Puedes filtrar por:
+            El historial muestra un registro completo de todos los eventos. Puedes filtrar por:
           </p>
           <ul className="list-disc pl-4 space-y-1">
-            <li><strong>Persona</strong> — ver solo actividades en las que participo alguien concreto</li>
+            <li><strong>Persona</strong> — ver solo eventos en los que participo alguien concreto</li>
             <li><strong>Tipo</strong> — tarea, reunion, evento, otros</li>
             <li><strong>Rango de fechas</strong> — desde / hasta</li>
           </ul>
           <p>
-            Cada actividad muestra sus participantes como badges. Pulsa "Descripcion" para expandir
-            las notas de esa actividad sin salir de la pagina.
+            Cada evento muestra sus participantes como badges. Pulsa "Descripcion" para expandir
+            las notas de ese evento sin salir de la pagina.
           </p>
         </Section>
 
@@ -182,7 +182,7 @@ export function GuiaPage() {
           </p>
           <ul className="list-disc pl-4 space-y-1">
             <li>Buscar por nombre o email</li>
-            <li>Ver el perfil de cada miembro: email, telefono, bio y numero de actividades</li>
+            <li>Ver el perfil de cada miembro: email, telefono, bio y numero de eventos</li>
             <li>Los administradores pueden crear nuevos miembros</li>
           </ul>
           <Tip>El avatar con iniciales tiene un color unico para cada persona, para identificarla rapidamente.</Tip>
@@ -231,7 +231,7 @@ export function GuiaPage() {
             puede responder preguntas sobre su contenido.
           </p>
           <Step icon={<Download className="h-3.5 w-3.5" />} text="Puedes descargar el archivo original desde el detalle del documento" />
-          <Step icon={<Paperclip className="h-3.5 w-3.5" />} text="Los documentos se pueden vincular a actividades desde el detalle de la actividad" />
+          <Step icon={<Paperclip className="h-3.5 w-3.5" />} text="Los documentos se pueden vincular a eventos desde el detalle del evento" />
           <Tip>Usa la barra de busqueda para encontrar documentos por palabras clave de su contenido.</Tip>
         </Section>
 
@@ -242,12 +242,12 @@ export function GuiaPage() {
         >
           <p>
             Albums de fotos de la asociacion. Perfecto para guardar recuerdos de eventos,
-            reuniones, actividades, etc.
+            reuniones, eventos, etc.
           </p>
           <ul className="list-disc pl-4 space-y-1">
             <li>Crea un album con titulo y descripcion</li>
             <li>Sube multiples fotos de golpe</li>
-            <li>Los albums se pueden vincular a actividades</li>
+            <li>Los albums se pueden vincular a eventos</li>
           </ul>
           <Tip>La foto de portada del album es la primera que se sube. Puedes cambiarla desde el detalle del album.</Tip>
         </Section>
@@ -264,9 +264,9 @@ export function GuiaPage() {
           <ul className="list-disc pl-4 space-y-1">
             <li>Cada contacto tiene nombre, email, telefono, web y categoria</li>
             <li>Filtra por categoria o busca por nombre/email/telefono</li>
-            <li>Los contactos se pueden vincular a actividades como participantes externos</li>
+            <li>Los contactos se pueden vincular a eventos como participantes externos</li>
           </ul>
-          <Tip>Al vincular un contacto a una actividad, puedes asignarle un rol (ponente, proveedor, organizador...).</Tip>
+          <Tip>Al vincular un contacto a un evento, puedes asignarle un rol (ponente, proveedor, organizador...).</Tip>
         </Section>
 
         {/* Asistente IA */}
@@ -276,12 +276,12 @@ export function GuiaPage() {
         >
           <p>
             Un chat inteligente que tiene acceso a toda la informacion de la asociacion:
-            documentos, actividades, albums, miembros, etc.
+            documentos, eventos, albums, miembros, etc.
           </p>
           <p className="font-medium text-foreground">Que puedes preguntarle:</p>
           <ul className="list-disc pl-4 space-y-1">
             <li>"Hazme un resumen del pliego de la casa de cultura"</li>
-            <li>"Que actividades tuvimos en febrero?"</li>
+            <li>"Que eventos tuvimos en febrero?"</li>
             <li>"Quien participo en la reunion del martes?"</li>
             <li>"Que documentos tenemos sobre subvenciones?"</li>
             <li>"Redactame un acta de la ultima asamblea"</li>
@@ -309,7 +309,7 @@ export function GuiaPage() {
             <li>
               <strong>Roles</strong> — hay dos roles: <Badge variant="default" className="text-[10px] mx-1">Administrador</Badge>
               y <Badge variant="secondary" className="text-[10px] mx-1">Miembro</Badge>.
-              Los administradores pueden crear/editar/eliminar contenido. Los miembros pueden ver todo y participar en actividades.
+              Los administradores pueden crear/editar/eliminar contenido. Los miembros pueden ver todo y participar en eventos.
             </li>
             <li>
               <strong>Busqueda</strong> — la mayoria de paginas tienen un buscador.
@@ -317,7 +317,7 @@ export function GuiaPage() {
             </li>
             <li>
               <strong>Vincular contenido</strong> — puedes vincular documentos, albums y contactos
-              a cualquier actividad. Esto mantiene todo organizado y conectado.
+              a cualquier evento. Esto mantiene todo organizado y conectado.
             </li>
           </ul>
         </Section>

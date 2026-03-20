@@ -15,6 +15,7 @@ import {
   History,
   Building2,
   CalendarCheck,
+  ClipboardList,
   Plus,
   Trash2,
   MessageSquare,
@@ -42,6 +43,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   History,
   Building2,
   CalendarCheck,
+  ClipboardList,
 };
 
 interface SidebarProps {

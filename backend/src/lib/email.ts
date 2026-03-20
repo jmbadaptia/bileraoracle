@@ -119,3 +119,66 @@ export async function sendResetEmail(to: string, name: string, token: string): P
     html,
   });
 }
+
+const STATUS_LABELS: Record<string, { label: string; desc: string }> = {
+  CONFIRMED: { label: "Confirmada", desc: "Tienes plaza confirmada." },
+  PENDING: { label: "Pendiente de sorteo", desc: "Tu inscripción ha sido registrada. Se realizará un sorteo para asignar las plazas." },
+  WAITLISTED: { label: "Lista de espera", desc: "Las plazas están completas. Estás en lista de espera y te avisaremos si se libera alguna plaza." },
+};
+
+export async function sendEnrollmentEmail(
+  to: string, name: string, activityTitle: string,
+  status: string, activityId: string, cancelToken: string
+): Promise<void> {
+  const cancelLink = `${getAppUrl()}/inscribirse/${activityId}?cancel=${cancelToken}`;
+  const info = STATUS_LABELS[status] || { label: status, desc: "" };
+
+  const html = baseHtml(`
+    <h2 style="margin:0 0 8px;font-size:22px;color:#18181b">Inscripción registrada</h2>
+    <p style="margin:0 0 8px;font-size:15px;color:#52525b;line-height:1.6">
+      Hola <strong>${name}</strong>, tu inscripción a <strong>${activityTitle}</strong> ha sido registrada.
+    </p>
+    <p style="margin:0 0 24px;font-size:15px;line-height:1.6">
+      <span style="display:inline-block;background:#f0fdf4;color:#166534;padding:4px 12px;border-radius:6px;font-weight:600">
+        Estado: ${info.label}
+      </span>
+    </p>
+    <p style="margin:0 0 24px;font-size:14px;color:#52525b;line-height:1.6">${info.desc}</p>
+    <p style="margin:0 0 8px;font-size:13px;color:#a1a1aa;line-height:1.5">
+      Si necesitas cancelar tu inscripción:<br/>
+      <a href="${cancelLink}" style="color:#e11d48">Cancelar inscripción</a>
+    </p>
+  `);
+
+  await getTransporter().sendMail({
+    from: getFrom(),
+    to,
+    subject: `Inscripción: ${activityTitle} — ${info.label}`,
+    html,
+  });
+}
+
+export async function sendEnrollmentResultEmail(
+  to: string, name: string, activityTitle: string, status: string
+): Promise<void> {
+  const isConfirmed = status === "CONFIRMED";
+  const html = baseHtml(`
+    <h2 style="margin:0 0 8px;font-size:22px;color:#18181b">
+      ${isConfirmed ? "¡Tienes plaza!" : "Lista de espera"}
+    </h2>
+    <p style="margin:0 0 24px;font-size:15px;color:#52525b;line-height:1.6">
+      Hola <strong>${name}</strong>,
+      ${isConfirmed
+        ? `tu plaza para <strong>${activityTitle}</strong> ha sido confirmada.`
+        : `lamentablemente no has obtenido plaza en <strong>${activityTitle}</strong>. Estás en lista de espera y te avisaremos si se libera alguna plaza.`
+      }
+    </p>
+  `);
+
+  await getTransporter().sendMail({
+    from: getFrom(),
+    to,
+    subject: `${activityTitle} — ${isConfirmed ? "Plaza confirmada" : "Lista de espera"}`,
+    html,
+  });
+}

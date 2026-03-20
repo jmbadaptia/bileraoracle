@@ -135,13 +135,13 @@ export function ContactoDetailPage() {
         <CardHeader>
           <CardTitle className="text-base">
             <CalendarDays className="inline h-4 w-4 mr-1.5" />
-            Actividades vinculadas
+            Eventos vinculados
           </CardTitle>
         </CardHeader>
         <CardContent>
           {!contact.activities || contact.activities.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Este contacto no está vinculado a ninguna actividad.
+              Este contacto no está vinculado a ningún evento.
             </p>
           ) : (
             <div className="space-y-2">

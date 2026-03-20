@@ -61,7 +61,7 @@ export function HistorialPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Historial</h1>
         <p className="text-sm text-muted-foreground">
-          Registro completo de actividades
+          Registro completo de eventos
         </p>
       </div>
 
@@ -141,7 +141,7 @@ export function HistorialPage() {
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <CalendarX className="h-10 w-10 text-muted-foreground/50 mb-3" />
           <p className="text-sm text-muted-foreground">
-            No se encontraron actividades
+            No se encontraron eventos
           </p>
         </div>
       ) : (
