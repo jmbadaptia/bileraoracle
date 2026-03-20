@@ -189,7 +189,7 @@ export function InscripcionDetailPage() {
           {isOpen ? "Inscripciones abiertas" : "Inscripciones cerradas"}
         </Badge>
         <Badge variant="outline">
-          {activity.enrollmentMode === "LOTTERY" ? "Sorteo" : "Orden de llegada"}
+          {activity.enrollmentMode === "LOTTERY" ? "Sorteo" : "Por orden de inscripcion"}
         </Badge>
         {activity.enrollmentPrice > 0 && (
           <Badge variant="outline">{activity.enrollmentPrice.toFixed(2)}€</Badge>

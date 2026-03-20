@@ -90,7 +90,26 @@ export async function enrollmentRoutes(app: FastifyInstance) {
         spotsAvailable: activity.MAX_CAPACITY ? activity.MAX_CAPACITY - spotsTaken : null,
         isOpen,
         documents,
+        sessions: [],
       };
+
+      // Fetch sessions
+      const sessionsResult = await conn.execute<any>(
+        `SELECT session_num, session_date, time_start, time_end, title, content
+         FROM course_sessions WHERE activity_id = :id ORDER BY session_num`,
+        { id: activityId },
+        { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      );
+      result.sessions = (sessionsResult.rows || []).map((s: any) => ({
+        sessionNum: s.SESSION_NUM,
+        sessionDate: s.SESSION_DATE,
+        timeStart: s.TIME_START,
+        timeEnd: s.TIME_END,
+        title: s.TITLE,
+        content: s.CONTENT,
+      }));
+
+      return result;
     });
   });
 

@@ -1,5 +1,6 @@
 import { Link } from "react-router";
-import { Plus, CalendarDays, MapPin, Users, Clock } from "lucide-react";
+import { Plus, CalendarDays, MapPin, Users, Clock, Link2 } from "lucide-react";
+import { toast } from "sonner";
 import { useActivities } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -60,7 +61,8 @@ export function InscripcionesPage() {
             const isOpen = !deadlinePassed && !(a.enrollmentMode === "FIFO" && isFull);
 
             return (
-              <Link key={a.id} to={`/inscripciones/${a.id}`}>
+              <div key={a.id} className="relative group">
+              <Link to={`/inscripciones/${a.id}`}>
                 <Card className="hover:border-primary/30 transition-colors cursor-pointer h-full">
                   <CardContent className="pt-6 space-y-3">
                     <div className="flex items-start justify-between gap-2">
@@ -110,6 +112,18 @@ export function InscripcionesPage() {
                   </CardContent>
                 </Card>
               </Link>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigator.clipboard.writeText(`${window.location.origin}/inscribirse/${a.id}`);
+                  toast.success("Enlace publico copiado");
+                }}
+                className="absolute top-3 right-3 h-7 w-7 rounded-lg bg-background/90 border shadow-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-muted z-10"
+                title="Copiar enlace publico"
+              >
+                <Link2 className="h-3.5 w-3.5 text-muted-foreground" />
+              </button>
+              </div>
             );
           })}
         </div>

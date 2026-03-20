@@ -295,7 +295,7 @@ export function InscripcionFormPage() {
                         <Label className="text-xs">Modo</Label>
                         <select value={enrollmentMode} onChange={(e) => setEnrollmentMode(e.target.value)}
                           className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm">
-                          <option value="FIFO">Orden de llegada</option>
+                          <option value="FIFO">Por orden de inscripcion</option>
                           <option value="LOTTERY">Sorteo</option>
                         </select>
                       </div>
@@ -393,7 +393,7 @@ export function InscripcionFormPage() {
                         { l: "Lugar", v: location || "Sin definir", icon: "📍" },
                         { l: "Precio", v: parseFloat(enrollmentPrice || "0") > 0 ? `${enrollmentPrice}€` : "Gratuito", icon: "💰" },
                         { l: "Plazas", v: maxCapacity || "-", icon: "👥" },
-                        { l: "Modo", v: enrollmentMode === "LOTTERY" ? "Sorteo" : "Orden de llegada", icon: "🎟️" },
+                        { l: "Modo", v: enrollmentMode === "LOTTERY" ? "Sorteo" : "Por orden de inscripcion", icon: "🎟️" },
                       ].map((d, i) => (
                         <div key={i} className="rounded-lg border p-3">
                           <p className="text-[11px] text-muted-foreground">{d.icon} {d.l}</p>
