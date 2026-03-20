@@ -75,17 +75,18 @@ export function Header({ userName, userEmail, userRole, pageTitle }: HeaderProps
 
   return (
     <>
-      <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
+      <header className="sticky top-0 z-40 flex h-11 items-center gap-3 border-b bg-background px-4 md:px-6">
         <MobileNav userRole={userRole} />
         {pageTitle && (
           <h1 className="text-sm font-semibold truncate">{pageTitle}</h1>
         )}
         <div className="flex-1" />
+        <span className="text-xs text-muted-foreground hidden md:block">{userName}</span>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-              <Avatar className="h-9 w-9">
-                <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+            <Button variant="ghost" className="relative h-7 w-7 rounded-full p-0">
+              <Avatar className="h-7 w-7">
+                <AvatarFallback className="bg-primary text-primary-foreground text-[10px]">
                   {initials}
                 </AvatarFallback>
               </Avatar>

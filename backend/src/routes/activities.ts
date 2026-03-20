@@ -1,4 +1,7 @@
 import { FastifyInstance } from "fastify";
+import { readFile } from "fs/promises";
+import { mkdir, writeFile } from "fs/promises";
+import path from "path";
 import oracledb from "oracledb";
 import { withTenant } from "../lib/db.js";
 import { requireAuth } from "../middleware/auth.js";
@@ -180,6 +183,7 @@ export async function activityRoutes(app: FastifyInstance) {
       attendeeIds, tagIds, contactIds, spaceId,
       enrollmentEnabled, enrollmentMode, maxCapacity, enrollmentPrice, enrollmentDeadline,
       publishStatus, publishDate, programText,
+      instructorType, instructorId, sessions,
     } = request.body as {
       title?: string;
       description?: string;
@@ -202,6 +206,9 @@ export async function activityRoutes(app: FastifyInstance) {
       publishStatus?: string;
       publishDate?: string;
       programText?: string;
+      instructorType?: string;
+      instructorId?: string;
+      sessions?: Array<{ sessionDate?: string; timeStart?: string; timeEnd?: string; title?: string; content?: string }>;
     };
 
     if (!title || title.trim().length === 0) {
@@ -229,10 +236,10 @@ export async function activityRoutes(app: FastifyInstance) {
       await conn.execute(
         `INSERT INTO activities (id, tenant_id, title, description, type, status, priority, start_date, location, visibility, owner_id, created_by,
          enrollment_enabled, enrollment_mode, max_capacity, enrollment_price, enrollment_deadline,
-         publish_status, publish_date, program_text)
+         publish_status, publish_date, program_text, instructor_type, instructor_id)
          VALUES (:id, :tenantId, :title, :description, :type, :status, :priority, :startDate, :location, :visibility, :ownerId, :createdBy,
          :enrollmentEnabled, :enrollmentMode, :maxCapacity, :enrollmentPrice, :enrollmentDeadline,
-         :publishStatus, :publishDate, :programText)`,
+         :publishStatus, :publishDate, :programText, :instructorType, :instructorId)`,
         {
           id,
           tenantId: request.user.tenantId,
@@ -254,8 +261,32 @@ export async function activityRoutes(app: FastifyInstance) {
           publishStatus: publishStatus || "PUBLISHED",
           publishDate: publishDate ? new Date(publishDate) : null,
           programText: programText || null,
+          instructorType: instructorType || null,
+          instructorId: instructorId || null,
         }
       );
+
+      // Insert sessions if provided
+      if (sessions?.length) {
+        for (let i = 0; i < sessions.length; i++) {
+          const s = sessions[i];
+          await conn.execute(
+            `INSERT INTO course_sessions (id, tenant_id, activity_id, session_num, session_date, time_start, time_end, title, content)
+             VALUES (:id, :tenantId, :actId, :num, :sDate, :tStart, :tEnd, :title, :content)`,
+            {
+              id: crypto.randomUUID(),
+              tenantId: request.user.tenantId,
+              actId: id,
+              num: i + 1,
+              sDate: s.sessionDate ? new Date(s.sessionDate) : null,
+              tStart: s.timeStart || null,
+              tEnd: s.timeEnd || null,
+              title: s.title || null,
+              content: s.content || null,
+            }
+          );
+        }
+      }
 
       // Auto-create booking if space selected and dates available
       if (spaceId && startDate) {
@@ -347,6 +378,7 @@ export async function activityRoutes(app: FastifyInstance) {
                 a.enrollment_enabled, a.enrollment_mode, a.max_capacity,
                 a.enrollment_price, a.enrollment_deadline,
                 a.publish_status, a.publish_date, a.program_text,
+                a.instructor_type, a.instructor_id, a.cover_image_path,
                 u.name AS owner_name,
                 cb.name AS created_by_name,
                 (SELECT COUNT(*) FROM enrollments e WHERE e.activity_id = a.id AND e.status IN ('CONFIRMED', 'PENDING')) AS enrollment_count
@@ -406,6 +438,26 @@ export async function activityRoutes(app: FastifyInstance) {
         { outFormat: oracledb.OUT_FORMAT_OBJECT }
       );
 
+      // Resolve instructor name
+      let instructorName: string | null = null;
+      if (activity.INSTRUCTOR_ID) {
+        if (activity.INSTRUCTOR_TYPE === "MEMBER") {
+          const ir = await conn.execute<any>(`SELECT name FROM users WHERE id = :id`, { id: activity.INSTRUCTOR_ID }, { outFormat: oracledb.OUT_FORMAT_OBJECT });
+          instructorName = ir.rows?.[0]?.NAME || null;
+        } else if (activity.INSTRUCTOR_TYPE === "CONTACT") {
+          const ir = await conn.execute<any>(`SELECT name FROM contacts WHERE id = :id`, { id: activity.INSTRUCTOR_ID }, { outFormat: oracledb.OUT_FORMAT_OBJECT });
+          instructorName = ir.rows?.[0]?.NAME || null;
+        }
+      }
+
+      // Fetch sessions
+      const sessionsResult = await conn.execute<any>(
+        `SELECT id, session_num, session_date, time_start, time_end, title, content
+         FROM course_sessions WHERE activity_id = :id ORDER BY session_num`,
+        { id },
+        { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      );
+
       return {
         id: activity.ID,
         title: activity.TITLE,
@@ -431,6 +483,21 @@ export async function activityRoutes(app: FastifyInstance) {
         publishStatus: activity.PUBLISH_STATUS || "PUBLISHED",
         publishDate: activity.PUBLISH_DATE,
         programText: activity.PROGRAM_TEXT,
+        instructor: activity.INSTRUCTOR_ID ? {
+          type: activity.INSTRUCTOR_TYPE,
+          id: activity.INSTRUCTOR_ID,
+          name: instructorName,
+        } : null,
+        coverImagePath: activity.COVER_IMAGE_PATH,
+        sessions: (sessionsResult.rows || []).map((s: any) => ({
+          id: s.ID,
+          sessionNum: s.SESSION_NUM,
+          sessionDate: s.SESSION_DATE,
+          timeStart: s.TIME_START,
+          timeEnd: s.TIME_END,
+          title: s.TITLE,
+          content: s.CONTENT,
+        })),
         attendees: (attResult.rows || []).map((a: any) => ({
           id: a.ID,
           name: a.NAME,
@@ -496,6 +563,7 @@ export async function activityRoutes(app: FastifyInstance) {
       attendeeIds, tagIds, contactIds, spaceId,
       enrollmentEnabled, enrollmentMode, maxCapacity, enrollmentPrice, enrollmentDeadline,
       publishStatus, publishDate, programText,
+      instructorType, instructorId, sessions,
     } = request.body as {
       title?: string;
       description?: string;
@@ -518,6 +586,9 @@ export async function activityRoutes(app: FastifyInstance) {
       publishStatus?: string;
       publishDate?: string;
       programText?: string;
+      instructorType?: string;
+      instructorId?: string;
+      sessions?: Array<{ sessionDate?: string; timeStart?: string; timeEnd?: string; title?: string; content?: string }>;
     };
 
     if (!title || title.trim().length === 0) {
@@ -555,7 +626,8 @@ export async function activityRoutes(app: FastifyInstance) {
                 max_capacity = :maxCapacity, enrollment_price = :enrollmentPrice,
                 enrollment_deadline = :enrollmentDeadline,
                 publish_status = :publishStatus, publish_date = :publishDate,
-                program_text = :programText, updated_at = SYSTIMESTAMP
+                program_text = :programText, instructor_type = :instructorType,
+                instructor_id = :instructorId, updated_at = SYSTIMESTAMP
          WHERE id = :id`,
         {
           id,
@@ -576,8 +648,33 @@ export async function activityRoutes(app: FastifyInstance) {
           publishStatus: publishStatus || "PUBLISHED",
           publishDate: publishDate ? new Date(publishDate) : null,
           programText: programText || null,
+          instructorType: instructorType || null,
+          instructorId: instructorId || null,
         }
       );
+
+      // Replace sessions
+      await conn.execute(`DELETE FROM course_sessions WHERE activity_id = :id`, { id });
+      if (sessions?.length) {
+        for (let i = 0; i < sessions.length; i++) {
+          const s = sessions[i];
+          await conn.execute(
+            `INSERT INTO course_sessions (id, tenant_id, activity_id, session_num, session_date, time_start, time_end, title, content)
+             VALUES (:id, :tenantId, :actId, :num, :sDate, :tStart, :tEnd, :title, :content)`,
+            {
+              id: crypto.randomUUID(),
+              tenantId: request.user.tenantId,
+              actId: id,
+              num: i + 1,
+              sDate: s.sessionDate ? new Date(s.sessionDate) : null,
+              tStart: s.timeStart || null,
+              tEnd: s.timeEnd || null,
+              title: s.title || null,
+              content: s.content || null,
+            }
+          );
+        }
+      }
 
       // Replace attendees
       await conn.execute(`DELETE FROM activity_attendees WHERE activity_id = :id`, { id });
@@ -929,5 +1026,57 @@ export async function activityRoutes(app: FastifyInstance) {
       );
       return { ok: true };
     });
+  });
+
+  const UPLOAD_DIR = process.env.UPLOAD_DIR || "./uploads";
+
+  // POST /api/activities/:id/cover — upload cover image
+  app.post("/api/activities/:id/cover", { preHandler: [requireAuth] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const data = await request.file();
+    if (!data) return reply.code(400).send({ error: "Imagen requerida" });
+
+    const buffer = await data.toBuffer();
+    const ext = path.extname(data.filename) || ".jpg";
+    const fileName = `${id}${ext}`;
+    const coversDir = path.join(UPLOAD_DIR, "covers");
+    const filePath = path.join(coversDir, fileName);
+
+    await mkdir(coversDir, { recursive: true });
+    await writeFile(filePath, buffer);
+
+    await withTenant(request.user.tenantId, request.user.id, async (conn) => {
+      await conn.execute(
+        `UPDATE activities SET cover_image_path = :path, updated_at = SYSTIMESTAMP WHERE id = :id`,
+        { path: filePath, id }
+      );
+    });
+
+    return { ok: true, path: filePath };
+  });
+
+  // GET /api/activities/:id/cover — serve cover image
+  app.get("/api/activities/:id/cover", async (request, reply) => {
+    const { id } = request.params as { id: string };
+
+    const result = await (await import("../lib/db.js")).withConnection(async (conn) => {
+      const r = await conn.execute<any>(
+        `SELECT cover_image_path FROM activities WHERE id = :id`,
+        { id },
+        { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      );
+      return r.rows?.[0]?.COVER_IMAGE_PATH;
+    });
+
+    if (!result) return reply.code(404).send({ error: "No cover image" });
+
+    try {
+      const buffer = await readFile(result);
+      const ext = path.extname(result).toLowerCase();
+      const types: Record<string, string> = { ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp" };
+      return reply.type(types[ext] || "image/jpeg").send(buffer);
+    } catch {
+      return reply.code(404).send({ error: "Image not found" });
+    }
   });
 }

@@ -1,11 +1,15 @@
 import { FastifyInstance } from "fastify";
 import crypto from "crypto";
 import { readFile, existsSync } from "fs";
-import { readFile as readFileAsync } from "fs/promises";
+import { readFile as readFileAsync, writeFile, mkdir, unlink } from "fs/promises";
+import path from "path";
 import oracledb from "oracledb";
 import { withTenant, withConnection } from "../lib/db.js";
 import { requireAuth } from "../middleware/auth.js";
 import { sendEnrollmentEmail, sendEnrollmentResultEmail } from "../lib/email.js";
+import { chatCompletion } from "../lib/ai.js";
+import { extractText } from "../lib/extractor.js";
+import { trackAiUsage } from "../lib/ai-usage.js";
 
 export async function enrollmentRoutes(app: FastifyInstance) {
   // GET /api/enrollments/public/:activityId — public activity info
@@ -565,5 +569,104 @@ export async function enrollmentRoutes(app: FastifyInstance) {
 
       return { confirmed, waitlisted };
     });
+  });
+
+  const UPLOAD_DIR = process.env.UPLOAD_DIR || "./uploads";
+
+  // POST /api/enrollments/analyze-document — AI extract course info from PDF/Word
+  app.post("/api/enrollments/analyze-document", { preHandler: [requireAuth] }, async (request, reply) => {
+    const data = await request.file();
+    if (!data) return reply.code(400).send({ error: "Archivo requerido" });
+
+    const buffer = await data.toBuffer();
+    const ext = path.extname(data.filename).toLowerCase();
+
+    if (![".pdf", ".docx", ".doc", ".txt"].includes(ext)) {
+      return reply.code(400).send({ error: "Formato no soportado. Usa PDF, Word o TXT." });
+    }
+
+    // Save temp file for extraction
+    const tmpDir = path.join(UPLOAD_DIR, "tmp");
+    await mkdir(tmpDir, { recursive: true });
+    const tmpPath = path.join(tmpDir, `${crypto.randomUUID()}${ext}`);
+    await writeFile(tmpPath, buffer);
+
+    try {
+      // Extract text
+      const text = await extractText(tmpPath);
+      if (!text || text.trim().length < 20) {
+        return reply.code(400).send({ error: "No se pudo extraer texto suficiente del documento" });
+      }
+
+      // Send to LLM for structured extraction
+      const prompt = `Analiza el siguiente texto de un programa de curso o taller y extrae la informacion en formato JSON.
+
+Campos a extraer (devuelve SOLO el JSON, sin explicaciones):
+{
+  "titulo": "titulo del curso",
+  "descripcion": "descripcion breve del curso en 1-2 frases",
+  "categoria": "una de: Cocina, Cultura, Deporte, Idiomas, Informatica, Manualidades, Musica, Salud, Otro",
+  "precio": numero o 0 si es gratuito,
+  "instructor": "nombre del instructor/ponente si aparece",
+  "lugar": "lugar si aparece",
+  "sesiones": [
+    {
+      "title": "titulo de la sesion",
+      "content": "contenido breve",
+      "sessionDate": "YYYY-MM-DD si aparece fecha",
+      "timeStart": "HH:MM si aparece hora",
+      "timeEnd": "HH:MM si aparece hora fin"
+    }
+  ]
+}
+
+Si un campo no aparece en el texto, dejalo como null o array vacio. El JSON debe ser valido.
+
+Texto del documento:
+${text.substring(0, 4000)}`;
+
+      const result = await chatCompletion(
+        "Eres un asistente que extrae informacion estructurada de documentos. Responde SOLO con JSON valido, sin markdown, sin explicaciones.",
+        prompt
+      );
+
+      if (!result) {
+        return reply.code(503).send({ error: "Servicio de IA no disponible" });
+      }
+
+      // Track usage
+      trackAiUsage({
+        tenantId: request.user.tenantId,
+        userId: request.user.id,
+        callType: "CHAT",
+        model: "llama-3.3-70b",
+        inputTokens: result.usage.promptTokens,
+        outputTokens: result.usage.completionTokens,
+      });
+
+      // Parse JSON from response
+      let extracted: any;
+      try {
+        // Try to extract JSON from the response (might be wrapped in markdown)
+        let jsonStr = result.content.trim();
+        const jsonMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (jsonMatch) jsonStr = jsonMatch[1].trim();
+        // Also try to find raw JSON object
+        const objMatch = jsonStr.match(/\{[\s\S]*\}/);
+        if (objMatch) jsonStr = objMatch[0];
+        extracted = JSON.parse(jsonStr);
+      } catch {
+        return reply.code(422).send({ error: "No se pudo interpretar la respuesta de la IA", raw: result.content });
+      }
+
+      return {
+        ok: true,
+        extracted,
+        textLength: text.length,
+      };
+    } finally {
+      // Cleanup temp file
+      try { await unlink(tmpPath); } catch {}
+    }
   });
 }
