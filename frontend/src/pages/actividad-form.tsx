@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router";
 import { toast } from "sonner";
 import {
   CalendarDays, FileText, X, Upload, Plus, Users, MapPin,
-  Paperclip, ClipboardList, UserCircle, Building2,
+  Paperclip, ClipboardList, UserCircle, Building2, ChevronDown,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import {
@@ -92,6 +92,7 @@ export function ActividadFormPage() {
   const [notesContent, setNotesContent] = useState(activity?.description || "");
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [showDocDialog, setShowDocDialog] = useState(false);
+  const [showNotes, setShowNotes] = useState(false);
   const [synced, setSynced] = useState(false);
   const [locationValue, setLocationValue] = useState(activity?.location || "");
   const [selectedSpaceId, setSelectedSpaceId] = useState("");
@@ -124,6 +125,7 @@ export function ActividadFormPage() {
     setSelectedType(activity.type);
     setSelectedStatus(activity.status || "PENDING");
     setNotesContent(activity.description || "");
+    if (activity.description) setShowNotes(true);
     setSelectedOwnerId(activity.ownerId || "");
 
     const parts: Participant[] = [];
@@ -227,9 +229,9 @@ export function ActividadFormPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-5xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-primary/10">
             <CalendarDays className="h-5 w-5 text-primary" />
@@ -247,7 +249,7 @@ export function ActividadFormPage() {
         </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
+      <form onSubmit={handleSubmit} className="space-y-6">
         {/* Title */}
         <div>
           <input
@@ -264,7 +266,7 @@ export function ActividadFormPage() {
         <section className="space-y-4">
           <SectionHeader icon={ClipboardList} title="Información básica" />
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Tipo</Label>
               <Select value={selectedType} onValueChange={setSelectedType}>
@@ -358,7 +360,8 @@ export function ActividadFormPage() {
           </div>
         </section>
 
-        {/* Section: Personas */}
+        {/* Section: Personas + Documentos side by side */}
+        <div className="grid gap-6 md:grid-cols-2">
         <section className="space-y-4">
           <SectionHeader icon={Users} title="Personas" />
 
@@ -422,21 +425,7 @@ export function ActividadFormPage() {
           </div>
         </section>
 
-        {/* Section: Contenido */}
-        <section className="space-y-4">
-          <SectionHeader icon={FileText} title="Contenido" />
-
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Notas / Acta</Label>
-            <TiptapEditor
-              content={notesContent}
-              onChange={setNotesContent}
-              placeholder="Escribe aqu&iacute; el acta..."
-            />
-          </div>
-        </section>
-
-        {/* Section: Documentos */}
+        {/* Section: Documentos (same grid row as Personas) */}
         <section className="space-y-4">
           <SectionHeader icon={Paperclip} title="Documentos" />
 
@@ -507,6 +496,29 @@ export function ActividadFormPage() {
               }}
             />
           </div>
+        </section>
+        </div>
+
+        {/* Notas / Acta — collapsible */}
+        <section>
+          <button
+            type="button"
+            onClick={() => setShowNotes(!showNotes)}
+            className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ChevronDown className={`h-4 w-4 transition-transform ${showNotes ? "" : "-rotate-90"}`} />
+            <FileText className="h-4 w-4" />
+            Notas / Acta
+          </button>
+          {showNotes && (
+            <div className="mt-3">
+              <TiptapEditor
+                content={notesContent}
+                onChange={setNotesContent}
+                placeholder="Escribe aqu&iacute; el acta..."
+              />
+            </div>
+          )}
         </section>
 
         {/* Actions */}
