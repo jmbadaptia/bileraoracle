@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
 import { toast } from "sonner";
-import { MapPin } from "lucide-react";
-import { useActivity, useCreateActivity, useUpdateActivity, useSpaces } from "@/api/hooks";
+import { MapPin, Upload, FileText, X } from "lucide-react";
+import { useActivity, useCreateActivity, useUpdateActivity, useSpaces, useUploadDocument, useAttachDocument, useDetachDocument } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,10 +16,15 @@ export function InscripcionFormPage() {
   const { data: activity, isLoading: loadingActivity } = useActivity(id || "");
   const createActivity = useCreateActivity();
   const updateActivity = useUpdateActivity(id || "");
+  const uploadDocument = useUploadDocument();
+  const attachDocument = useAttachDocument(id || "");
   const { data: spacesData } = useSpaces({ active: "1" });
   const spaces = spacesData?.spaces || [];
 
   const [loading, setLoading] = useState(false);
+  const [programDoc, setProgramDoc] = useState<{ id: string; title: string; fileName: string } | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -32,6 +37,7 @@ export function InscripcionFormPage() {
   const [enrollmentMode, setEnrollmentMode] = useState("FIFO");
   const [publishStatus, setPublishStatus] = useState("DRAFT");
   const [publishDate, setPublishDate] = useState("");
+  const [programText, setProgramText] = useState("");
   const [synced, setSynced] = useState(false);
   const locationRef = useRef<HTMLDivElement>(null);
 
@@ -62,6 +68,11 @@ export function InscripcionFormPage() {
     setEnrollmentMode(activity.enrollmentMode || "FIFO");
     setPublishStatus(activity.publishStatus || "PUBLISHED");
     setPublishDate(activity.publishDate ? activity.publishDate.slice(0, 16) : "");
+    if (activity.documents?.length) {
+      const d = activity.documents[0];
+      setProgramDoc({ id: d.id, title: d.title, fileName: d.fileName });
+    }
+    setProgramText(activity.programText || "");
     setSynced(true);
   }
 
@@ -95,6 +106,8 @@ export function InscripcionFormPage() {
       enrollmentDeadline: enrollmentDeadline || undefined,
       publishStatus,
       publishDate: publishDate || undefined,
+      documentIds: programDoc ? [programDoc.id] : undefined,
+      programText: !programDoc ? programText.trim() || undefined : undefined,
     };
     if (selectedSpaceId) {
       data.spaceId = selectedSpaceId;
@@ -103,10 +116,10 @@ export function InscripcionFormPage() {
     try {
       if (isEdit) {
         await updateActivity.mutateAsync(data);
-        toast.success("Inscripcion actualizada");
+        toast.success("Curso actualizado");
       } else {
         await createActivity.mutateAsync(data);
-        toast.success("Inscripcion creada");
+        toast.success("Curso creado");
       }
       navigate("/inscripciones");
     } catch {
@@ -116,20 +129,27 @@ export function InscripcionFormPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">
-          {isEdit ? "Editar inscripcion" : "Nueva inscripcion"}
-        </h1>
-        <p className="text-muted-foreground">
-          {isEdit ? "Modifica los datos del curso o taller" : "Crea un curso o taller con inscripcion publica"}
-        </p>
+    <form onSubmit={handleSubmit} className="h-full flex flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {isEdit ? "Editar curso" : "Nuevo curso"}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {isEdit ? "Modifica los datos del curso" : "Crea un curso o taller con inscripcion publica"}
+          </p>
+        </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <Card>
-          <CardContent className="pt-4 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Content — grid layout on desktop, stack on mobile */}
+      <div className="flex-1 min-h-0 overflow-y-auto lg:overflow-visible">
+        <div className="grid gap-4 lg:grid-cols-3">
+
+          {/* Column 1: Datos generales */}
+          <Card>
+            <CardContent className="pt-4 space-y-3">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Datos del curso</h3>
               <div className="space-y-2">
                 <Label htmlFor="title">Titulo *</Label>
                 <Input
@@ -140,20 +160,16 @@ export function InscripcionFormPage() {
                   required
                 />
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="description">Descripcion</Label>
                 <textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Descripcion del curso o taller..."
-                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              />
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Descripcion del curso..."
+                  className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                />
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="startDate">Fecha y hora</Label>
                 <Input
@@ -163,7 +179,7 @@ export function InscripcionFormPage() {
                   onChange={(e) => setStartDate(e.target.value)}
                 />
               </div>
-              <div className="space-y-2 relative md:col-span-2" ref={locationRef}>
+              <div className="space-y-2 relative" ref={locationRef}>
                 <Label htmlFor="location">Lugar</Label>
                 <Input
                   id="location"
@@ -204,107 +220,177 @@ export function InscripcionFormPage() {
                   </div>
                 )}
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardContent className="pt-4 space-y-4">
-            <h3 className="text-base font-semibold">Configuracion de inscripcion</h3>
-
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <Label>Modo de asignacion</Label>
-                <select
-                  value={enrollmentMode}
-                  onChange={(e) => setEnrollmentMode(e.target.value)}
-                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-                >
-                  <option value="FIFO">Orden de llegada</option>
-                  <option value="LOTTERY">Sorteo</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <Label>Plazas maximas</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  value={maxCapacity}
-                  onChange={(e) => {
-                    setMaxCapacity(e.target.value);
-                    const val = parseInt(e.target.value);
-                    const space = spaces.find((s: any) => s.id === selectedSpaceId);
-                    if (space?.capacity && val > space.capacity) {
-                      toast.warning(`El espacio "${space.name}" tiene capacidad para ${space.capacity} personas.`);
-                    }
-                  }}
-                  placeholder="Ej: 20"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Precio (0 = gratuita)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={enrollmentPrice}
-                  onChange={(e) => setEnrollmentPrice(e.target.value)}
-                  placeholder="0.00"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Fecha limite inscripcion</Label>
-                <Input
-                  type="datetime-local"
-                  value={enrollmentDeadline}
-                  onChange={(e) => setEnrollmentDeadline(e.target.value)}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-4 space-y-4">
-            <h3 className="text-base font-semibold">Publicacion</h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Estado</Label>
-                <select
-                  value={publishStatus}
-                  onChange={(e) => setPublishStatus(e.target.value)}
-                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-                >
-                  <option value="DRAFT">Borrador</option>
-                  <option value="PUBLISHED">Publicado</option>
-                </select>
-              </div>
-              {publishStatus === "DRAFT" && (
-                <div className="space-y-2">
-                  <Label>Publicar automaticamente el</Label>
+          {/* Column 2: Inscripcion + Publicacion */}
+          <Card>
+            <CardContent className="pt-4 space-y-3">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Inscripcion</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Modo</Label>
+                  <select
+                    value={enrollmentMode}
+                    onChange={(e) => setEnrollmentMode(e.target.value)}
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                  >
+                    <option value="FIFO">Orden de llegada</option>
+                    <option value="LOTTERY">Sorteo</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Plazas</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={maxCapacity}
+                    onChange={(e) => {
+                      setMaxCapacity(e.target.value);
+                      const val = parseInt(e.target.value);
+                      const space = spaces.find((s: any) => s.id === selectedSpaceId);
+                      if (space?.capacity && val > space.capacity) {
+                        toast.warning(`El espacio "${space.name}" tiene capacidad para ${space.capacity} personas.`);
+                      }
+                    }}
+                    placeholder="20"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Precio</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={enrollmentPrice}
+                    onChange={(e) => setEnrollmentPrice(e.target.value)}
+                    placeholder="0.00"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Fecha limite</Label>
                   <Input
                     type="datetime-local"
-                    value={publishDate}
-                    onChange={(e) => setPublishDate(e.target.value)}
-                    placeholder="Dejar vacio para publicar manualmente"
+                    value={enrollmentDeadline}
+                    onChange={(e) => setEnrollmentDeadline(e.target.value)}
                   />
-                  <p className="text-xs text-muted-foreground">Dejar vacio para publicar manualmente</p>
+                </div>
+              </div>
+
+              <div className="border-t pt-3 mt-1">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Publicacion</h3>
+                <div className="space-y-2">
+                  <Label className="text-xs">Estado</Label>
+                  <select
+                    value={publishStatus}
+                    onChange={(e) => setPublishStatus(e.target.value)}
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                  >
+                    <option value="DRAFT">Borrador</option>
+                    <option value="PUBLISHED">Publicado</option>
+                  </select>
+                </div>
+                {publishStatus === "DRAFT" && (
+                  <div className="space-y-1.5 mt-2">
+                    <Label className="text-xs">Publicar automaticamente el</Label>
+                    <Input
+                      type="datetime-local"
+                      value={publishDate}
+                      onChange={(e) => setPublishDate(e.target.value)}
+                    />
+                    <p className="text-[11px] text-muted-foreground">Vacio = publicar manualmente</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Column 3: Programa */}
+          <Card>
+            <CardContent className="pt-4 space-y-3">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Programa</h3>
+
+              {!programDoc && (
+                <div className="space-y-2">
+                  <textarea
+                    value={programText}
+                    onChange={(e) => setProgramText(e.target.value)}
+                    placeholder="Describe el programa: sesiones, contenido, horarios..."
+                    className="flex min-h-[140px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  />
                 </div>
               )}
-            </div>
-          </CardContent>
-        </Card>
 
-        <div className="flex gap-3">
-          <Button type="submit" disabled={loading}>
-            {loading ? "Guardando..." : isEdit ? "Guardar cambios" : "Crear inscripcion"}
-          </Button>
-          <Button type="button" variant="outline" onClick={() => navigate("/inscripciones")}>
-            Cancelar
-          </Button>
+              {programDoc ? (
+                <div className="flex items-center justify-between px-3 py-2.5 rounded-lg border bg-muted/30">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <FileText className="h-4 w-4 text-primary shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{programDoc.title}</p>
+                      <p className="text-xs text-muted-foreground">{programDoc.fileName}</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setProgramDoc(null)}
+                    className="text-muted-foreground hover:text-destructive shrink-0 ml-2"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={uploading}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload className="h-3.5 w-3.5 mr-1.5" />
+                    {uploading ? "Subiendo..." : "Subir PDF/Word"}
+                  </Button>
+                  <p className="text-[11px] text-muted-foreground mt-1.5">El texto se extraera automaticamente</p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setUploading(true);
+                      try {
+                        const fd = new FormData();
+                        fd.append("file", file);
+                        fd.append("title", title.trim() ? `Programa: ${title.trim()}` : `Programa: ${file.name}`);
+                        fd.append("visibility", "GENERAL");
+                        const doc: any = await uploadDocument.mutateAsync(fd);
+                        setProgramDoc({ id: doc.id, title: doc.title, fileName: doc.fileName });
+                        toast.success("Programa subido");
+                      } catch {
+                        toast.error("Error al subir");
+                      }
+                      setUploading(false);
+                      e.target.value = "";
+                    }}
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
-      </form>
-    </div>
+      </div>
+
+      {/* Sticky footer */}
+      <div className="sticky bottom-0 bg-background border-t mt-4 -mx-4 md:-mx-6 lg:-mx-8 px-4 md:px-6 lg:px-8 py-3 flex items-center gap-3">
+        <Button type="submit" disabled={loading}>
+          {loading ? "Guardando..." : isEdit ? "Guardar cambios" : "Crear curso"}
+        </Button>
+        <Button type="button" variant="outline" onClick={() => navigate("/inscripciones")}>
+          Cancelar
+        </Button>
+      </div>
+    </form>
   );
 }

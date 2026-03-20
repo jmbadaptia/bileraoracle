@@ -179,7 +179,7 @@ export async function activityRoutes(app: FastifyInstance) {
       startDate, location, visibility, ownerId,
       attendeeIds, tagIds, contactIds, spaceId,
       enrollmentEnabled, enrollmentMode, maxCapacity, enrollmentPrice, enrollmentDeadline,
-      publishStatus, publishDate,
+      publishStatus, publishDate, programText,
     } = request.body as {
       title?: string;
       description?: string;
@@ -201,6 +201,7 @@ export async function activityRoutes(app: FastifyInstance) {
       enrollmentDeadline?: string;
       publishStatus?: string;
       publishDate?: string;
+      programText?: string;
     };
 
     if (!title || title.trim().length === 0) {
@@ -228,10 +229,10 @@ export async function activityRoutes(app: FastifyInstance) {
       await conn.execute(
         `INSERT INTO activities (id, tenant_id, title, description, type, status, priority, start_date, location, visibility, owner_id, created_by,
          enrollment_enabled, enrollment_mode, max_capacity, enrollment_price, enrollment_deadline,
-         publish_status, publish_date)
+         publish_status, publish_date, program_text)
          VALUES (:id, :tenantId, :title, :description, :type, :status, :priority, :startDate, :location, :visibility, :ownerId, :createdBy,
          :enrollmentEnabled, :enrollmentMode, :maxCapacity, :enrollmentPrice, :enrollmentDeadline,
-         :publishStatus, :publishDate)`,
+         :publishStatus, :publishDate, :programText)`,
         {
           id,
           tenantId: request.user.tenantId,
@@ -252,6 +253,7 @@ export async function activityRoutes(app: FastifyInstance) {
           enrollmentDeadline: enrollmentDeadline ? new Date(enrollmentDeadline) : null,
           publishStatus: publishStatus || "PUBLISHED",
           publishDate: publishDate ? new Date(publishDate) : null,
+          programText: programText || null,
         }
       );
 
@@ -344,7 +346,7 @@ export async function activityRoutes(app: FastifyInstance) {
                 a.created_at, a.updated_at,
                 a.enrollment_enabled, a.enrollment_mode, a.max_capacity,
                 a.enrollment_price, a.enrollment_deadline,
-                a.publish_status, a.publish_date,
+                a.publish_status, a.publish_date, a.program_text,
                 u.name AS owner_name,
                 cb.name AS created_by_name,
                 (SELECT COUNT(*) FROM enrollments e WHERE e.activity_id = a.id AND e.status IN ('CONFIRMED', 'PENDING')) AS enrollment_count
@@ -428,6 +430,7 @@ export async function activityRoutes(app: FastifyInstance) {
         enrollmentCount: activity.ENROLLMENT_COUNT,
         publishStatus: activity.PUBLISH_STATUS || "PUBLISHED",
         publishDate: activity.PUBLISH_DATE,
+        programText: activity.PROGRAM_TEXT,
         attendees: (attResult.rows || []).map((a: any) => ({
           id: a.ID,
           name: a.NAME,
@@ -492,7 +495,7 @@ export async function activityRoutes(app: FastifyInstance) {
       startDate, location, visibility, ownerId,
       attendeeIds, tagIds, contactIds, spaceId,
       enrollmentEnabled, enrollmentMode, maxCapacity, enrollmentPrice, enrollmentDeadline,
-      publishStatus, publishDate,
+      publishStatus, publishDate, programText,
     } = request.body as {
       title?: string;
       description?: string;
@@ -514,6 +517,7 @@ export async function activityRoutes(app: FastifyInstance) {
       enrollmentDeadline?: string;
       publishStatus?: string;
       publishDate?: string;
+      programText?: string;
     };
 
     if (!title || title.trim().length === 0) {
@@ -551,7 +555,7 @@ export async function activityRoutes(app: FastifyInstance) {
                 max_capacity = :maxCapacity, enrollment_price = :enrollmentPrice,
                 enrollment_deadline = :enrollmentDeadline,
                 publish_status = :publishStatus, publish_date = :publishDate,
-                updated_at = SYSTIMESTAMP
+                program_text = :programText, updated_at = SYSTIMESTAMP
          WHERE id = :id`,
         {
           id,
@@ -571,6 +575,7 @@ export async function activityRoutes(app: FastifyInstance) {
           enrollmentDeadline: enrollmentDeadline ? new Date(enrollmentDeadline) : null,
           publishStatus: publishStatus || "PUBLISHED",
           publishDate: publishDate ? new Date(publishDate) : null,
+          programText: programText || null,
         }
       );
 

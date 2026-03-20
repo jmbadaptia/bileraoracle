@@ -68,7 +68,7 @@ export function InscripcionDetailPage() {
   }
 
   if (!activity) {
-    return <p className="text-muted-foreground">Inscripcion no encontrada</p>;
+    return <p className="text-muted-foreground">Curso no encontrado</p>;
   }
 
   const publicUrl = `${window.location.origin}/inscribirse/${activity.id}`;
@@ -226,18 +226,18 @@ export function InscripcionDetailPage() {
       {/* Enrollments table */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <CardTitle className="text-base flex items-center gap-2">
               <Users className="h-4 w-4" />
               Inscritos
             </CardTitle>
-            <div className="flex gap-1">
+            <div className="flex gap-1 overflow-x-auto no-scrollbar">
               {["active", "CONFIRMED", "WAITLISTED", "PENDING", "CANCELLED", "all"].map((f) => (
                 <button
                   key={f}
                   onClick={() => setStatusFilter(f)}
                   className={cn(
-                    "text-xs px-2.5 py-1 rounded-md transition-colors",
+                    "text-xs px-2 py-1 rounded-md transition-colors whitespace-nowrap shrink-0",
                     statusFilter === f ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground"
                   )}
                 >

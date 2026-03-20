@@ -14,8 +14,8 @@ export function InscripcionesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Inscripciones</h1>
-          <p className="text-muted-foreground">Cursos, talleres y actividades con inscripción</p>
+          <h1 className="text-2xl font-bold tracking-tight">Cursos y Talleres</h1>
+          <p className="text-muted-foreground">Actividades con inscripcion publica</p>
         </div>
         <Link to="/inscripciones/nueva">
           <Button>
@@ -41,12 +41,12 @@ export function InscripcionesPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-center py-8 text-muted-foreground">
-              <p>No hay inscripciones creadas</p>
+              <p>No hay cursos creados</p>
               <p className="text-sm mt-1">Crea un curso o taller para que la gente pueda inscribirse</p>
               <Link to="/inscripciones/nueva">
                 <Button variant="outline" className="mt-4">
                   <Plus className="h-4 w-4 mr-2" />
-                  Crear primera inscripción
+                  Crear primer curso
                 </Button>
               </Link>
             </div>

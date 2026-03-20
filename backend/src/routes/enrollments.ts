@@ -1,5 +1,7 @@
 import { FastifyInstance } from "fastify";
 import crypto from "crypto";
+import { readFile, existsSync } from "fs";
+import { readFile as readFileAsync } from "fs/promises";
 import oracledb from "oracledb";
 import { withTenant, withConnection } from "../lib/db.js";
 import { requireAuth } from "../middleware/auth.js";
@@ -15,7 +17,7 @@ export async function enrollmentRoutes(app: FastifyInstance) {
         `SELECT a.id, a.title, a.description, a.start_date, a.location, a.type,
                 a.enrollment_enabled, a.enrollment_mode, a.max_capacity,
                 a.enrollment_price, a.enrollment_deadline,
-                a.publish_status, a.publish_date, t.name AS tenant_name
+                a.publish_status, a.publish_date, a.program_text, t.name AS tenant_name
          FROM activities a
          JOIN tenants t ON t.id = a.tenant_id
          WHERE a.id = :id`,
@@ -48,6 +50,25 @@ export async function enrollmentRoutes(app: FastifyInstance) {
       const isFull = activity.MAX_CAPACITY && spotsTaken >= activity.MAX_CAPACITY;
       const isOpen = !deadlinePassed && !(activity.ENROLLMENT_MODE === "FIFO" && isFull);
 
+      // Get linked documents with extracted text (for program display)
+      const docsResult = await conn.execute<any>(
+        `SELECT d.id, d.title, d.file_name, d.file_type, d.extracted_text, d.status
+         FROM document_activities da
+         JOIN documents d ON d.id = da.document_id
+         WHERE da.activity_id = :id AND d.status = 'READY'
+         ORDER BY d.created_at`,
+        { id: activityId },
+        { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      );
+
+      const documents = (docsResult.rows || []).map((d: any) => ({
+        id: d.ID,
+        title: d.TITLE,
+        fileName: d.FILE_NAME,
+        fileType: d.FILE_TYPE,
+        extractedText: d.EXTRACTED_TEXT,
+      }));
+
       return {
         id: activity.ID,
         title: activity.TITLE,
@@ -60,10 +81,45 @@ export async function enrollmentRoutes(app: FastifyInstance) {
         maxCapacity: activity.MAX_CAPACITY,
         enrollmentPrice: activity.ENROLLMENT_PRICE,
         enrollmentDeadline: activity.ENROLLMENT_DEADLINE,
+        programText: activity.PROGRAM_TEXT,
         spotsTaken,
         spotsAvailable: activity.MAX_CAPACITY ? activity.MAX_CAPACITY - spotsTaken : null,
         isOpen,
+        documents,
       };
+    });
+  });
+
+  // GET /api/enrollments/public/:activityId/documents/:docId — public document download
+  app.get("/api/enrollments/public/:activityId/documents/:docId", async (request, reply) => {
+    const { activityId, docId } = request.params as { activityId: string; docId: string };
+
+    return withConnection(async (conn) => {
+      // Verify the document belongs to this activity and activity has enrollment enabled
+      const result = await conn.execute<any>(
+        `SELECT d.file_path, d.file_name, d.file_type
+         FROM documents d
+         JOIN document_activities da ON da.document_id = d.id
+         JOIN activities a ON a.id = da.activity_id
+         WHERE d.id = :docId AND da.activity_id = :actId AND a.enrollment_enabled = 1`,
+        { docId, actId: activityId },
+        { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      );
+
+      const doc = result.rows?.[0];
+      if (!doc || !doc.FILE_PATH) {
+        return reply.code(404).send({ error: "Documento no encontrado" });
+      }
+
+      try {
+        const buffer = await readFileAsync(doc.FILE_PATH);
+        return reply
+          .type(doc.FILE_TYPE || "application/octet-stream")
+          .header("Content-Disposition", `inline; filename="${doc.FILE_NAME}"`)
+          .send(buffer);
+      } catch {
+        return reply.code(404).send({ error: "Archivo no encontrado" });
+      }
     });
   });
 
