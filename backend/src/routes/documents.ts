@@ -213,6 +213,8 @@ export async function documentRoutes(app: FastifyInstance) {
   app.delete("/api/documents/:id", { preHandler: [requireAdmin] }, async (request, reply) => {
     const { id } = request.params as { id: string };
 
+    const { force } = request.query as { force?: string };
+
     return withTenant(request.user.tenantId, request.user.id, async (conn) => {
       const result = await conn.execute<any>(
         `SELECT id, file_path FROM documents WHERE id = :id`,
@@ -222,6 +224,22 @@ export async function documentRoutes(app: FastifyInstance) {
 
       if (!result.rows?.length) {
         return reply.code(404).send({ error: "Documento no encontrado" });
+      }
+
+      // Check if linked to activities
+      if (force !== "1") {
+        const linkedResult = await conn.execute<any>(
+          `SELECT a.id, a.title FROM document_activities da JOIN activities a ON a.id = da.activity_id WHERE da.document_id = :id`,
+          { id },
+          { outFormat: oracledb.OUT_FORMAT_OBJECT }
+        );
+        if (linkedResult.rows?.length) {
+          const names = linkedResult.rows.map((r: any) => r.TITLE).join(", ");
+          return reply.code(409).send({
+            error: `Este documento está vinculado a: ${names}. ¿Seguro que quieres eliminarlo?`,
+            linkedActivities: linkedResult.rows.map((r: any) => ({ id: r.ID, title: r.TITLE })),
+          });
+        }
       }
 
       const filePath = result.rows[0].FILE_PATH;

@@ -112,14 +112,25 @@ export function DocumentoDetailPage() {
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
                   <AlertDialogAction
                     className="bg-destructive text-white hover:bg-destructive/90"
-                    onClick={() => {
-                      deleteDocument.mutate(document.id, {
-                        onSuccess: () => {
-                          toast.success("Documento eliminado");
-                          navigate("/documentos");
-                        },
-                        onError: () => toast.error("Error al eliminar"),
-                      });
+                    onClick={async () => {
+                      try {
+                        await deleteDocument.mutateAsync(document.id);
+                        toast.success("Documento eliminado");
+                        navigate("/documentos");
+                      } catch (err: any) {
+                        const msg = err?.message || "";
+                        if (msg.includes("vinculado")) {
+                          if (confirm(`${msg}\n\n¿Eliminar de todas formas?`)) {
+                            try {
+                              await api.delete(`/documents/${document.id}?force=1`);
+                              toast.success("Documento eliminado");
+                              navigate("/documentos");
+                            } catch { toast.error("Error al eliminar"); }
+                          }
+                        } else {
+                          toast.error("Error al eliminar");
+                        }
+                      }
                     }}
                   >
                     Eliminar

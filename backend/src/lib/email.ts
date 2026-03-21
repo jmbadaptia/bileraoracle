@@ -48,16 +48,25 @@ ${content}
 export async function sendWelcomeEmail(to: string, name: string, orgName: string, token: string): Promise<void> {
   const link = `${getAppUrl()}/verificar?token=${token}`;
   const html = baseHtml(`
-    <h2 style="margin:0 0 8px;font-size:22px;color:#18181b">¡Bienvenido/a a Bilera, ${name}!</h2>
-    <p style="margin:0 0 24px;font-size:15px;color:#52525b;line-height:1.6">
-      Tu organización <strong>${orgName}</strong> ha sido creada correctamente. Solo falta un paso: activa tu cuenta y establece tu contraseña para empezar a usarla.
+    <p style="margin:0 0 16px;font-size:15px;color:#52525b;line-height:1.6;text-align:left">
+      Hola <strong>${name}</strong>,
     </p>
-    <a href="${link}" style="display:inline-block;background:#e11d48;color:#fff;text-decoration:none;padding:12px 32px;border-radius:8px;font-size:15px;font-weight:600">
-      Activar mi cuenta
-    </a>
-    <p style="margin:24px 0 0;font-size:13px;color:#a1a1aa;line-height:1.5">
-      Este enlace es válido durante 7 días.<br/>
-      Si no puedes hacer clic, copia esta URL en tu navegador:<br/>
+    <p style="margin:0 0 16px;font-size:15px;color:#52525b;line-height:1.6;text-align:left">
+      ¡Enhorabuena! Tu organización <strong>${orgName}</strong> ha sido creada en Bilera. Solo queda un paso: activar tu cuenta y elegir una contraseña.
+    </p>
+    <p style="margin:0 0 24px;text-align:left">
+      <a href="${link}" style="display:inline-block;background:#e11d48;color:#fff;text-decoration:none;padding:12px 32px;border-radius:10px;font-size:15px;font-weight:600">
+        Activar mi cuenta
+      </a>
+    </p>
+    <p style="margin:0 0 16px;font-size:15px;color:#52525b;line-height:1.6;text-align:left">
+      Una vez activada, podrás empezar a gestionar eventos, cursos, documentos y mucho más. Estamos encantados de tenerte.
+    </p>
+    <p style="margin:0 0 0;font-size:15px;color:#52525b;text-align:left">
+      ¡Bienvenido/a! 👋
+    </p>
+    <p style="margin:16px 0 0;font-size:11px;color:#a1a1aa;text-align:left;border-top:1px solid #e4e4e7;padding-top:12px">
+      Este enlace es válido durante 7 días. Si no puedes hacer clic, copia esta URL:<br/>
       <span style="color:#52525b;word-break:break-all">${link}</span>
     </p>
   `);
@@ -65,7 +74,7 @@ export async function sendWelcomeEmail(to: string, name: string, orgName: string
   await getTransporter().sendMail({
     from: getFrom(),
     to,
-    subject: `Tu organización ${orgName} está lista — activa tu cuenta`,
+    subject: `¡${orgName} está lista! Activa tu cuenta`,
     html,
   });
 }
@@ -73,16 +82,25 @@ export async function sendWelcomeEmail(to: string, name: string, orgName: string
 export async function sendInviteEmail(to: string, name: string, token: string): Promise<void> {
   const link = `${getAppUrl()}/verificar?token=${token}`;
   const html = baseHtml(`
-    <h2 style="margin:0 0 8px;font-size:22px;color:#18181b">¡Bienvenido/a, ${name}!</h2>
-    <p style="margin:0 0 24px;font-size:15px;color:#52525b;line-height:1.6">
-      Has sido invitado/a a unirte a Bilera. Haz clic en el siguiente enlace para activar tu cuenta y establecer tu contraseña.
+    <p style="margin:0 0 16px;font-size:15px;color:#52525b;line-height:1.6;text-align:left">
+      Hola <strong>${name}</strong>,
     </p>
-    <a href="${link}" style="display:inline-block;background:#e11d48;color:#fff;text-decoration:none;padding:12px 32px;border-radius:8px;font-size:15px;font-weight:600">
-      Activar cuenta
-    </a>
-    <p style="margin:24px 0 0;font-size:13px;color:#a1a1aa;line-height:1.5">
-      Este enlace es válido durante 7 días.<br/>
-      Si no puedes hacer clic, copia esta URL en tu navegador:<br/>
+    <p style="margin:0 0 16px;font-size:15px;color:#52525b;line-height:1.6;text-align:left">
+      Te han invitado a formar parte del equipo en Bilera. Para unirte, solo tienes que activar tu cuenta y elegir una contraseña.
+    </p>
+    <p style="margin:0 0 24px;text-align:left">
+      <a href="${link}" style="display:inline-block;background:#e11d48;color:#fff;text-decoration:none;padding:12px 32px;border-radius:10px;font-size:15px;font-weight:600">
+        Unirme al equipo
+      </a>
+    </p>
+    <p style="margin:0 0 0;font-size:15px;color:#52525b;line-height:1.6;text-align:left">
+      Una vez dentro, podrás colaborar con el resto del equipo, consultar documentos, inscribirte en cursos y mucho más.
+    </p>
+    <p style="margin:16px 0 0;font-size:15px;color:#52525b;text-align:left">
+      ¡Te esperamos! 🙌
+    </p>
+    <p style="margin:16px 0 0;font-size:11px;color:#a1a1aa;text-align:left;border-top:1px solid #e4e4e7;padding-top:12px">
+      Este enlace es válido durante 7 días. Si no puedes hacer clic, copia esta URL:<br/>
       <span style="color:#52525b;word-break:break-all">${link}</span>
     </p>
   `);
@@ -90,7 +108,7 @@ export async function sendInviteEmail(to: string, name: string, token: string): 
   await getTransporter().sendMail({
     from: getFrom(),
     to,
-    subject: "Activa tu cuenta en Bilera",
+    subject: "Te han invitado a Bilera — activa tu cuenta",
     html,
   });
 }
@@ -98,16 +116,22 @@ export async function sendInviteEmail(to: string, name: string, token: string): 
 export async function sendResetEmail(to: string, name: string, token: string): Promise<void> {
   const link = `${getAppUrl()}/recuperar?token=${token}`;
   const html = baseHtml(`
-    <h2 style="margin:0 0 8px;font-size:22px;color:#18181b">Hola, ${name}</h2>
-    <p style="margin:0 0 24px;font-size:15px;color:#52525b;line-height:1.6">
-      Hemos recibido una solicitud para restablecer tu contraseña. Haz clic en el siguiente enlace para elegir una nueva.
+    <p style="margin:0 0 16px;font-size:15px;color:#52525b;line-height:1.6;text-align:left">
+      Hola <strong>${name}</strong>,
     </p>
-    <a href="${link}" style="display:inline-block;background:#e11d48;color:#fff;text-decoration:none;padding:12px 32px;border-radius:8px;font-size:15px;font-weight:600">
-      Restablecer contraseña
-    </a>
-    <p style="margin:24px 0 0;font-size:13px;color:#a1a1aa;line-height:1.5">
-      Este enlace es válido durante 15 minutos.<br/>
-      Si no solicitaste este cambio, puedes ignorar este mensaje.<br/>
+    <p style="margin:0 0 16px;font-size:15px;color:#52525b;line-height:1.6;text-align:left">
+      Hemos recibido una solicitud para cambiar tu contraseña. Si fuiste tú, haz clic en el botón para elegir una nueva:
+    </p>
+    <p style="margin:0 0 24px;text-align:left">
+      <a href="${link}" style="display:inline-block;background:#e11d48;color:#fff;text-decoration:none;padding:12px 32px;border-radius:10px;font-size:15px;font-weight:600">
+        Cambiar contraseña
+      </a>
+    </p>
+    <p style="margin:0 0 0;font-size:14px;color:#52525b;line-height:1.6;text-align:left">
+      Si no has sido tú, no te preocupes — puedes ignorar este email y tu contraseña seguirá siendo la misma.
+    </p>
+    <p style="margin:16px 0 0;font-size:11px;color:#a1a1aa;text-align:left;border-top:1px solid #e4e4e7;padding-top:12px">
+      Este enlace caduca en 15 minutos. Si no puedes hacer clic, copia esta URL:<br/>
       <span style="color:#52525b;word-break:break-all">${link}</span>
     </p>
   `);
@@ -115,45 +139,88 @@ export async function sendResetEmail(to: string, name: string, token: string): P
   await getTransporter().sendMail({
     from: getFrom(),
     to,
-    subject: "Restablece tu contraseña en Bilera",
+    subject: "Cambiar contraseña — Bilera",
     html,
   });
 }
 
-const STATUS_LABELS: Record<string, { label: string; desc: string }> = {
-  CONFIRMED: { label: "Confirmada", desc: "Tienes plaza confirmada." },
-  PENDING: { label: "Pendiente de sorteo", desc: "Tu inscripción ha sido registrada. Se realizará un sorteo para asignar las plazas." },
-  WAITLISTED: { label: "Lista de espera", desc: "Las plazas están completas. Estás en lista de espera y te avisaremos si se libera alguna plaza." },
-};
+interface EnrollmentDetails {
+  startDate?: string | Date | null;
+  location?: string | null;
+  price?: number | null;
+  tenantName?: string | null;
+}
+
+function formatDate(d: string | Date | null | undefined): string {
+  if (!d) return "";
+  const date = typeof d === "string" ? new Date(d) : d;
+  return date.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+}
+
+function formatTime(d: string | Date | null | undefined): string {
+  if (!d) return "";
+  const date = typeof d === "string" ? new Date(d) : d;
+  return date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+}
 
 export async function sendEnrollmentEmail(
   to: string, name: string, activityTitle: string,
-  status: string, activityId: string, cancelToken: string
+  status: string, activityId: string, cancelToken: string,
+  details?: EnrollmentDetails
 ): Promise<void> {
   const cancelLink = `${getAppUrl()}/inscribirse/${activityId}?cancel=${cancelToken}`;
-  const info = STATUS_LABELS[status] || { label: status, desc: "" };
+  const tenantName = details?.tenantName || "la organización";
+
+  const statusText = status === "CONFIRMED"
+    ? "Tienes plaza asegurada."
+    : status === "PENDING"
+    ? "Tu inscripción queda registrada. Se realizará un sorteo para asignar las plazas y te notificaremos el resultado."
+    : "Las plazas están completas. Estás en lista de espera y te avisaremos si se libera alguna plaza.";
+
+  const detailLines: string[] = [];
+  if (details?.startDate) detailLines.push(`📅 ${formatDate(details.startDate)}`);
+  if (details?.startDate) detailLines.push(`🕐 ${formatTime(details.startDate)}`);
+  if (details?.location) detailLines.push(`📍 ${details.location}`);
+  detailLines.push(`💰 ${details?.price && details.price > 0 ? `${details.price.toFixed(2)}€` : "Gratuito"}`);
+
+  const detailsHtml = detailLines.map(l =>
+    `<div style="font-size:14px;color:#52525b;line-height:2">${l}</div>`
+  ).join("");
 
   const html = baseHtml(`
-    <h2 style="margin:0 0 8px;font-size:22px;color:#18181b">Inscripción registrada</h2>
-    <p style="margin:0 0 8px;font-size:15px;color:#52525b;line-height:1.6">
-      Hola <strong>${name}</strong>, tu inscripción a <strong>${activityTitle}</strong> ha sido registrada.
+    <p style="margin:0 0 16px;font-size:15px;color:#52525b;line-height:1.6;text-align:left">
+      Hola <strong>${name}</strong>,
     </p>
-    <p style="margin:0 0 24px;font-size:15px;line-height:1.6">
-      <span style="display:inline-block;background:#f0fdf4;color:#166534;padding:4px 12px;border-radius:6px;font-weight:600">
-        Estado: ${info.label}
-      </span>
+    <p style="margin:0 0 16px;font-size:15px;color:#52525b;line-height:1.6;text-align:left">
+      Te confirmamos que tu inscripción al curso <strong>${activityTitle}</strong> se ha registrado correctamente. ${statusText}
     </p>
-    <p style="margin:0 0 24px;font-size:14px;color:#52525b;line-height:1.6">${info.desc}</p>
-    <p style="margin:0 0 8px;font-size:13px;color:#a1a1aa;line-height:1.5">
-      Si necesitas cancelar tu inscripción:<br/>
-      <a href="${cancelLink}" style="color:#e11d48">Cancelar inscripción</a>
+    <div style="background:#f4f4f5;border-radius:12px;padding:16px 20px;margin:0 0 20px;text-align:left">
+      <div style="font-size:13px;font-weight:600;color:#18181b;margin-bottom:8px">Detalles del curso:</div>
+      ${detailsHtml}
+    </div>
+    <p style="margin:0 0 16px;font-size:14px;color:#52525b;line-height:1.6;text-align:left">
+      Si no pudieras asistir, te agradeceríamos que canceles tu plaza para que podamos ofrecerla a otra persona:
+    </p>
+    <p style="margin:0 0 24px;text-align:left">
+      <a href="${cancelLink}" style="color:#e11d48;font-size:14px;font-weight:600">👉 Cancelar inscripción</a>
+    </p>
+    <p style="margin:0 0 8px;font-size:15px;color:#52525b;text-align:left">
+      Gracias por apuntarte. ¡Nos vemos!
+    </p>
+    <p style="margin:0;font-size:15px;font-weight:600;color:#18181b;text-align:left">
+      ${tenantName}
+    </p>
+    <p style="margin:16px 0 0;font-size:11px;color:#a1a1aa;text-align:left;border-top:1px solid #e4e4e7;padding-top:12px">
+      Email enviado automáticamente desde Bilera en nombre de ${tenantName}.
     </p>
   `);
+
+  const subjectStatus = status === "CONFIRMED" ? "Plaza confirmada" : status === "PENDING" ? "Pendiente de sorteo" : "Lista de espera";
 
   await getTransporter().sendMail({
     from: getFrom(),
     to,
-    subject: `Inscripción: ${activityTitle} — ${info.label}`,
+    subject: `${activityTitle} — ${subjectStatus}`,
     html,
   });
 }
@@ -163,14 +230,13 @@ export async function sendEnrollmentResultEmail(
 ): Promise<void> {
   const isConfirmed = status === "CONFIRMED";
   const html = baseHtml(`
-    <h2 style="margin:0 0 8px;font-size:22px;color:#18181b">
-      ${isConfirmed ? "¡Tienes plaza!" : "Lista de espera"}
-    </h2>
-    <p style="margin:0 0 24px;font-size:15px;color:#52525b;line-height:1.6">
+    <p style="margin:0 0 16px;font-size:15px;color:#52525b;line-height:1.6;text-align:left">
       Hola <strong>${name}</strong>,
+    </p>
+    <p style="margin:0 0 16px;font-size:15px;color:#52525b;line-height:1.6;text-align:left">
       ${isConfirmed
-        ? `tu plaza para <strong>${activityTitle}</strong> ha sido confirmada.`
-        : `lamentablemente no has obtenido plaza en <strong>${activityTitle}</strong>. Estás en lista de espera y te avisaremos si se libera alguna plaza.`
+        ? `¡Enhorabuena! Tu plaza para <strong>${activityTitle}</strong> ha sido confirmada. ¡Nos vemos!`
+        : `Lamentablemente no has obtenido plaza en <strong>${activityTitle}</strong>. Estás en lista de espera y te avisaremos si se libera alguna plaza.`
       }
     </p>
   `);
@@ -178,7 +244,7 @@ export async function sendEnrollmentResultEmail(
   await getTransporter().sendMail({
     from: getFrom(),
     to,
-    subject: `${activityTitle} — ${isConfirmed ? "Plaza confirmada" : "Lista de espera"}`,
+    subject: `${activityTitle} — ${isConfirmed ? "¡Plaza confirmada!" : "Lista de espera"}`,
     html,
   });
 }

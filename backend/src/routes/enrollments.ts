@@ -222,9 +222,11 @@ export async function enrollmentRoutes(app: FastifyInstance) {
     return withConnection(async (conn) => {
       // Lock activity row to prevent race conditions
       const actResult = await conn.execute<any>(
-        `SELECT id, tenant_id, enrollment_enabled, enrollment_mode, max_capacity,
-                enrollment_deadline, title
-         FROM activities WHERE id = :id FOR UPDATE`,
+        `SELECT a.id, a.tenant_id, a.enrollment_enabled, a.enrollment_mode, a.max_capacity,
+                a.enrollment_deadline, a.title, a.start_date, a.location, a.enrollment_price,
+                t.name AS tenant_name
+         FROM activities a JOIN tenants t ON t.id = a.tenant_id
+         WHERE a.id = :id FOR UPDATE OF a.id`,
         { id: activityId },
         { outFormat: oracledb.OUT_FORMAT_OBJECT }
       );
@@ -310,7 +312,13 @@ export async function enrollmentRoutes(app: FastifyInstance) {
           activity.TITLE,
           status,
           activityId,
-          cancelToken
+          cancelToken,
+          {
+            startDate: activity.START_DATE,
+            location: activity.LOCATION,
+            price: activity.ENROLLMENT_PRICE,
+            tenantName: activity.TENANT_NAME,
+          }
         );
       } catch (err) {
         console.error("Error sending enrollment email:", err);
