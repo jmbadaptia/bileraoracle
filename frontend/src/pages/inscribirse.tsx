@@ -7,7 +7,7 @@ import {
   CalendarDays, MapPin, Users, CheckCircle, Clock, AlertCircle,
   Loader2, Euro, Shuffle, Timer, Mail, Phone, User, FileText,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatScheduleSummary } from "@/lib/utils";
 
 const API_BASE =
   import.meta.env.VITE_API_URL ||
@@ -179,13 +179,22 @@ export function InscribirsePage() {
 
         {/* ── 2. Summary badges ── */}
         <div className="bg-white border-b border-[#E8E6E1] px-8 py-4 flex flex-wrap gap-2">
-          {activity.startDate && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200/50">
-              <CalendarDays className="h-3 w-3" />
-              {new Date(activity.startDate).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })}
-              {` · ${new Date(activity.startDate).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}h`}
-            </span>
-          )}
+          {(() => {
+            const summary = formatScheduleSummary(activity.sessions || []);
+            if (summary) return (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200/50">
+                <CalendarDays className="h-3 w-3" />{summary}
+              </span>
+            );
+            if (activity.startDate) return (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200/50">
+                <CalendarDays className="h-3 w-3" />
+                {new Date(activity.startDate).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })}
+                {` · ${new Date(activity.startDate).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}h`}
+              </span>
+            );
+            return null;
+          })()}
           {activity.location && (
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-violet-50 text-violet-700 border border-violet-200/50">
               <MapPin className="h-3 w-3" />{activity.location}

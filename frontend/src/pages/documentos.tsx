@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router";
-import { Plus, FileText, Search, X } from "lucide-react";
+import { Plus, FileText, Search, X, LayoutGrid, List } from "lucide-react";
 import { useDocuments } from "@/api/hooks";
 import { formatDate } from "@/lib/utils";
 import { DOCUMENT_STATUS_LABELS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -17,15 +18,35 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+type StatusFilter = "all" | "READY" | "PROCESSING" | "PENDING" | "ERROR";
+type ViewMode = "grid" | "list";
+
 function formatFileSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function getStatusVariant(status: string) {
+  if (status === "READY") return "default" as const;
+  if (status === "ERROR") return "destructive" as const;
+  if (status === "PROCESSING") return "warning" as const;
+  return "secondary" as const;
+}
+
+const FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
+  { value: "all", label: "Todos" },
+  { value: "READY", label: "Listo" },
+  { value: "PROCESSING", label: "Procesando" },
+  { value: "PENDING", label: "Pendiente" },
+  { value: "ERROR", label: "Error" },
+];
+
 export function DocumentosPage() {
   const [searchInput, setSearchInput] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(searchInput.trim()), 300);
@@ -37,7 +58,11 @@ export function DocumentosPage() {
   );
 
   const documents = data?.documents || [];
-  const total = data?.total || 0;
+
+  const filtered = useMemo(() => {
+    if (statusFilter === "all") return documents;
+    return documents.filter((d: any) => d.status === statusFilter);
+  }, [documents, statusFilter]);
 
   return (
     <div className="space-y-4">
@@ -45,9 +70,7 @@ export function DocumentosPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Documentos</h1>
-          <p className="text-sm text-muted-foreground">
-            {isLoading ? "Cargando..." : `${total} documentos en el sistema`}
-          </p>
+          <p className="text-muted-foreground">Gestiona y consulta los documentos de tu organización</p>
         </div>
         <Link to="/documentos/subir">
           <Button>
@@ -57,15 +80,15 @@ export function DocumentosPage() {
         </Link>
       </div>
 
-      {/* Filter bar */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-[200px] max-w-md">
+      {/* Search + Filters + View Toggle */}
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+        <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por palabras clave..."
+            placeholder="Buscar documentos..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="pl-9 pr-9 h-9"
+            className="pl-9 pr-9"
           />
           {searchInput && (
             <button
@@ -76,20 +99,54 @@ export function DocumentosPage() {
             </button>
           )}
         </div>
+        <div className="flex items-center gap-1 rounded-lg border p-1">
+          {FILTER_OPTIONS.map((f) => (
+            <button
+              key={f.value}
+              onClick={() => setStatusFilter(f.value)}
+              className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                statusFilter === f.value
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-1 rounded-lg border p-1">
+          <button
+            onClick={() => setViewMode("grid")}
+            className={`p-1.5 rounded-md transition-colors ${
+              viewMode === "grid" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
+            }`}
+            title="Vista cuadrícula"
+          >
+            <LayoutGrid className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setViewMode("list")}
+            className={`p-1.5 rounded-md transition-colors ${
+              viewMode === "list" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
+            }`}
+            title="Vista lista"
+          >
+            <List className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
-      {/* Results */}
+      {/* Content */}
       {isLoading ? (
-        <div className="rounded-lg border divide-y">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-4 px-4 py-3">
-              <Skeleton className="h-5 w-5 rounded shrink-0" />
-              <div className="flex-1 space-y-1.5">
-                <Skeleton className="h-4 w-48" />
-                <Skeleton className="h-3 w-64" />
-              </div>
-              <Skeleton className="h-5 w-14 rounded-full" />
-            </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i}>
+              <CardContent className="pt-6 space-y-3">
+                <Skeleton className="h-5 w-48" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-32" />
+              </CardContent>
+            </Card>
           ))}
         </div>
       ) : documents.length === 0 ? (
@@ -111,79 +168,97 @@ export function DocumentosPage() {
             </>
           )}
         </div>
-      ) : (
-        <>
-        {/* Desktop table */}
-        <div className="hidden md:block rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Documento</TableHead>
-                <TableHead>Subido por</TableHead>
-                <TableHead>Fecha</TableHead>
-                <TableHead>Tamaño</TableHead>
-                <TableHead>Estado</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {documents.map((doc: any) => (
-                <TableRow key={doc.id} className="group">
-                  <TableCell>
-                    <Link to={`/documentos/${doc.id}`} className="flex items-center gap-2 min-w-0">
-                      <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <div className="min-w-0">
-                        <span className="text-sm font-medium group-hover:text-primary transition-colors block truncate">
-                          {doc.title}
-                        </span>
-                        <span className="text-xs text-muted-foreground truncate block">{doc.fileName}</span>
-                      </div>
-                    </Link>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{doc.uploaderName}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{formatDate(doc.createdAt)}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{formatFileSize(doc.fileSize)}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={doc.status === "READY" ? "default" : doc.status === "ERROR" ? "destructive" : "secondary"}
-                      className="text-[11px]"
-                    >
-                      {DOCUMENT_STATUS_LABELS[doc.status]}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">
+          <p>No se encontraron documentos con estos filtros</p>
         </div>
-
-        {/* Mobile list */}
-        <div className="md:hidden rounded-lg border divide-y">
-          {documents.map((doc: any) => (
-            <Link
-              key={doc.id}
-              to={`/documentos/${doc.id}`}
-              className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors group"
-            >
-              <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
-              <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-medium truncate group-hover:text-primary transition-colors">
-                  {doc.title}
-                </h3>
-                <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                  {doc.uploaderName} · {formatDate(doc.createdAt)} · {formatFileSize(doc.fileSize)}
-                </p>
-              </div>
-              <Badge
-                variant={doc.status === "READY" ? "default" : doc.status === "ERROR" ? "destructive" : "secondary"}
-                className="text-[11px] shrink-0"
-              >
-                {DOCUMENT_STATUS_LABELS[doc.status]}
-              </Badge>
-            </Link>
+      ) : viewMode === "grid" ? (
+        <div className="grid gap-4 md:grid-cols-2">
+          {filtered.map((doc: any) => (
+            <DocumentCard key={doc.id} doc={doc} />
           ))}
         </div>
+      ) : (
+        <>
+          {/* Desktop table */}
+          <div className="hidden md:block rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Documento</TableHead>
+                  <TableHead>Subido por</TableHead>
+                  <TableHead>Fecha</TableHead>
+                  <TableHead>Tamaño</TableHead>
+                  <TableHead>Estado</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((doc: any) => (
+                  <TableRow key={doc.id} className="group">
+                    <TableCell>
+                      <Link to={`/documentos/${doc.id}`} className="flex items-center gap-2 min-w-0">
+                        <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <div className="min-w-0">
+                          <span className="text-sm font-medium group-hover:text-primary transition-colors block truncate">
+                            {doc.title}
+                          </span>
+                          <span className="text-xs text-muted-foreground truncate block">{doc.fileName}</span>
+                        </div>
+                      </Link>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{doc.uploaderName}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{formatDate(doc.createdAt)}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{formatFileSize(doc.fileSize)}</TableCell>
+                    <TableCell>
+                      <Badge variant={getStatusVariant(doc.status)} className="text-[11px]">
+                        {DOCUMENT_STATUS_LABELS[doc.status]}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile list */}
+          <div className="md:hidden space-y-2">
+            {filtered.map((doc: any) => (
+              <DocumentCard key={doc.id} doc={doc} />
+            ))}
+          </div>
         </>
       )}
     </div>
+  );
+}
+
+function DocumentCard({ doc }: { doc: any }) {
+  return (
+    <Link to={`/documentos/${doc.id}`}>
+      <Card className="hover:border-primary/30 transition-colors cursor-pointer h-full">
+        <CardContent className="pt-5 pb-4 space-y-2">
+          {/* Title + Badge */}
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+              <h3 className="font-semibold text-sm truncate">{doc.title}</h3>
+            </div>
+            <Badge variant={getStatusVariant(doc.status)} className="text-xs shrink-0">
+              {DOCUMENT_STATUS_LABELS[doc.status]}
+            </Badge>
+          </div>
+
+          {/* File name */}
+          <p className="text-xs text-muted-foreground truncate">{doc.fileName}</p>
+
+          {/* Meta: uploader, date, size */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+            {doc.uploaderName && <span>{doc.uploaderName}</span>}
+            <span>{formatDate(doc.createdAt)}</span>
+            <span>{formatFileSize(doc.fileSize)}</span>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }

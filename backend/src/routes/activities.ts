@@ -136,6 +136,14 @@ export async function activityRoutes(app: FastifyInstance) {
           { outFormat: oracledb.OUT_FORMAT_OBJECT }
         );
 
+        // Get sessions
+        const sessResult = await conn.execute<any>(
+          `SELECT session_num, session_date, time_start, time_end, title
+           FROM course_sessions WHERE activity_id = :actId ORDER BY session_num`,
+          { actId: row.ID },
+          { outFormat: oracledb.OUT_FORMAT_OBJECT }
+        );
+
         activities.push({
           id: row.ID,
           title: row.TITLE,
@@ -167,6 +175,12 @@ export async function activityRoutes(app: FastifyInstance) {
             id: t.ID,
             name: t.NAME,
             color: t.COLOR,
+          })),
+          sessions: (sessResult.rows || []).map((s: any) => ({
+            sessionDate: s.SESSION_DATE,
+            timeStart: s.TIME_START,
+            timeEnd: s.TIME_END,
+            title: s.TITLE,
           })),
         });
       }

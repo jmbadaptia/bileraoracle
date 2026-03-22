@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router";
 import { toast } from "sonner";
 import {
   MapPin, Upload, FileText, X, Plus, ChevronLeft, ChevronRight, Check,
-  ImageIcon, CalendarDays, Clock, Euro, Users, Shuffle, Monitor, Eye,
+  ImageIcon, CalendarDays, Clock, Euro, Users, Monitor, Eye,
 } from "lucide-react";
 import {
   useActivity, useCreateActivity, useUpdateActivity, useSpaces,
@@ -122,13 +122,6 @@ export function InscripcionFormPage() {
   }
 
   if (isEdit && loadingActivity) return <div className="p-8 text-muted-foreground">Cargando...</div>;
-
-  function addSession() {
-    const last = sessions[sessions.length - 1];
-    const ns: Session = { sessionDate: "", timeStart: last?.timeStart || "18:00", timeEnd: last?.timeEnd || "21:00", title: "", content: "" };
-    if (last?.sessionDate) { const d = new Date(last.sessionDate); d.setDate(d.getDate() + 7); ns.sessionDate = d.toISOString().slice(0, 10); }
-    setSessions([...sessions, ns]);
-  }
 
   function updateSession(idx: number, field: keyof Session, value: string) {
     setSessions(prev => prev.map((s, i) => i === idx ? { ...s, [field]: value } : s));
@@ -327,43 +320,11 @@ export function InscripcionFormPage() {
 
             {/* Step 1: Sesiones */}
             {step === 1 && (
-              <div className="space-y-5">
-                <Card>
-                  <CardContent className="pt-4 space-y-3">
-                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">📅 Sesiones</h3>
-                    {sessions.map((s, i) => (
-                      <div key={i} className="rounded-xl border p-4 bg-muted/20 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="h-7 w-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-xs font-bold text-primary">{i + 1}</div>
-                            <span className="text-sm font-semibold">Sesion {i + 1}</span>
-                          </div>
-                          {sessions.length > 1 && (
-                            <button type="button" onClick={() => setSessions(sessions.filter((_, j) => j !== i))} className="text-muted-foreground hover:text-destructive">
-                              <X className="h-4 w-4" />
-                            </button>
-                          )}
-                        </div>
-                        <div className="grid grid-cols-3 gap-2">
-                          <div className="space-y-1"><Label className="text-xs">Fecha</Label><Input type="date" value={s.sessionDate} onChange={(e) => updateSession(i, "sessionDate", e.target.value)} /></div>
-                          <div className="space-y-1"><Label className="text-xs">Inicio</Label><Input type="time" value={s.timeStart} onChange={(e) => updateSession(i, "timeStart", e.target.value)} /></div>
-                          <div className="space-y-1"><Label className="text-xs">Fin</Label><Input type="time" value={s.timeEnd} onChange={(e) => updateSession(i, "timeEnd", e.target.value)} /></div>
-                        </div>
-                        <div className="space-y-1"><Label className="text-xs">Titulo</Label><Input value={s.title} onChange={(e) => updateSession(i, "title", e.target.value)} placeholder="Ej: Bases y fondos de la cocina vasca" /></div>
-                        <div className="space-y-1"><Label className="text-xs">Contenido</Label>
-                          <textarea value={s.content} onChange={(e) => updateSession(i, "content", e.target.value)} placeholder="Describe brevemente que se vera..."
-                            className="flex min-h-[40px] w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
-                        </div>
-                      </div>
-                    ))}
-                    <button type="button" onClick={addSession}
-                      className="w-full py-3 rounded-xl border-2 border-dashed border-muted-foreground/20 text-sm text-primary font-semibold hover:border-primary/40 transition-colors flex items-center justify-center gap-1.5">
-                      <Plus className="h-3.5 w-3.5" />Añadir sesion
-                    </button>
-                  </CardContent>
-                </Card>
-
-              </div>
+              <SessionScheduler
+                sessions={sessions}
+                setSessions={setSessions}
+                updateSession={updateSession}
+              />
             )}
 
             {/* Step 2: Resumen */}
@@ -510,7 +471,7 @@ export function InscripcionFormPage() {
                     </div>
                     <button type="button" onClick={() => setProgramDoc(null)} className="text-muted-foreground hover:text-destructive shrink-0 ml-1"><X className="h-3.5 w-3.5" /></button>
                   </div>
-                  <p className="text-[10px] text-emerald-600">Datos extraidos del documento</p>
+                  <p className="text-[10px] text-emerald-600">Campos rellenados automáticamente</p>
                 </div>
               ) : (
                 <div>
@@ -546,7 +507,7 @@ export function InscripcionFormPage() {
                               content: s.content || "",
                             })));
                           }
-                          toast.success("Datos extraidos del documento");
+                          toast.success("Campos rellenados automáticamente");
                         }
 
                         // 2. Also upload as program document
@@ -600,6 +561,296 @@ export function InscripcionFormPage() {
       {/* Instructor Dialog */}
       <InstructorDialog open={showInstructorDialog} onClose={() => setShowInstructorDialog(false)} members={members} contacts={contacts}
         onSelect={(type, id, name) => { setInstructor({ type, id, name }); setShowInstructorDialog(false); }} />
+    </div>
+  );
+}
+
+const WEEKDAYS = [
+  { value: 1, label: "Lun" },
+  { value: 2, label: "Mar" },
+  { value: 3, label: "Mié" },
+  { value: 4, label: "Jue" },
+  { value: 5, label: "Vie" },
+  { value: 6, label: "Sáb" },
+  { value: 0, label: "Dom" },
+];
+
+type Frequency = "once" | "weekly" | "monthly" | "custom";
+
+const FREQUENCY_OPTIONS: { value: Frequency; label: string }[] = [
+  { value: "once", label: "Una vez" },
+  { value: "weekly", label: "Semanal" },
+  { value: "monthly", label: "Mensual" },
+  { value: "custom", label: "Custom" },
+];
+
+function generateSessions(
+  frequency: Frequency,
+  selectedDays: number[],
+  timeStart: string,
+  timeEnd: string,
+  dateFrom: string,
+  dateTo: string,
+  monthDay: number,
+): Session[] {
+  if (frequency === "once") {
+    return dateFrom ? [{ sessionDate: dateFrom, timeStart, timeEnd, title: "", content: "" }] : [];
+  }
+
+  if (!dateFrom || !dateTo) return [];
+  const from = new Date(dateFrom + "T00:00:00");
+  const to = new Date(dateTo + "T00:00:00");
+  if (to <= from) return [];
+
+  const sessions: Session[] = [];
+
+  if (frequency === "weekly") {
+    if (!selectedDays.length) return [];
+    const current = new Date(from);
+    while (current <= to) {
+      if (selectedDays.includes(current.getDay())) {
+        sessions.push({ sessionDate: current.toISOString().slice(0, 10), timeStart, timeEnd, title: "", content: "" });
+      }
+      current.setDate(current.getDate() + 1);
+    }
+  }
+
+  if (frequency === "monthly") {
+    const current = new Date(from);
+    current.setDate(monthDay);
+    if (current < from) current.setMonth(current.getMonth() + 1);
+    while (current <= to) {
+      sessions.push({ sessionDate: current.toISOString().slice(0, 10), timeStart, timeEnd, title: "", content: "" });
+      current.setMonth(current.getMonth() + 1);
+    }
+  }
+
+  return sessions;
+}
+
+function SessionScheduler({ sessions, setSessions, updateSession }: {
+  sessions: Session[];
+  setSessions: (s: Session[]) => void;
+  updateSession: (idx: number, field: keyof Session, value: string) => void;
+}) {
+  const [frequency, setFrequency] = useState<Frequency>("weekly");
+  const [selectedDays, setSelectedDays] = useState<number[]>([]);
+  const [timeStart, setTimeStart] = useState("18:00");
+  const [timeEnd, setTimeEnd] = useState("19:00");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [monthDay, setMonthDay] = useState(1);
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+
+  // Auto-generate sessions when params change (for non-custom modes)
+  useEffect(() => {
+    if (frequency === "custom") return;
+    const generated = generateSessions(frequency, selectedDays, timeStart, timeEnd, dateFrom, dateTo, monthDay);
+    // Preserve titles/content from existing sessions with matching dates
+    const enriched = generated.map(g => {
+      const existing = sessions.find(s => s.sessionDate === g.sessionDate);
+      return existing ? { ...g, title: existing.title, content: existing.content } : g;
+    });
+    setSessions(enriched);
+  }, [frequency, selectedDays, timeStart, timeEnd, dateFrom, dateTo, monthDay]);
+
+  function toggleDay(day: number) {
+    setSelectedDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day].sort());
+  }
+
+  function removeSession(idx: number) {
+    setSessions(sessions.filter((_, i) => i !== idx));
+  }
+
+  function addManualSession() {
+    const last = sessions[sessions.length - 1];
+    const ns: Session = {
+      sessionDate: "",
+      timeStart: last?.timeStart || timeStart || "18:00",
+      timeEnd: last?.timeEnd || timeEnd || "19:00",
+      title: "",
+      content: "",
+    };
+    if (last?.sessionDate) {
+      const d = new Date(last.sessionDate + "T00:00:00");
+      d.setDate(d.getDate() + 7);
+      ns.sessionDate = d.toISOString().slice(0, 10);
+    }
+    setSessions([...sessions, ns]);
+    setEditingIdx(sessions.length);
+  }
+
+  const formatSessionDate = (dateStr: string) => {
+    if (!dateStr) return "Sin fecha";
+    return new Date(dateStr + "T00:00:00").toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" });
+  };
+
+  return (
+    <div className="space-y-5">
+      <Card>
+        <CardContent className="pt-4 space-y-4">
+          <h3 className="text-base font-semibold">¿Cuándo se imparte este curso?</h3>
+
+          {/* Frequency selector */}
+          <div className="flex items-center gap-1 rounded-lg border p-1 w-fit">
+            {FREQUENCY_OPTIONS.map(f => (
+              <button
+                key={f.value}
+                type="button"
+                onClick={() => setFrequency(f.value)}
+                className={cn(
+                  "px-3 py-1.5 text-sm rounded-md transition-colors font-medium",
+                  frequency === f.value
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Weekly: day selector */}
+          {frequency === "weekly" && (
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold">Días de la semana</Label>
+              <div className="flex gap-1.5">
+                {WEEKDAYS.map(d => (
+                  <button
+                    key={d.value}
+                    type="button"
+                    onClick={() => toggleDay(d.value)}
+                    className={cn(
+                      "flex-1 py-2 rounded-lg text-sm font-medium border transition-colors flex items-center justify-center gap-1.5",
+                      selectedDays.includes(d.value)
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-input text-muted-foreground hover:border-primary/30"
+                    )}
+                  >
+                    {selectedDays.includes(d.value) && <Check className="h-3 w-3" />}
+                    {d.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Monthly: day of month */}
+          {frequency === "monthly" && (
+            <div className="space-y-1.5 max-w-[200px]">
+              <Label className="text-xs font-semibold">Día del mes</Label>
+              <Input type="number" min={1} max={31} value={monthDay} onChange={(e) => setMonthDay(parseInt(e.target.value) || 1)} />
+            </div>
+          )}
+
+          {/* Time + Period row */}
+          {frequency !== "custom" && (
+            <div className={cn("grid gap-3", frequency === "once" ? "grid-cols-3" : "grid-cols-[1fr_1fr_1fr_1fr]")}>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Hora inicio</Label>
+                <Input type="time" value={timeStart} onChange={(e) => setTimeStart(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Hora fin</Label>
+                <Input type="time" value={timeEnd} onChange={(e) => setTimeEnd(e.target.value)} />
+              </div>
+              {frequency === "once" ? (
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Fecha</Label>
+                  <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Desde</Label>
+                    <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Hasta</Label>
+                    <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Generated sessions list */}
+      {(sessions.length > 0 || frequency === "custom") && (
+        <Card>
+          <CardContent className="pt-4 space-y-3">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Sesiones generadas
+            </h3>
+
+            {sessions.length > 0 ? (
+              <div className="rounded-lg border divide-y">
+                {sessions.map((s, i) => (
+                  <div key={i}>
+                    {/* Compact row */}
+                    <div className="flex items-center gap-3 px-3 py-2.5">
+                      <span className="text-sm font-medium w-28 shrink-0">{formatSessionDate(s.sessionDate)}</span>
+                      <span className="text-sm text-muted-foreground">{s.timeStart} – {s.timeEnd}</span>
+                      {s.title && <span className="text-sm text-muted-foreground truncate hidden sm:block">· {s.title}</span>}
+                      <div className="ml-auto flex items-center gap-1 shrink-0">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={() => setEditingIdx(editingIdx === i ? null : i)}
+                        >
+                          {editingIdx === i ? "Cerrar" : "Editar"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs text-destructive hover:text-destructive"
+                          onClick={() => { removeSession(i); if (editingIdx === i) setEditingIdx(null); }}
+                        >
+                          Eliminar
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Expanded edit */}
+                    {editingIdx === i && (
+                      <div className="px-3 pb-3 space-y-2 border-t bg-muted/30">
+                        <div className="grid grid-cols-3 gap-2 pt-2">
+                          <div className="space-y-1"><Label className="text-xs">Fecha</Label><Input type="date" value={s.sessionDate} onChange={(e) => updateSession(i, "sessionDate", e.target.value)} /></div>
+                          <div className="space-y-1"><Label className="text-xs">Inicio</Label><Input type="time" value={s.timeStart} onChange={(e) => updateSession(i, "timeStart", e.target.value)} /></div>
+                          <div className="space-y-1"><Label className="text-xs">Fin</Label><Input type="time" value={s.timeEnd} onChange={(e) => updateSession(i, "timeEnd", e.target.value)} /></div>
+                        </div>
+                        <div className="space-y-1"><Label className="text-xs">Título</Label><Input value={s.title} onChange={(e) => updateSession(i, "title", e.target.value)} placeholder="Ej: Bases y fondos de la cocina vasca" /></div>
+                        <div className="space-y-1"><Label className="text-xs">Contenido</Label>
+                          <textarea value={s.content} onChange={(e) => updateSession(i, "content", e.target.value)} placeholder="Describe brevemente qué se verá..."
+                            className="flex min-h-[40px] w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground py-4 text-center">
+                {frequency === "custom" ? "Añade sesiones manualmente" : "Configura la frecuencia para generar sesiones"}
+              </p>
+            )}
+
+            <div className="flex items-center justify-between">
+              {sessions.length > 0 && (
+                <span className="text-sm text-muted-foreground">Total: <strong>{sessions.length} sesiones</strong></span>
+              )}
+              <Button type="button" variant="outline" size="sm" onClick={addManualSession} className="ml-auto">
+                <Plus className="h-3.5 w-3.5 mr-1.5" />
+                Añadir excepción
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
