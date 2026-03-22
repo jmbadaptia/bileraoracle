@@ -13,9 +13,10 @@ const UPLOAD_DIR = process.env.UPLOAD_DIR || "./uploads";
 export async function documentRoutes(app: FastifyInstance) {
   // GET /api/documents
   app.get("/api/documents", { preHandler: [requireAuth] }, async (request) => {
-    const { search, status, page, limit } = request.query as {
+    const { search, status, category, page, limit } = request.query as {
       search?: string;
       status?: string;
+      category?: string;
       page?: string;
       limit?: string;
     };
@@ -41,6 +42,12 @@ export async function documentRoutes(app: FastifyInstance) {
         listBinds.status = status;
       }
 
+      if (category) {
+        whereClause += " AND EXISTS (SELECT 1 FROM document_category_map dcm JOIN document_categories dc ON dc.id = dcm.category_id WHERE dcm.document_id = d.id AND dc.name = :category)";
+        countBinds.category = category;
+        listBinds.category = category;
+      }
+
       const countResult = await conn.execute<any>(
         `SELECT COUNT(*) AS total FROM documents d ${whereClause}`,
         countBinds,
@@ -61,8 +68,14 @@ export async function documentRoutes(app: FastifyInstance) {
         { outFormat: oracledb.OUT_FORMAT_OBJECT }
       );
 
-      return {
-        documents: (result.rows || []).map((row: any) => ({
+      const documents = [];
+      for (const row of result.rows || []) {
+        const catResult = await conn.execute<any>(
+          `SELECT dc.name FROM document_category_map dcm JOIN document_categories dc ON dc.id = dcm.category_id WHERE dcm.document_id = :id ORDER BY dc.name`,
+          { id: row.ID },
+          { outFormat: oracledb.OUT_FORMAT_OBJECT }
+        );
+        documents.push({
           id: row.ID,
           title: row.TITLE,
           description: row.DESCRIPTION,
@@ -75,11 +88,11 @@ export async function documentRoutes(app: FastifyInstance) {
           uploaderName: row.UPLOADER_NAME,
           createdAt: row.CREATED_AT,
           updatedAt: row.UPDATED_AT,
-        })),
-        total,
-        page: pageNum,
-        limit: limitNum,
-      };
+          categories: (catResult.rows || []).map((c: any) => c.NAME),
+        });
+      }
+
+      return { documents, total, page: pageNum, limit: limitNum };
     });
   });
 
@@ -96,6 +109,7 @@ export async function documentRoutes(app: FastifyInstance) {
     const title = fields.title?.value;
     const description = fields.description?.value || null;
     const visibility = fields.visibility?.value || "GENERAL";
+    const categoryIds = fields.categoryIds?.value || "";
 
     if (!title) {
       return reply.code(400).send({ error: "El título es obligatorio" });
@@ -132,6 +146,17 @@ export async function documentRoutes(app: FastifyInstance) {
         }
       );
 
+      // Insert category assignments
+      if (categoryIds) {
+        const ids = categoryIds.split(",").filter(Boolean);
+        for (const catId of ids) {
+          await conn.execute(
+            `INSERT INTO document_category_map (document_id, category_id) VALUES (:docId, :catId)`,
+            { docId: id, catId }
+          );
+        }
+      }
+
       // Fire-and-forget: extract text, chunk, embed
       processDocument(
         id, request.user.tenantId, request.user.id,
@@ -151,6 +176,18 @@ export async function documentRoutes(app: FastifyInstance) {
       if (err instanceof PlanLimitError) return reply.code(403).send({ error: err.message });
       throw err;
     }
+  });
+
+  // GET /api/documents/categories — list categories for tenant
+  app.get("/api/documents/categories", { preHandler: [requireAuth] }, async (request) => {
+    return withTenant(request.user.tenantId, request.user.id, async (conn) => {
+      const result = await conn.execute<any>(
+        `SELECT id, name FROM document_categories ORDER BY name`,
+        {},
+        { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      );
+      return { categories: (result.rows || []).map((r: any) => ({ id: r.ID, name: r.NAME })) };
+    });
   });
 
   // GET /api/documents/:id
@@ -184,6 +221,13 @@ export async function documentRoutes(app: FastifyInstance) {
         { outFormat: oracledb.OUT_FORMAT_OBJECT }
       );
 
+      // Get categories
+      const catResult = await conn.execute<any>(
+        `SELECT dc.id, dc.name FROM document_category_map dcm JOIN document_categories dc ON dc.id = dcm.category_id WHERE dcm.document_id = :id ORDER BY dc.name`,
+        { id },
+        { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      );
+
       return {
         id: doc.ID,
         title: doc.TITLE,
@@ -199,6 +243,7 @@ export async function documentRoutes(app: FastifyInstance) {
         updatedAt: doc.UPDATED_AT,
         chunkCount: doc.CHUNK_COUNT || 0,
         processingError: doc.PROCESSING_ERROR || null,
+        categories: (catResult.rows || []).map((c: any) => c.NAME),
         activities: (actResult.rows || []).map((a: any) => ({
           id: a.ID,
           title: a.TITLE,

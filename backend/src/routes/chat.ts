@@ -327,9 +327,10 @@ export async function chatRoutes(app: FastifyInstance) {
       const sorted = sources.sort((a, b) => a.distance - b.distance);
       console.log(`[RAG] "${message.substring(0, 50)}" → ${sorted.length} sources: ${sorted.map(s => `${s.type}:${s.title}(${s.distance?.toFixed(3)})`).join(", ")}`);
       // NOTE: Cohere multilingual embeddings produce higher distances than other models.
-      // Threshold 0.65 works well for relevance. Tune if switching embedding model.
+      // Threshold 0.55 filters aggressively to avoid passing irrelevant chunks to the LLM
+      // (which causes it to fabricate connections). Tune if switching embedding model.
       const relevant = sorted
-        .filter((s) => s.distance < 0.65)
+        .filter((s) => s.distance < 0.55)
         .slice(0, 8);
       if (relevant.length > 0) {
         console.log(`[RAG] ${relevant.length} relevant (threshold <0.65): ${relevant.map(s => `${s.title}(${s.distance?.toFixed(3)})`).join(", ")}`);
@@ -376,7 +377,9 @@ Reglas:
 - Si el usuario dice "sí", "vale", "cuéntame más", "adelante" o similar, interpreta que quiere que continúes con lo que estabas hablando. NO le pidas que repita la pregunta.
 - NUNCA inventes información que no esté en el contexto proporcionado. Si no tienes datos sobre algo, di claramente que no hay información disponible sobre ese tema en el sistema.
 - No inventes nombres de actividades, documentos, eventos ni datos que no aparezcan en el contexto.
-- Sé conciso y directo.`;
+- Sé conciso y directo.
+- IMPORTANTE: Cuando uses información de las fuentes del contexto, CITA la fuente usando su número entre corchetes, por ejemplo [1] o [3]. Solo cita las fuentes que realmente uses para responder. No cites fuentes que no hayas utilizado.
+- Si las fuentes del contexto no son claramente relevantes para la pregunta del usuario, IGNÓRALAS por completo. No fuerces conexiones indirectas ni rebuscadas entre la pregunta y las fuentes. En ese caso, responde que no tienes información sobre ese tema.`;
 
       const userMsg = context
         ? `Contexto de la asociación:\n${context}\n\nPregunta: ${message.trim()}`
@@ -470,14 +473,34 @@ Reglas:
         outputTokens: streamUsage?.completion_tokens ?? estimateTokens(fullText),
       });
 
-      // Send sources
-      const sourcesPayload = relevant.map((s, i) => ({
+      // Send only sources that the LLM actually cited in its response
+      const allSourcesPayload = relevant.map((s, i) => ({
         index: i + 1,
         type: s.type,
         id: s.id,
         title: s.title,
         distance: s.distance,
       }));
+
+      // Find which source indices were cited in the response (e.g. [1], [3])
+      const citedIndices = new Set<number>();
+      const citationRegex = /\[(\d+)\]/g;
+      let match;
+      while ((match = citationRegex.exec(fullText)) !== null) {
+        const idx = parseInt(match[1]);
+        if (idx >= 1 && idx <= allSourcesPayload.length) {
+          citedIndices.add(idx);
+        }
+      }
+
+      // Only send sources that the LLM explicitly cited. No fallback.
+      const sourcesPayload = citedIndices.size > 0
+        ? allSourcesPayload.filter(s => citedIndices.has(s.index))
+        : [];
+
+      if (citedIndices.size > 0) {
+        console.log(`[RAG] LLM cited sources: ${[...citedIndices].join(", ")} of ${allSourcesPayload.length} available`);
+      }
 
       if (sourcesPayload.length > 0) {
         reply.raw.write(`data: ${JSON.stringify({ sources: sourcesPayload })}\n\n`);

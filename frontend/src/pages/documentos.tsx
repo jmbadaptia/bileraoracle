@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router";
 import { Plus, FileText, Search, X, LayoutGrid, List } from "lucide-react";
-import { useDocuments } from "@/api/hooks";
+import { useDocuments, useDocumentCategories } from "@/api/hooks";
 import { formatDate } from "@/lib/utils";
 import { DOCUMENT_STATUS_LABELS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
@@ -46,16 +46,20 @@ export function DocumentosPage() {
   const [searchInput, setSearchInput] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [categoryFilter, setCategoryFilter] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const { data: catData } = useDocumentCategories();
+  const categories = catData?.categories || [];
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(searchInput.trim()), 300);
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  const { data, isLoading } = useDocuments(
-    debouncedQuery.length >= 2 ? { search: debouncedQuery } : undefined
-  );
+  const docParams: Record<string, string> = {};
+  if (debouncedQuery.length >= 2) docParams.search = debouncedQuery;
+  if (categoryFilter) docParams.category = categoryFilter;
+  const { data, isLoading } = useDocuments(Object.keys(docParams).length ? docParams : undefined);
 
   const documents = data?.documents || [];
 
@@ -135,6 +139,35 @@ export function DocumentosPage() {
           </button>
         </div>
       </div>
+
+      {/* Category filter */}
+      {categories.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            onClick={() => setCategoryFilter("")}
+            className={`px-2.5 py-1 text-xs rounded-full border transition-colors ${
+              !categoryFilter
+                ? "bg-primary text-primary-foreground border-primary"
+                : "text-muted-foreground border-muted-foreground/20 hover:border-primary/40"
+            }`}
+          >
+            Todas
+          </button>
+          {categories.map((c: any) => (
+            <button
+              key={c.id}
+              onClick={() => setCategoryFilter(categoryFilter === c.name ? "" : c.name)}
+              className={`px-2.5 py-1 text-xs rounded-full border transition-colors ${
+                categoryFilter === c.name
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "text-muted-foreground border-muted-foreground/20 hover:border-primary/40"
+              }`}
+            >
+              {c.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Content */}
       {isLoading ? (
@@ -250,6 +283,15 @@ function DocumentCard({ doc }: { doc: any }) {
 
           {/* File name */}
           <p className="text-xs text-muted-foreground truncate">{doc.fileName}</p>
+
+          {/* Categories */}
+          {doc.categories?.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {doc.categories.map((cat: string) => (
+                <Badge key={cat} variant="outline" className="text-[10px] px-1.5 py-0">{cat}</Badge>
+              ))}
+            </div>
+          )}
 
           {/* Meta: uploader, date, size */}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">

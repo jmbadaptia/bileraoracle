@@ -315,6 +315,13 @@ export function useDocument(id: string) {
   });
 }
 
+export function useDocumentCategories() {
+  return useQuery({
+    queryKey: ["document-categories"],
+    queryFn: () => api.get<any>("/documents/categories"),
+  });
+}
+
 export function useUploadDocument() {
   const qc = useQueryClient();
   return useMutation({

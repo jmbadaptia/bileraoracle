@@ -250,7 +250,7 @@ export function InscripcionFormPage() {
                           <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-background border rounded-md shadow-lg max-h-36 overflow-y-auto">
                             {filteredSpaces.map((s: any) => (
                               <button key={s.id} type="button" className="w-full text-left px-3 py-2 text-sm hover:bg-muted flex items-center gap-2"
-                                onClick={() => { setLocation(s.name); setSelectedSpaceId(s.id); setShowLocationSuggestions(false); if (!maxCapacity && s.capacity) setMaxCapacity(String(s.capacity)); }}>
+                                onClick={() => { setLocation(s.name); setSelectedSpaceId(s.id); setShowLocationSuggestions(false); if (s.capacity) setMaxCapacity(String(s.capacity)); }}>
                                 <MapPin className="h-3.5 w-3.5 text-muted-foreground" /><span>{s.name}</span>
                                 {s.capacity && <span className="text-xs text-muted-foreground ml-auto">{s.capacity}</span>}
                               </button>
@@ -295,6 +295,17 @@ export function InscripcionFormPage() {
                       <div className="space-y-1.5">
                         <Label className="text-xs">Plazas</Label>
                         <Input type="number" min="1" value={maxCapacity} onChange={(e) => setMaxCapacity(e.target.value)} placeholder="20" />
+                        {(() => {
+                          const selectedSpace = spaces.find((s: any) => s.id === selectedSpaceId);
+                          if (selectedSpace?.capacity && parseInt(maxCapacity) > selectedSpace.capacity) {
+                            return (
+                              <p className="text-[11px] text-amber-600">
+                                {selectedSpace.name} tiene un aforo de {selectedSpace.capacity} personas
+                              </p>
+                            );
+                          }
+                          return null;
+                        })()}
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-xs">Precio</Label>

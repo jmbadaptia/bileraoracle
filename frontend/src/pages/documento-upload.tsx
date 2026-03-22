@@ -4,11 +4,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Upload, File, X, Loader2 } from "lucide-react";
 import { api } from "@/lib/api-client";
+import { useDocumentCategories } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 function titleFromFilename(filename: string): string {
   const name = filename.replace(/\.[^/.]+$/, "");
@@ -36,7 +38,10 @@ export function DocumentoUploadPage() {
   const [description, setDescription] = useState("");
   const [generatingDesc, setGeneratingDesc] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { data: catData } = useDocumentCategories();
+  const categories = catData?.categories || [];
 
   // Pre-fill from shared files (Share Target)
   useEffect(() => {
@@ -103,6 +108,9 @@ export function DocumentoUploadPage() {
       formData.set("file", selectedFile);
       formData.set("title", title);
       formData.set("description", description);
+      if (selectedCategoryIds.length) {
+        formData.set("categoryIds", selectedCategoryIds.join(","));
+      }
 
       await api.upload<{ id: string }>("/documents", formData);
       await queryClient.invalidateQueries({ queryKey: ["documents"] });
@@ -213,6 +221,31 @@ export function DocumentoUploadPage() {
                 onChange={(e) => setDescription(e.target.value)}
               />
             </div>
+
+            {categories.length > 0 && (
+              <div className="space-y-2">
+                <Label>Categorías</Label>
+                <div className="flex flex-wrap gap-2">
+                  {categories.map((c: any) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => setSelectedCategoryIds(prev =>
+                        prev.includes(c.id) ? prev.filter(id => id !== c.id) : [...prev, c.id]
+                      )}
+                      className={cn(
+                        "px-3 py-1.5 rounded-full text-sm font-medium border transition-colors",
+                        selectedCategoryIds.includes(c.id)
+                          ? "border-primary bg-primary/5 text-primary"
+                          : "border-muted-foreground/20 text-muted-foreground hover:border-primary/40"
+                      )}
+                    >
+                      {c.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="flex gap-3">
               <Button type="submit" disabled={loading || !selectedFile}>
