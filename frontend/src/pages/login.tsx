@@ -113,16 +113,7 @@ export function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary overflow-hidden">
-            {logoError ? (
-              <Shield className="h-6 w-6 text-primary-foreground" />
-            ) : (
-              <img
-                src={`${API_BASE}/admin/logo`}
-                alt="Logo"
-                className="h-full w-full object-contain"
-                onError={() => setLogoError(true)}
-              />
-            )}
+            <Shield className="h-6 w-6 text-primary-foreground" />
           </div>
           <CardTitle className="text-2xl">{APP_NAME}</CardTitle>
           <CardDescription>

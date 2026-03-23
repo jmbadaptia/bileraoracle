@@ -133,10 +133,13 @@ export async function dashboardRoutes(app: FastifyInstance) {
     });
   });
 
-  // POST /api/admin/logo — upload logo
-  const LOGO_PATH = path.join(UPLOAD_DIR, "logo.png");
+  // POST /api/admin/logo — upload logo (per tenant)
   const ALLOWED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/svg+xml", "image/webp"];
   const MAX_LOGO_SIZE = 2 * 1024 * 1024;
+
+  function logoPath(tenantId: number) {
+    return path.join(UPLOAD_DIR, "logos", `${tenantId}.png`);
+  }
 
   app.post("/api/admin/logo", { preHandler: [requireAdmin] }, async (request, reply) => {
     const file = await request.file();
@@ -153,22 +156,24 @@ export async function dashboardRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: "El archivo excede el tamaño máximo de 2MB" });
     }
 
-    const dir = path.dirname(LOGO_PATH);
+    const lp = logoPath(request.user.tenantId);
+    const dir = path.dirname(lp);
     if (!existsSync(dir)) {
       await mkdir(dir, { recursive: true });
     }
 
-    await writeFile(LOGO_PATH, buffer);
+    await writeFile(lp, buffer);
     return { ok: true };
   });
 
-  // GET /api/admin/logo — serve logo (public)
-  app.get("/api/admin/logo", async (_request, reply) => {
-    if (!existsSync(LOGO_PATH)) {
+  // GET /api/admin/logo — serve logo for authenticated user's tenant
+  app.get("/api/admin/logo", { preHandler: [requireAuth] }, async (request, reply) => {
+    const lp = logoPath(request.user.tenantId);
+    if (!existsSync(lp)) {
       return reply.code(404).send({ error: "No hay logo configurado" });
     }
 
-    const buffer = await readFile(LOGO_PATH);
+    const buffer = await readFile(lp);
     return reply.type("image/png").send(buffer);
   });
 
