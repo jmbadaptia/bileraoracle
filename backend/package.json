@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "start": "node --loader tsx src/index.ts",
+    "start": "node --import tsx src/index.ts",
     "db:init": "tsx src/sql/init.ts",
     "db:backfill": "tsx src/sql/backfill-embeddings.ts"
   },
