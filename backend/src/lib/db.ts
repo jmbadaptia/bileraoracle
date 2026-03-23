@@ -49,6 +49,8 @@ export async function withTenant<T>(
     await conn.rollback();
     throw err;
   } finally {
+    // Clear VPD context before returning connection to pool
+    try { await conn.execute(`BEGIN bilera_ctx_pkg.clear_context; END;`); } catch {}
     await conn.close();
   }
 }
