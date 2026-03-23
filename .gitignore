@@ -5,3 +5,4 @@ dist/
 uploads/
 .oci/
 *.pem
+ssl/
