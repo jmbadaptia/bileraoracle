@@ -4,6 +4,7 @@ import {
   Image, Contact, BotMessageSquare, ChevronDown, ChevronRight,
   BookOpen, Users, Search, ListChecks, Upload, MessageSquare,
   GripVertical, Pencil, UserPlus, Plus, Download, Paperclip,
+  ClipboardList, Building2, Calendar, Settings,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -64,19 +65,19 @@ function Step({ icon, text }: { icon: React.ReactNode; text: string }) {
 
 export function GuiaPage() {
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Guia de uso</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Guía de uso</h1>
         <p className="text-muted-foreground">
-          Manual rapido para sacar el maximo partido a Bilera
+          Manual rápido para sacar el máximo partido a Bilera
         </p>
       </div>
 
       <div className="p-4 rounded-lg border bg-muted/30">
         <p className="text-sm">
-          <strong>Bilera</strong> es la herramienta de gestion de tu asociacion. Aqui puedes organizar
-          eventos, gestionar documentos, coordinar grupos de trabajo y mucho mas. A continuacion
-          te explicamos cada seccion.
+          <strong>Bilera</strong> es la herramienta de gestión de tu asociación. Aquí puedes organizar
+          eventos, gestionar cursos e inscripciones, administrar documentos, reservar espacios,
+          coordinar grupos de trabajo y mucho más. A continuación te explicamos cada sección.
         </p>
       </div>
 
@@ -88,122 +89,135 @@ export function GuiaPage() {
           defaultOpen={true}
         >
           <p>
-            Es la pagina de inicio. Muestra un resumen rapido de la actividad reciente de la asociacion:
+            Es la página de inicio. Muestra un resumen rápido de la actividad reciente de la asociación:
           </p>
           <ul className="list-disc pl-4 space-y-1">
-            <li><strong>Miembros activos</strong> — cuantas personas forman parte de la asociacion</li>
+            <li><strong>Miembros activos</strong> — cuántas personas forman parte de la asociación</li>
             <li><strong>Eventos del mes</strong> — reuniones, tareas y eventos de este mes</li>
             <li><strong>Documentos</strong> — total de documentos subidos</li>
-            <li><strong>Proximos eventos</strong> — lo que viene en los proximos dias</li>
+            <li><strong>Próximos eventos</strong> — lo que viene en los próximos días</li>
           </ul>
-          <p>
-            Tambien veras los <strong>eventos recientes</strong> y los <strong>documentos recientes</strong>.
-            Haz clic en cualquier elemento para ir directamente a su detalle.
-          </p>
           <Tip>Cada tarjeta del panel es clicable. Pulsa en "Miembros Activos" para ver el directorio completo.</Tip>
-        </Section>
-
-        {/* Actividades */}
-        <Section
-          icon={<CalendarDays className="h-5 w-5 text-primary" />}
-          title="Eventos (Calendario)"
-        >
-          <p>
-            Aqui se registran todos los eventos de la asociacion: reuniones, actos, visitas, etc.
-            Tiene dos vistas:
-          </p>
-          <ul className="list-disc pl-4 space-y-1">
-            <li><strong>Calendario</strong> — vista mensual con los eventos marcados por color segun tipo</li>
-            <li><strong>Lista</strong> — todos los eventos ordenados, con filtros</li>
-          </ul>
-          <p className="font-medium text-foreground">Crear un evento:</p>
-          <Step icon={<Plus className="h-3.5 w-3.5" />} text="Pulsa 'Nueva' arriba a la derecha" />
-          <Step icon={<Pencil className="h-3.5 w-3.5" />} text="Rellena titulo, tipo (tarea, reunion, evento...), fecha, lugar y descripcion" />
-          <Step icon={<UserPlus className="h-3.5 w-3.5" />} text="Anade participantes: miembros de la asociacion y/o contactos externos" />
-
-          <p className="font-medium text-foreground">Detalle de evento:</p>
-          <p>Al entrar en un evento veras dos columnas:</p>
-          <ul className="list-disc pl-4 space-y-1">
-            <li><strong>Izquierda</strong> — notas/acta, documentos adjuntos y albums de fotos</li>
-            <li><strong>Derecha</strong> — detalles (fecha, lugar, responsable), participantes y timeline</li>
-          </ul>
-          <Step icon={<Paperclip className="h-3.5 w-3.5" />} text="Puedes adjuntar documentos existentes o subir uno nuevo directamente" />
-          <Step icon={<BotMessageSquare className="h-3.5 w-3.5" />} text="Pulsa 'Resumir con IA' para generar un resumen automatico del evento" />
-          <Tip>Puedes apuntarte o desapuntarte de un evento con los botones "Unirme" / "Salir".</Tip>
         </Section>
 
         {/* Tareas (Kanban) */}
         <Section
           icon={<CheckSquare className="h-5 w-5 text-primary" />}
-          title="Tareas (Tablero Kanban)"
+          title="Tareas"
         >
           <p>
             Las tareas se muestran en un tablero con tres columnas:
           </p>
           <div className="flex gap-2 flex-wrap">
-            <Badge variant="outline" className="bg-yellow-50 text-yellow-800 border-yellow-200">Por Hacer</Badge>
+            <Badge variant="outline" className="bg-yellow-50 text-yellow-800 border-yellow-200">Pendiente</Badge>
             <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-200">En Progreso</Badge>
             <Badge variant="outline" className="bg-green-50 text-green-800 border-green-200">Hecho</Badge>
           </div>
           <Step icon={<GripVertical className="h-3.5 w-3.5" />} text="Arrastra una tarjeta de una columna a otra para cambiar su estado" />
           <Step icon={<ListChecks className="h-3.5 w-3.5" />} text="Usa los filtros de persona y tipo para encontrar tareas concretas" />
-          <p>
-            Haz clic en cualquier tarjeta para ir al detalle completo del evento.
-          </p>
           <Tip>Puedes marcar una tarea como "Hecho" directamente con el icono de check en la tarjeta.</Tip>
         </Section>
 
-        {/* Historial */}
+        {/* Eventos */}
         <Section
-          icon={<Search className="h-5 w-5 text-primary" />}
-          title="Historial"
+          icon={<CalendarDays className="h-5 w-5 text-primary" />}
+          title="Eventos"
         >
           <p>
-            El historial muestra un registro completo de todos los eventos. Puedes filtrar por:
+            Aquí se registran todos los eventos de la asociación: reuniones, actos, visitas, etc.
+            Puedes verlos en formato lista o en el calendario mensual.
           </p>
+          <p className="font-medium text-foreground">Crear un evento:</p>
+          <Step icon={<Plus className="h-3.5 w-3.5" />} text="Pulsa 'Nueva' arriba a la derecha" />
+          <Step icon={<Pencil className="h-3.5 w-3.5" />} text="Rellena título, tipo (tarea, reunión, evento...), fecha, lugar y descripción" />
+          <Step icon={<UserPlus className="h-3.5 w-3.5" />} text="Añade participantes: miembros de la asociación y/o contactos externos" />
+
+          <p className="font-medium text-foreground">Detalle de evento:</p>
           <ul className="list-disc pl-4 space-y-1">
-            <li><strong>Persona</strong> — ver solo eventos en los que participo alguien concreto</li>
-            <li><strong>Tipo</strong> — tarea, reunion, evento, otros</li>
-            <li><strong>Rango de fechas</strong> — desde / hasta</li>
+            <li><strong>Izquierda</strong> — notas/acta, documentos adjuntos y álbumes de fotos</li>
+            <li><strong>Derecha</strong> — detalles (fecha, lugar, responsable), participantes y timeline</li>
           </ul>
-          <p>
-            Cada evento muestra sus participantes como badges. Pulsa "Descripcion" para expandir
-            las notas de ese evento sin salir de la pagina.
-          </p>
+          <Step icon={<Paperclip className="h-3.5 w-3.5" />} text="Puedes adjuntar documentos existentes o subir uno nuevo directamente" />
+          <Step icon={<BotMessageSquare className="h-3.5 w-3.5" />} text="Pulsa 'Resumir con IA' para generar un resumen automático del evento" />
+          <Tip>Puedes apuntarte o desapuntarte de un evento con los botones "Unirme" / "Salir".</Tip>
         </Section>
 
-        {/* Miembros */}
+        {/* Cursos y Talleres */}
         <Section
-          icon={<Users className="h-5 w-5 text-primary" />}
-          title="Miembros"
+          icon={<ClipboardList className="h-5 w-5 text-primary" />}
+          title="Cursos y Talleres"
         >
           <p>
-            Directorio de todos los miembros activos de la asociacion. Puedes:
+            Gestiona cursos, talleres y actividades con inscripción pública. Los participantes se
+            inscriben desde un enlace público sin necesidad de cuenta.
           </p>
+          <p className="font-medium text-foreground">Crear un curso:</p>
+          <Step icon={<Plus className="h-3.5 w-3.5" />} text="Pulsa 'Nuevo' y sigue el asistente de 3 pasos: datos del curso, sesiones y resumen" />
+          <Step icon={<Calendar className="h-3.5 w-3.5" />} text="En las sesiones, usa el generador de recurrencias para crear sesiones automáticamente (semanal, mensual, etc.)" />
+          <Step icon={<Upload className="h-3.5 w-3.5" />} text="Sube un PDF del programa y la IA rellenará los campos automáticamente" />
+
+          <p className="font-medium text-foreground">Inscripciones:</p>
           <ul className="list-disc pl-4 space-y-1">
-            <li>Buscar por nombre o email</li>
-            <li>Ver el perfil de cada miembro: email, telefono, bio y numero de eventos</li>
-            <li>Los administradores pueden crear nuevos miembros</li>
+            <li><strong>Por orden de inscripción (FIFO)</strong> — las plazas se asignan por orden de llegada</li>
+            <li><strong>Sorteo</strong> — se recopilan inscripciones y se asignan por sorteo</li>
+            <li><strong>Lista de espera</strong> — cuando se completa el aforo, los siguientes quedan en espera</li>
           </ul>
-          <Tip>El avatar con iniciales tiene un color unico para cada persona, para identificarla rapidamente.</Tip>
+          <p>
+            Cada curso tiene un enlace público que puedes copiar y compartir. Los inscritos reciben
+            confirmación por email automáticamente.
+          </p>
+          <Tip>Puedes publicar un curso como borrador y programar la fecha de publicación para que se abra automáticamente.</Tip>
         </Section>
 
-        {/* Grupos */}
+        {/* Espacios y Reservas */}
+        <Section
+          icon={<Building2 className="h-5 w-5 text-primary" />}
+          title="Espacios y Reservas"
+        >
+          <p>
+            Gestiona las salas y espacios disponibles de la asociación y sus reservas.
+          </p>
+          <ul className="list-disc pl-4 space-y-1">
+            <li>Cada espacio tiene nombre, ubicación, capacidad y un color identificativo</li>
+            <li>Las reservas se ven en un calendario con detección de conflictos</li>
+            <li>Al crear un curso, puedes seleccionar un espacio y el aforo se ajusta automáticamente</li>
+          </ul>
+          <Tip>Si asignas más plazas que el aforo del espacio, verás un aviso para que lo revises.</Tip>
+        </Section>
+
+        {/* Colaboradores */}
+        <Section
+          icon={<Contact className="h-5 w-5 text-primary" />}
+          title="Colaboradores"
+        >
+          <p>
+            Agenda de personas y organizaciones externas a la asociación: proveedores, colaboradores,
+            ponentes, instituciones, etc.
+          </p>
+          <ul className="list-disc pl-4 space-y-1">
+            <li>Cada contacto tiene nombre, email, teléfono, web y categoría</li>
+            <li>Filtra por categoría o busca por nombre/email/teléfono</li>
+            <li>Los contactos se pueden vincular a eventos como participantes externos</li>
+            <li>También se pueden asignar como instructores de cursos</li>
+          </ul>
+          <Tip>Al vincular un contacto a un evento, puedes asignarle un rol (ponente, proveedor, organizador...).</Tip>
+        </Section>
+
+        {/* Grupos de trabajo */}
         <Section
           icon={<UsersRound className="h-5 w-5 text-primary" />}
-          title="Grupos"
+          title="Grupos de trabajo"
         >
           <p>
-            Los grupos sirven para organizar comisiones o equipos de trabajo dentro de la asociacion.
-            Por ejemplo: "Comision de fiestas", "Equipo de comunicacion", etc.
+            Los grupos sirven para organizar comisiones o equipos de trabajo dentro de la asociación.
+            Por ejemplo: "Comisión de fiestas", "Equipo de comunicación", etc.
           </p>
-          <p className="font-medium text-foreground">Como funcionan:</p>
           <ul className="list-disc pl-4 space-y-1">
-            <li>Cada grupo tiene un nombre, descripcion y una lista de miembros</li>
-            <li>Los administradores pueden crear grupos, editarlos y anadir o quitar miembros</li>
-            <li>Todos los miembros pueden ver los grupos y quienes los componen</li>
+            <li>Cada grupo tiene un nombre, descripción y una lista de miembros</li>
+            <li>Los administradores pueden crear grupos, editarlos y añadir o quitar miembros</li>
+            <li>Todos los miembros pueden ver los grupos y quiénes los componen</li>
           </ul>
-          <Step icon={<UserPlus className="h-3.5 w-3.5" />} text="Para anadir a alguien, entra en el grupo y pulsa 'Anadir'" />
+          <Step icon={<UserPlus className="h-3.5 w-3.5" />} text="Para añadir a alguien, entra en el grupo y pulsa 'Añadir'" />
         </Section>
 
         {/* Documentos */}
@@ -212,61 +226,40 @@ export function GuiaPage() {
           title="Documentos"
         >
           <p>
-            Repositorio central de documentos de la asociacion. Soporta PDF, Word, texto y otros formatos.
+            Repositorio central de documentos de la asociación. Soporta PDF, Word, texto y otros formatos.
           </p>
           <p className="font-medium text-foreground">Subir un documento:</p>
-          <Step icon={<Upload className="h-3.5 w-3.5" />} text="Pulsa 'Subir Documento', pon un titulo y selecciona el archivo" />
+          <Step icon={<Upload className="h-3.5 w-3.5" />} text="Pulsa 'Subir', pon un título, selecciona categorías y arrastra el archivo" />
           <p>
-            Tras subirlo, el sistema <strong>procesa automaticamente</strong> el contenido:
+            Tras subirlo, el sistema <strong>procesa automáticamente</strong> el contenido:
             extrae el texto, lo divide en fragmentos y lo indexa para que sea buscable.
           </p>
-          <div className="flex gap-2 flex-wrap">
-            <Badge variant="secondary">Pendiente</Badge>
-            <Badge variant="secondary">Procesando</Badge>
-            <Badge>Listo</Badge>
-            <Badge variant="destructive">Error</Badge>
-          </div>
+          <p className="font-medium text-foreground">Categorías:</p>
           <p>
-            Cuando el estado es <strong>"Listo"</strong>, el documento ya es buscable y el Asistente IA
-            puede responder preguntas sobre su contenido.
+            Cada documento puede tener una o varias categorías (Actas, Normativa, Facturas, Subvenciones,
+            Contratos, Certificados, Comunicados, Informes, Proyectos, Otros). Usa los filtros para
+            encontrar documentos rápidamente.
           </p>
           <Step icon={<Download className="h-3.5 w-3.5" />} text="Puedes descargar el archivo original desde el detalle del documento" />
           <Step icon={<Paperclip className="h-3.5 w-3.5" />} text="Los documentos se pueden vincular a eventos desde el detalle del evento" />
-          <Tip>Usa la barra de busqueda para encontrar documentos por palabras clave de su contenido.</Tip>
+          <Tip>Cuando el estado es "Listo", el Asistente IA puede responder preguntas sobre su contenido.</Tip>
         </Section>
 
-        {/* Galeria */}
+        {/* Galería */}
         <Section
           icon={<Image className="h-5 w-5 text-primary" />}
-          title="Galeria"
+          title="Galería"
         >
           <p>
-            Albums de fotos de la asociacion. Perfecto para guardar recuerdos de eventos,
-            reuniones, eventos, etc.
+            Álbumes de fotos de la asociación. Perfecto para guardar recuerdos de eventos,
+            reuniones, actividades, etc.
           </p>
           <ul className="list-disc pl-4 space-y-1">
-            <li>Crea un album con titulo y descripcion</li>
-            <li>Sube multiples fotos de golpe</li>
-            <li>Los albums se pueden vincular a eventos</li>
+            <li>Crea un álbum con título y descripción</li>
+            <li>Sube múltiples fotos de golpe</li>
+            <li>Los álbumes se pueden vincular a eventos</li>
           </ul>
-          <Tip>La foto de portada del album es la primera que se sube. Puedes cambiarla desde el detalle del album.</Tip>
-        </Section>
-
-        {/* Contactos */}
-        <Section
-          icon={<Contact className="h-5 w-5 text-primary" />}
-          title="Contactos"
-        >
-          <p>
-            Agenda de personas y organizaciones externas a la asociacion: proveedores, colaboradores,
-            ponentes, instituciones, etc.
-          </p>
-          <ul className="list-disc pl-4 space-y-1">
-            <li>Cada contacto tiene nombre, email, telefono, web y categoria</li>
-            <li>Filtra por categoria o busca por nombre/email/telefono</li>
-            <li>Los contactos se pueden vincular a eventos como participantes externos</li>
-          </ul>
-          <Tip>Al vincular un contacto a un evento, puedes asignarle un rol (ponente, proveedor, organizador...).</Tip>
+          <Tip>La foto de portada del álbum es la primera que se sube. Puedes cambiarla desde el detalle del álbum.</Tip>
         </Section>
 
         {/* Asistente IA */}
@@ -275,48 +268,63 @@ export function GuiaPage() {
           title="Asistente IA"
         >
           <p>
-            Un chat inteligente que tiene acceso a toda la informacion de la asociacion:
-            documentos, eventos, albums, miembros, etc.
+            Un chat inteligente que tiene acceso a toda la información de la asociación:
+            documentos, eventos, cursos, álbumes, etc.
           </p>
-          <p className="font-medium text-foreground">Que puedes preguntarle:</p>
+          <p className="font-medium text-foreground">Qué puedes preguntarle:</p>
           <ul className="list-disc pl-4 space-y-1">
-            <li>"Hazme un resumen del pliego de la casa de cultura"</li>
-            <li>"Que eventos tuvimos en febrero?"</li>
-            <li>"Quien participo en la reunion del martes?"</li>
-            <li>"Que documentos tenemos sobre subvenciones?"</li>
-            <li>"Redactame un acta de la ultima asamblea"</li>
+            <li>"Hazme un resumen del programa del curso de cocina"</li>
+            <li>"¿Qué eventos tenemos esta semana?"</li>
+            <li>"¿Quién participó en la reunión del martes?"</li>
+            <li>"¿Qué documentos tenemos sobre subvenciones?"</li>
+            <li>"¿Cuánto costó la factura de Adaptia?"</li>
           </ul>
-          <p className="font-medium text-foreground">Conversaciones:</p>
-          <Step icon={<MessageSquare className="h-3.5 w-3.5" />} text="Cada conversacion se guarda automaticamente en el sidebar izquierdo" />
-          <Step icon={<Plus className="h-3.5 w-3.5" />} text="Pulsa '+' para iniciar una conversacion nueva" />
           <p>
-            El asistente busca en el contenido real de los documentos (no solo en los titulos),
-            asi que cuantos mas documentos subas, mas util sera.
+            El asistente cita las fuentes que utiliza para responder, así puedes verificar la información.
           </p>
-          <Tip>Si el asistente no encuentra algo, prueba a reformular la pregunta con otras palabras.</Tip>
+          <Step icon={<MessageSquare className="h-3.5 w-3.5" />} text="Cada conversación se guarda automáticamente en el menú lateral" />
+          <Step icon={<Plus className="h-3.5 w-3.5" />} text="Pulsa '+' para iniciar una conversación nueva" />
+          <Tip>Cuantos más documentos subas, más útil será el asistente. Busca en el contenido real, no solo en los títulos.</Tip>
         </Section>
 
-        {/* Sidebar */}
+        {/* Administración */}
+        <Section
+          icon={<Settings className="h-5 w-5 text-primary" />}
+          title="Administración"
+        >
+          <p>
+            Los administradores tienen acceso a opciones adicionales:
+          </p>
+          <ul className="list-disc pl-4 space-y-1">
+            <li><strong>Configuración</strong> — logo de la asociación, tema de colores</li>
+            <li><strong>Usuarios</strong> — gestionar miembros, enviar invitaciones, asignar roles</li>
+            <li><strong>Plan y uso</strong> — ver cuántos recursos se están usando (miembros, documentos, espacios, almacenamiento)</li>
+            <li><strong>Uso de IA</strong> — desglose del consumo de IA por tipo (chat, embeddings, resúmenes) con coste mensual</li>
+          </ul>
+          <Tip>Invita a nuevos miembros desde Configuración → Usuarios. Recibirán un email para activar su cuenta.</Tip>
+        </Section>
+
+        {/* Consejos generales */}
         <Section
           icon={<BookOpen className="h-5 w-5 text-primary" />}
           title="Consejos generales"
         >
           <ul className="list-disc pl-4 space-y-2">
             <li>
-              <strong>Sidebar colapsable</strong> — puedes plegar el menu lateral pulsando el icono
-              de flecha. Util en pantallas pequenas.
+              <strong>Menú lateral colapsable</strong> — puedes plegar el menú pulsando el icono
+              de flecha. Útil en pantallas pequeñas.
             </li>
             <li>
               <strong>Roles</strong> — hay dos roles: <Badge variant="default" className="text-[10px] mx-1">Administrador</Badge>
               y <Badge variant="secondary" className="text-[10px] mx-1">Miembro</Badge>.
-              Los administradores pueden crear/editar/eliminar contenido. Los miembros pueden ver todo y participar en eventos.
+              Los administradores pueden crear, editar y eliminar contenido. Los miembros pueden ver todo y participar.
             </li>
             <li>
-              <strong>Busqueda</strong> — la mayoria de paginas tienen un buscador.
-              Empieza a escribir y los resultados se filtran automaticamente.
+              <strong>Búsqueda y filtros</strong> — la mayoría de páginas tienen buscador y filtros por estado.
+              Puedes cambiar entre vista cuadrícula y lista.
             </li>
             <li>
-              <strong>Vincular contenido</strong> — puedes vincular documentos, albums y contactos
+              <strong>Vincular contenido</strong> — puedes vincular documentos, álbumes y contactos
               a cualquier evento. Esto mantiene todo organizado y conectado.
             </li>
           </ul>
@@ -325,7 +333,7 @@ export function GuiaPage() {
 
       <div className="text-center py-6">
         <p className="text-xs text-muted-foreground">
-          ¿Tienes dudas? Pregunta al Asistente IA, que tambien conoce esta guia.
+          ¿Tienes dudas? Pregunta al Asistente IA, que también conoce esta guía.
         </p>
       </div>
     </div>
