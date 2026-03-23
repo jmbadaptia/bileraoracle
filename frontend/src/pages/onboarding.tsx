@@ -218,7 +218,7 @@ export function OnboardingPage() {
                       className="h-16 w-16 rounded-full flex items-center justify-center ring-2 ring-offset-2 ring-offset-background transition-all"
                       style={{
                         backgroundColor: preset.color,
-                        ringColor: currentTheme === preset.id ? preset.color : "transparent",
+                        outlineColor: currentTheme === preset.id ? preset.color : "transparent",
                       }}
                     >
                       {currentTheme === preset.id && (

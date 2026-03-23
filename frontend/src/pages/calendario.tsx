@@ -89,7 +89,7 @@ export function CalendarioPage() {
 
     // Sort each day's activities by time
     for (const [, list] of map) {
-      list.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      list.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
     }
 
     return map;

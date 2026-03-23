@@ -2,6 +2,7 @@ export const APP_NAME = "Bilera";
 
 export const NAV_SECTIONS = [
   {
+    label: "",
     items: [
       { label: "Panel Principal", href: "/", icon: "LayoutDashboard" },
     ],
