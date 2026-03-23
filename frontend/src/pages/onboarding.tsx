@@ -107,7 +107,8 @@ export function OnboardingPage() {
         u.setupComplete = true;
         localStorage.setItem("user", JSON.stringify(u));
       }
-      navigate("/", { replace: true });
+      // Force full reload so AuthProvider refetches /me with updated setupComplete
+      window.location.href = "/";
     } catch {
       toast.error("Error al completar la configuración");
     }
