@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import { CheckCircle, Building2 } from "lucide-react";
+import { CheckCircle, UsersRound, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -16,6 +15,12 @@ import { APP_NAME } from "@/lib/constants";
 const API_BASE =
   import.meta.env.VITE_API_URL ||
   `${window.location.protocol}//${window.location.hostname}:4000/api`;
+
+const FEATURES = [
+  "Crear talleres y cursos",
+  "Compartir documentos",
+  "Gestionar tu comunidad",
+];
 
 export function RegistroPage() {
   const [loading, setLoading] = useState(false);
@@ -80,24 +85,33 @@ export function RegistroPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary">
-            <Building2 className="h-6 w-6 text-primary-foreground" />
+        <CardHeader className="text-center pb-2">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary">
+            <UsersRound className="h-7 w-7 text-primary-foreground" />
           </div>
-          <CardTitle className="text-2xl">Crear organización</CardTitle>
-          <CardDescription>
-            Registra tu organización en {APP_NAME}
-          </CardDescription>
+          <CardTitle className="text-2xl">Crear comunidad</CardTitle>
+          <p className="text-muted-foreground text-sm mt-1">
+            Gestiona cursos, talleres y documentos en un solo lugar
+          </p>
         </CardHeader>
         <CardContent>
+          <div className="space-y-1.5 mb-6">
+            {FEATURES.map((f) => (
+              <div key={f} className="flex items-center gap-2 text-sm">
+                <Check className="h-4 w-4 text-emerald-500 shrink-0" />
+                <span className="font-medium">{f}</span>
+              </div>
+            ))}
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="orgName">Nombre de la organización</Label>
+              <Label htmlFor="orgName">Nombre de la comunidad</Label>
               <Input
                 id="orgName"
                 name="orgName"
                 required
-                placeholder="Mi Asociación"
+                placeholder="Ej: Club de montaña, Asociación vecinal..."
               />
             </div>
 
@@ -128,7 +142,7 @@ export function RegistroPage() {
             )}
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Creando..." : "Crear organización"}
+              {loading ? "Creando..." : "Crear cuenta"}
             </Button>
 
             <div className="text-center">
