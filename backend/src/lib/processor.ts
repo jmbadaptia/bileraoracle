@@ -158,6 +158,67 @@ export async function processDocument(
   }
 }
 
+/**
+ * Process a text-only document (no file). Used for system documents like the user guide.
+ * Creates the document record, chunks, and embeddings.
+ */
+export async function processTextDocument(
+  tenantId: number,
+  userId: string,
+  title: string,
+  text: string,
+  visibility: string = "GENERAL"
+): Promise<string> {
+  const documentId = crypto.randomUUID();
+
+  await withTenant(tenantId, userId, async (conn) => {
+    await conn.execute(
+      `INSERT INTO documents (id, tenant_id, title, file_path, file_name, file_type, file_size, status, visibility, uploaded_by, extracted_text)
+       VALUES (:id, :tenantId, :title, :filePath, :fileName, 'text/plain', :fileSize, 'PROCESSING', :visibility, :userId, :text)`,
+      { id: documentId, tenantId, title, filePath: `/system/${documentId}`, fileName: `${documentId}.txt`, fileSize: text.length, visibility, userId, text }
+    );
+  });
+
+  // Chunk and embed
+  const chunks = chunkText(text);
+  let successCount = 0;
+
+  for (const chunk of chunks) {
+    const embResult = await getEmbedding(chunk.text);
+    if (embResult) {
+      trackAiUsage({ tenantId, userId, callType: "EMBEDDING", model: "cohere-embed-v3", inputChars: embResult.usage.inputChars });
+    }
+    await withTenant(tenantId, userId, async (conn) => {
+      await conn.execute(
+        `INSERT INTO document_chunks (id, tenant_id, document_id, chunk_index, content, embedding)
+         VALUES (:id, :tenantId, :docId, :idx, :content, :emb)`,
+        {
+          id: crypto.randomUUID(),
+          tenantId,
+          docId: documentId,
+          idx: chunk.index,
+          content: chunk.text,
+          emb: embResult ? { val: new Float32Array(embResult.embedding), type: oracledb.DB_TYPE_VECTOR } : null,
+        }
+      );
+    });
+    successCount++;
+    if (chunk.index < chunks.length - 1) await new Promise((r) => setTimeout(r, 100));
+  }
+
+  // Metadata embedding + mark ready
+  await generateMetadataEmbedding(documentId, tenantId, userId, title, null, `${documentId}.txt`);
+  await withTenant(tenantId, userId, async (conn) => {
+    await conn.execute(
+      `UPDATE documents SET status = 'READY', chunk_count = :cnt, updated_at = SYSTIMESTAMP WHERE id = :id`,
+      { id: documentId, cnt: successCount }
+    );
+  });
+
+  console.log(`System document "${title}" processed: ${successCount} chunks for tenant ${tenantId}`);
+  return documentId;
+}
+
 async function generateMetadataEmbedding(
   id: string, tenantId: number, userId: string,
   title: string, description: string | null, fileName: string

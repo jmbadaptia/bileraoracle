@@ -232,7 +232,7 @@ export async function chatRoutes(app: FastifyInstance) {
 
           // Search document chunks (actual content) for RAG
           const chunkResult = await conn.execute<any>(
-            `SELECT dc.document_id, dc.content, d.title,
+            `SELECT dc.document_id, dc.content, d.title, d.visibility,
                     VECTOR_DISTANCE(dc.embedding, :qvec, COSINE) AS distance
              FROM document_chunks dc
              JOIN documents d ON d.id = dc.document_id
@@ -249,12 +249,13 @@ export async function chatRoutes(app: FastifyInstance) {
               title: row.TITLE,
               description: row.CONTENT?.substring(0, 500),
               distance: row.DISTANCE,
+              visibility: row.VISIBILITY,
             });
           }
 
           // Also search document metadata for docs without chunks
           const docMetaResult = await conn.execute<any>(
-            `SELECT id, title, description,
+            `SELECT id, title, description, visibility,
                     VECTOR_DISTANCE(embedding, :qvec, COSINE) AS distance
              FROM documents WHERE embedding IS NOT NULL
              ORDER BY VECTOR_DISTANCE(embedding, :qvec, COSINE)
@@ -270,6 +271,7 @@ export async function chatRoutes(app: FastifyInstance) {
                 title: row.TITLE,
                 description: row.DESCRIPTION,
                 distance: row.DISTANCE,
+                visibility: row.VISIBILITY,
               });
             }
           }
@@ -474,12 +476,14 @@ Reglas:
       });
 
       // Send only sources that the LLM actually cited in its response
+      // SYSTEM documents (e.g. user guide) are used for RAG but hidden from the user
       const allSourcesPayload = relevant.map((s, i) => ({
         index: i + 1,
         type: s.type,
         id: s.id,
         title: s.title,
         distance: s.distance,
+        hidden: s.visibility === "SYSTEM",
       }));
 
       // Find which source indices were cited in the response (e.g. [1], [3])
@@ -494,8 +498,9 @@ Reglas:
       }
 
       // Only send sources that the LLM explicitly cited. No fallback.
+      // Filter out SYSTEM documents (user guide etc.) — they provide knowledge but shouldn't be shown
       const sourcesPayload = citedIndices.size > 0
-        ? allSourcesPayload.filter(s => citedIndices.has(s.index))
+        ? allSourcesPayload.filter(s => citedIndices.has(s.index) && !s.hidden)
         : [];
 
       if (citedIndices.size > 0) {

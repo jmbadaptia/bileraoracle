@@ -26,7 +26,7 @@ export async function documentRoutes(app: FastifyInstance) {
     const offset = (pageNum - 1) * limitNum;
 
     return withTenant(request.user.tenantId, request.user.id, async (conn) => {
-      let whereClause = "WHERE 1=1";
+      let whereClause = "WHERE (d.visibility IS NULL OR d.visibility != 'SYSTEM')";
       const countBinds: any = {};
       const listBinds: any = { limitNum, offset };
 
