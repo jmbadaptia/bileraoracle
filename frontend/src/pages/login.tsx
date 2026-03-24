@@ -150,24 +150,31 @@ export function LoginPage() {
 
         {/* Right: Login form */}
         <div className="p-8 sm:p-10 flex flex-col justify-center">
-          <div className="text-center mb-8">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary lg:hidden">
+          {/* Mobile: branding + features */}
+          <div className="lg:hidden text-center mb-6">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary">
               <Shield className="h-6 w-6 text-primary-foreground" />
             </div>
             <h1 className="text-2xl font-bold">{APP_NAME}</h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              Accede a tu comunidad<br />y gestiona cursos, talleres y documentos
+            <p className="text-muted-foreground text-sm mt-1 mb-4">
+              El espacio digital de tu comunidad
             </p>
+            <div className="space-y-1.5 inline-block text-left">
+              {FEATURES.map((f) => (
+                <div key={f} className="flex items-center gap-2 text-sm">
+                  <Check className="h-4 w-4 text-emerald-500 shrink-0" />
+                  <span className="font-medium">{f}</span>
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Features (mobile only) */}
-          <div className="space-y-1.5 mb-6 lg:hidden">
-            {FEATURES.map((f) => (
-              <div key={f} className="flex items-center gap-2 text-sm">
-                <Check className="h-4 w-4 text-emerald-500 shrink-0" />
-                <span className="font-medium">{f}</span>
-              </div>
-            ))}
+          {/* Desktop: simple greeting */}
+          <div className="hidden lg:block text-center mb-8">
+            <h1 className="text-2xl font-bold">¡Hola de nuevo!</h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              Inicia sesión para continuar
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
