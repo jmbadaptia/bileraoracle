@@ -1158,7 +1158,7 @@ export async function activityRoutes(app: FastifyInstance) {
           lines.push(``);
         }
 
-        archive.append(lines.join("\n"), { name: "resumen.txt" });
+        archive.append("\uFEFF" + lines.join("\n"), { name: "resumen.txt" });
       }
 
       // 2. Attendees CSV
@@ -1182,7 +1182,8 @@ export async function activityRoutes(app: FastifyInstance) {
         }
 
         if (csvLines.length > 1) {
-          archive.append(csvLines.join("\n"), { name: "asistentes.csv" });
+          // BOM + content for Excel UTF-8 compatibility
+          archive.append("\uFEFF" + csvLines.join("\n"), { name: "asistentes.csv" });
         }
       }
 
