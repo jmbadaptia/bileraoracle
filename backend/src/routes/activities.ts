@@ -1,8 +1,10 @@
 import { FastifyInstance } from "fastify";
 import { readFile } from "fs/promises";
 import { mkdir, writeFile } from "fs/promises";
+import { existsSync } from "fs";
 import path from "path";
 import oracledb from "oracledb";
+import archiver from "archiver";
 import { withTenant } from "../lib/db.js";
 import { requireAuth } from "../middleware/auth.js";
 import { getEmbedding, buildActivityText } from "../lib/ai.js";
@@ -1092,5 +1094,133 @@ export async function activityRoutes(app: FastifyInstance) {
     } catch {
       return reply.code(404).send({ error: "Image not found" });
     }
+  });
+
+  // POST /api/activities/:id/export-zip — export event as ZIP for grant justification
+  app.post("/api/activities/:id/export-zip", { preHandler: [requireAuth] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { includeSummary, includeAttendees, includeDocuments, includePhotos } =
+      request.body as { includeSummary?: boolean; includeAttendees?: boolean; includeDocuments?: boolean; includePhotos?: boolean };
+
+    return withTenant(request.user.tenantId, request.user.id, async (conn) => {
+      // Fetch activity
+      const actResult = await conn.execute<any>(
+        `SELECT a.title, a.description, a.type, a.status, a.start_date, a.location,
+                u.name AS owner_name
+         FROM activities a LEFT JOIN users u ON u.id = a.owner_id WHERE a.id = :id`,
+        { id }, { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      );
+      const act = actResult.rows?.[0];
+      if (!act) return reply.code(404).send({ error: "Evento no encontrado" });
+
+      const safeTitle = act.TITLE.replace(/[^a-zA-Z0-9\s\-_áéíóúñÁÉÍÓÚÑ]/g, "").trim();
+
+      reply.raw.setHeader("Content-Type", "application/zip");
+      reply.raw.setHeader("Content-Disposition", `attachment; filename="${safeTitle}.zip"`);
+
+      const archive = archiver("zip", { zlib: { level: 5 } });
+      archive.pipe(reply.raw);
+
+      // 1. Summary text file
+      if (includeSummary !== false) {
+        const dateStr = act.START_DATE
+          ? new Date(act.START_DATE).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
+          : "Sin fecha";
+        const lines = [
+          `RESUMEN DEL EVENTO`,
+          `==================`,
+          ``,
+          `Título: ${act.TITLE}`,
+          `Tipo: ${act.TYPE}`,
+          `Estado: ${act.STATUS}`,
+          `Fecha: ${dateStr}`,
+          `Lugar: ${act.LOCATION || "Sin definir"}`,
+          `Responsable: ${act.OWNER_NAME || "Sin asignar"}`,
+          ``,
+        ];
+        if (act.DESCRIPTION) {
+          lines.push(`Descripción:`, act.DESCRIPTION, ``);
+        }
+
+        // Sessions
+        const sessResult = await conn.execute<any>(
+          `SELECT session_num, session_date, time_start, time_end, title, content
+           FROM course_sessions WHERE activity_id = :id ORDER BY session_num`,
+          { id }, { outFormat: oracledb.OUT_FORMAT_OBJECT }
+        );
+        if (sessResult.rows?.length) {
+          lines.push(`Sesiones (${sessResult.rows.length}):`, ``);
+          for (const s of sessResult.rows) {
+            const sDate = s.SESSION_DATE ? new Date(s.SESSION_DATE).toLocaleDateString("es-ES", { day: "numeric", month: "long" }) : "";
+            lines.push(`  ${s.SESSION_NUM}. ${s.TITLE || "Sin título"} — ${sDate} ${s.TIME_START || ""}${s.TIME_END ? "–" + s.TIME_END : ""}`);
+            if (s.CONTENT) lines.push(`     ${s.CONTENT}`);
+          }
+          lines.push(``);
+        }
+
+        archive.append(lines.join("\n"), { name: "resumen.txt" });
+      }
+
+      // 2. Attendees CSV
+      if (includeAttendees !== false) {
+        const attResult = await conn.execute<any>(
+          `SELECT u.name, u.email, u.phone FROM activity_attendees aa JOIN users u ON u.id = aa.user_id WHERE aa.activity_id = :id ORDER BY u.name`,
+          { id }, { outFormat: oracledb.OUT_FORMAT_OBJECT }
+        );
+        // Also get enrolled participants
+        const enrollResult = await conn.execute<any>(
+          `SELECT name, email, phone, status FROM enrollments WHERE activity_id = :id AND status IN ('CONFIRMED', 'PENDING') ORDER BY name`,
+          { id }, { outFormat: oracledb.OUT_FORMAT_OBJECT }
+        );
+
+        const csvLines = ["Nombre;Email;Teléfono;Tipo"];
+        for (const a of attResult.rows || []) {
+          csvLines.push(`${a.NAME};${a.EMAIL || ""};${a.PHONE || ""};Miembro`);
+        }
+        for (const e of enrollResult.rows || []) {
+          csvLines.push(`${e.NAME};${e.EMAIL || ""};${e.PHONE || ""};Inscrito (${e.STATUS})`);
+        }
+
+        if (csvLines.length > 1) {
+          archive.append(csvLines.join("\n"), { name: "asistentes.csv" });
+        }
+      }
+
+      // 3. Linked documents
+      if (includeDocuments !== false) {
+        const docResult = await conn.execute<any>(
+          `SELECT d.file_path, d.file_name FROM document_activities da JOIN documents d ON d.id = da.document_id WHERE da.activity_id = :id`,
+          { id }, { outFormat: oracledb.OUT_FORMAT_OBJECT }
+        );
+        for (const d of docResult.rows || []) {
+          if (d.FILE_PATH && existsSync(d.FILE_PATH)) {
+            archive.file(d.FILE_PATH, { name: `documentos/${d.FILE_NAME}` });
+          }
+        }
+      }
+
+      // 4. Photos from linked albums
+      if (includePhotos !== false) {
+        const albumResult = await conn.execute<any>(
+          `SELECT a.id, a.title FROM album_activities aa JOIN albums a ON a.id = aa.album_id WHERE aa.activity_id = :id`,
+          { id }, { outFormat: oracledb.OUT_FORMAT_OBJECT }
+        );
+        for (const album of albumResult.rows || []) {
+          const photoResult = await conn.execute<any>(
+            `SELECT file_path, file_name FROM photos WHERE album_id = :albumId`,
+            { albumId: album.ID }, { outFormat: oracledb.OUT_FORMAT_OBJECT }
+          );
+          const albumFolder = album.TITLE.replace(/[^a-zA-Z0-9\s\-_áéíóúñÁÉÍÓÚÑ]/g, "").trim();
+          for (const p of photoResult.rows || []) {
+            if (p.FILE_PATH && existsSync(p.FILE_PATH)) {
+              archive.file(p.FILE_PATH, { name: `fotos/${albumFolder}/${p.FILE_NAME}` });
+            }
+          }
+        }
+      }
+
+      await archive.finalize();
+      return reply;
+    });
   });
 }

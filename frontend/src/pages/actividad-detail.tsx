@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router";
 import {
   Pencil, CalendarDays, MapPin, Users, UserPlus, UserMinus,
   Paperclip, FileText, Download, X, Upload, Plus, ImageIcon, Bot, Loader2,
-  Phone, Clock,
+  Phone, Clock, PackageOpen,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
@@ -15,6 +15,7 @@ import {
   useMembers, useAddAttendee, useRemoveAttendee,
   useAISummarize,
 } from "@/api/hooks";
+import { api } from "@/lib/api-client";
 import { formatDateTime, formatDate } from "@/lib/utils";
 import { ACTIVITY_TYPE_LABELS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
@@ -70,6 +71,9 @@ export function ActividadDetailPage() {
   const removeAttendee = useRemoveAttendee(id!);
   const summarize = useAISummarize();
   const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportOpts, setExportOpts] = useState({ summary: true, attendees: true, documents: true, photos: true });
 
   if (isLoading || !activity) {
     return (
@@ -133,6 +137,10 @@ export function ActividadDetailPage() {
               <Bot className="mr-1.5 h-4 w-4" />
             )}
             Resumir con IA
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setShowExportDialog(true)}>
+            <PackageOpen className="mr-1.5 h-4 w-4" />
+            Exportar
           </Button>
           {canEdit && (
             <Link to={`/actividades/${activity.id}/editar`}>
@@ -576,6 +584,82 @@ export function ActividadDetailPage() {
           }
         }}
       />
+
+      {/* Export dialog */}
+      <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Exportar evento</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Genera un archivo ZIP con la información del evento para adjuntar a subvenciones u otros trámites.
+          </p>
+          <div className="space-y-3 py-2">
+            {[
+              { key: "summary", label: "Resumen del evento", desc: "Título, fecha, lugar, descripción, sesiones" },
+              { key: "attendees", label: "Lista de asistentes", desc: "CSV con nombre, email y teléfono" },
+              { key: "documents", label: "Documentos adjuntos", desc: "PDFs y archivos vinculados" },
+              { key: "photos", label: "Fotos", desc: "Fotos de los álbumes vinculados" },
+            ].map((opt) => (
+              <label key={opt.key} className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={exportOpts[opt.key as keyof typeof exportOpts]}
+                  onChange={(e) => setExportOpts({ ...exportOpts, [opt.key]: e.target.checked })}
+                  className="mt-1"
+                />
+                <div>
+                  <p className="text-sm font-medium">{opt.label}</p>
+                  <p className="text-xs text-muted-foreground">{opt.desc}</p>
+                </div>
+              </label>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowExportDialog(false)}>Cancelar</Button>
+            <Button
+              disabled={exporting}
+              onClick={async () => {
+                setExporting(true);
+                try {
+                  const res = await fetch(
+                    `${import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:4000/api`}/activities/${id}/export-zip`,
+                    {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${localStorage.getItem("token")}`,
+                      },
+                      body: JSON.stringify({
+                        includeSummary: exportOpts.summary,
+                        includeAttendees: exportOpts.attendees,
+                        includeDocuments: exportOpts.documents,
+                        includePhotos: exportOpts.photos,
+                      }),
+                    }
+                  );
+                  if (!res.ok) throw new Error("Error al exportar");
+                  const blob = await res.blob();
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `${activity.title}.zip`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                  setShowExportDialog(false);
+                  toast.success("Evento exportado");
+                } catch {
+                  toast.error("Error al exportar el evento");
+                }
+                setExporting(false);
+              }}
+            >
+              <Download className="mr-1.5 h-4 w-4" />
+              {exporting ? "Exportando..." : "Descargar ZIP"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
