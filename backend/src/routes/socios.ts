@@ -1,6 +1,7 @@
 import { FastifyInstance } from "fastify";
 import crypto from "crypto";
 import oracledb from "oracledb";
+import * as XLSX from "xlsx";
 import { withTenant } from "../lib/db.js";
 import { requireAuth, requireAdmin } from "../middleware/auth.js";
 
@@ -197,5 +198,126 @@ export async function socioRoutes(app: FastifyInstance) {
       await conn.execute(`DELETE FROM socios WHERE id = :id`, { id });
       return { ok: true };
     });
+  });
+
+  // POST /api/socios/preview-import — parse Excel and return preview
+  app.post("/api/socios/preview-import", { preHandler: [requireAdmin] }, async (request, reply) => {
+    const file = await request.file();
+    if (!file) return reply.code(400).send({ error: "Archivo requerido" });
+
+    const buffer = await file.toBuffer();
+    const workbook = XLSX.read(buffer, { type: "buffer" });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+    if (!rows.length) return reply.code(400).send({ error: "El archivo está vacío" });
+
+    // Try to map column names (flexible matching)
+    const colMap: Record<string, string> = {};
+    const headers = Object.keys(rows[0]);
+    const mappings: [string, RegExp][] = [
+      ["nombre", /^nombre$/i],
+      ["apellidos", /^apellido/i],
+      ["dni", /^(dni|nif|cif|documento)/i],
+      ["email", /^(email|correo|e-mail|mail)/i],
+      ["telefono", /^(tel[eé]fono|tel|phone|m[oó]vil)/i],
+      ["direccion", /^(direcci[oó]n|domicilio|address)/i],
+      ["numeroSocio", /^(n[uú]mero|n[º°]|num|socio)/i],
+    ];
+
+    for (const [field, regex] of mappings) {
+      const match = headers.find(h => regex.test(h.trim()));
+      if (match) colMap[field] = match;
+    }
+
+    // If no "nombre" column found, try first column
+    if (!colMap.nombre && headers.length > 0) {
+      colMap.nombre = headers[0];
+    }
+
+    const preview = rows.slice(0, 20).map(row => ({
+      nombre: row[colMap.nombre] || "",
+      apellidos: row[colMap.apellidos] || "",
+      dni: row[colMap.dni] || "",
+      email: row[colMap.email] || "",
+      telefono: String(row[colMap.telefono] || ""),
+      direccion: row[colMap.direccion] || "",
+      numeroSocio: String(row[colMap.numeroSocio] || ""),
+    }));
+
+    return {
+      totalRows: rows.length,
+      columns: headers,
+      mapping: colMap,
+      preview,
+    };
+  });
+
+  // POST /api/socios/import — import socios from Excel
+  app.post("/api/socios/import", { preHandler: [requireAdmin] }, async (request, reply) => {
+    const file = await request.file();
+    if (!file) return reply.code(400).send({ error: "Archivo requerido" });
+
+    const fields = file.fields as Record<string, { value?: string }>;
+    const mappingJson = fields.mapping?.value;
+    const mapping = mappingJson ? JSON.parse(mappingJson) : null;
+
+    const buffer = await file.toBuffer();
+    const workbook = XLSX.read(buffer, { type: "buffer" });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+    if (!rows.length) return reply.code(400).send({ error: "El archivo está vacío" });
+
+    // Use provided mapping or auto-detect
+    const colMap = mapping || {};
+    if (!colMap.nombre) {
+      const headers = Object.keys(rows[0]);
+      const mappings: [string, RegExp][] = [
+        ["nombre", /^nombre$/i],
+        ["apellidos", /^apellido/i],
+        ["dni", /^(dni|nif|cif|documento)/i],
+        ["email", /^(email|correo|e-mail|mail)/i],
+        ["telefono", /^(tel[eé]fono|tel|phone|m[oó]vil)/i],
+        ["direccion", /^(direcci[oó]n|domicilio|address)/i],
+        ["numeroSocio", /^(n[uú]mero|n[º°]|num|socio)/i],
+      ];
+      for (const [field, regex] of mappings) {
+        const match = headers.find(h => regex.test(h.trim()));
+        if (match) colMap[field] = match;
+      }
+      if (!colMap.nombre && headers.length > 0) colMap.nombre = headers[0];
+    }
+
+    let imported = 0;
+    let skipped = 0;
+
+    await withTenant(request.user.tenantId, request.user.id, async (conn) => {
+      for (const row of rows) {
+        const nombre = String(row[colMap.nombre] || "").trim();
+        if (!nombre) { skipped++; continue; }
+
+        const id = crypto.randomUUID();
+        await conn.execute(
+          `INSERT INTO socios (id, tenant_id, nombre, apellidos, dni, email, telefono, direccion, numero_socio, created_by)
+           VALUES (:id, :tenantId, :nombre, :apellidos, :dni, :email, :telefono, :direccion, :numeroSocio, :createdBy)`,
+          {
+            id,
+            tenantId: request.user.tenantId,
+            nombre,
+            apellidos: String(row[colMap.apellidos] || "").trim() || null,
+            dni: String(row[colMap.dni] || "").trim() || null,
+            email: String(row[colMap.email] || "").trim().toLowerCase() || null,
+            telefono: String(row[colMap.telefono] || "").trim() || null,
+            direccion: String(row[colMap.direccion] || "").trim() || null,
+            numeroSocio: String(row[colMap.numeroSocio] || "").trim() || null,
+            createdBy: request.user.id,
+          }
+        );
+        imported++;
+      }
+    });
+
+    return { imported, skipped, total: rows.length };
   });
 }

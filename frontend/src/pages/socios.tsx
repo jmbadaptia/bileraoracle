@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router";
-import { Plus, Search, UserCheck, Mail, Phone, Trash2, LayoutGrid, List } from "lucide-react";
+import { Plus, Search, UserCheck, Mail, Phone, Trash2, LayoutGrid, List, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { useSocios, useDeleteSocio } from "@/api/hooks";
+import { api } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,10 @@ export function SociosPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const deleteSocio = useDeleteSocio();
+  const [showImport, setShowImport] = useState(false);
+  const [importPreview, setImportPreview] = useState<any>(null);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importing, setImporting] = useState(false);
 
   const params: Record<string, string> = {};
   if (search) params.q = search;
@@ -47,12 +52,18 @@ export function SociosPage() {
           <p className="text-muted-foreground">Registro de personas asociadas a tu comunidad</p>
         </div>
         {isAdmin && (
-          <Link to="/socios/nuevo">
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Nuevo
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowImport(true)}>
+              <Upload className="mr-2 h-4 w-4" />
+              Importar
             </Button>
-          </Link>
+            <Link to="/socios/nuevo">
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Nuevo
+              </Button>
+            </Link>
+          </div>
         )}
       </div>
 
@@ -156,6 +167,113 @@ export function SociosPage() {
                 });
               }}
             >Eliminar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Import dialog */}
+      <Dialog open={showImport} onOpenChange={(v) => { if (!v) { setShowImport(false); setImportPreview(null); setImportFile(null); } }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Importar socios desde Excel</DialogTitle>
+          </DialogHeader>
+
+          {!importPreview ? (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Sube un archivo Excel (.xlsx) con los datos de los socios. Las columnas se detectan automáticamente por su nombre (Nombre, Apellidos, DNI, Email, Teléfono, Dirección, Nº Socio).
+              </p>
+              <div className="flex items-center gap-3">
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={async (e) => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    setImportFile(f);
+                    try {
+                      const fd = new FormData();
+                      fd.append("file", f);
+                      const res = await api.upload<any>("/socios/preview-import", fd);
+                      setImportPreview(res);
+                    } catch (err: any) {
+                      toast.error(err?.message || "Error al leer el archivo");
+                    }
+                  }}
+                  className="text-sm"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Se encontraron <strong>{importPreview.totalRows}</strong> filas. Vista previa de las primeras {importPreview.preview.length}:
+              </p>
+
+              <div className="max-h-64 overflow-auto rounded-lg border">
+                <table className="w-full text-xs">
+                  <thead className="bg-muted sticky top-0">
+                    <tr>
+                      <th className="px-2 py-1.5 text-left font-medium">Nombre</th>
+                      <th className="px-2 py-1.5 text-left font-medium">Apellidos</th>
+                      <th className="px-2 py-1.5 text-left font-medium">DNI</th>
+                      <th className="px-2 py-1.5 text-left font-medium">Email</th>
+                      <th className="px-2 py-1.5 text-left font-medium">Teléfono</th>
+                      <th className="px-2 py-1.5 text-left font-medium">Nº Socio</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {importPreview.preview.map((row: any, i: number) => (
+                      <tr key={i}>
+                        <td className="px-2 py-1">{row.nombre}</td>
+                        <td className="px-2 py-1">{row.apellidos}</td>
+                        <td className="px-2 py-1">{row.dni}</td>
+                        <td className="px-2 py-1">{row.email}</td>
+                        <td className="px-2 py-1">{row.telefono}</td>
+                        <td className="px-2 py-1">{row.numeroSocio}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {importPreview.totalRows > importPreview.preview.length && (
+                <p className="text-xs text-muted-foreground">
+                  ... y {importPreview.totalRows - importPreview.preview.length} más
+                </p>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowImport(false); setImportPreview(null); setImportFile(null); }}>
+              Cancelar
+            </Button>
+            {importPreview && (
+              <Button
+                disabled={importing}
+                onClick={async () => {
+                  if (!importFile) return;
+                  setImporting(true);
+                  try {
+                    const fd = new FormData();
+                    fd.append("file", importFile);
+                    fd.append("mapping", JSON.stringify(importPreview.mapping));
+                    const res = await api.upload<any>("/socios/import", fd);
+                    toast.success(`${res.imported} socios importados${res.skipped ? ` (${res.skipped} omitidos)` : ""}`);
+                    setShowImport(false);
+                    setImportPreview(null);
+                    setImportFile(null);
+                    window.location.reload();
+                  } catch (err: any) {
+                    toast.error(err?.message || "Error al importar");
+                  }
+                  setImporting(false);
+                }}
+              >
+                {importing ? "Importando..." : `Importar ${importPreview.totalRows} socios`}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
