@@ -36,7 +36,8 @@ export async function groupRoutes(app: FastifyInstance) {
 
       const result = await conn.execute<any>(
         `SELECT g.id, g.name, g.description, g.created_at,
-                (SELECT COUNT(*) FROM group_members gm WHERE gm.group_id = g.id) AS member_count
+                (SELECT COUNT(*) FROM group_members gm WHERE gm.group_id = g.id) +
+                (SELECT COUNT(*) FROM group_participants gp WHERE gp.group_id = g.id) AS member_count
          FROM groups g
          ${whereClause}
          ORDER BY g.name
@@ -109,28 +110,56 @@ export async function groupRoutes(app: FastifyInstance) {
         return reply.code(404).send({ error: "Grupo no encontrado" });
       }
 
-      // Get members
-      const membersResult = await conn.execute<any>(
+      // Get user members (legacy table)
+      const usersResult = await conn.execute<any>(
         `SELECT u.id, u.name, u.email, u.avatar_path
-         FROM group_members gm
-         JOIN users u ON u.id = gm.user_id
-         WHERE gm.group_id = :groupId
-         ORDER BY u.name`,
+         FROM group_members gm JOIN users u ON u.id = gm.user_id
+         WHERE gm.group_id = :groupId ORDER BY u.name`,
         { groupId: id },
         { outFormat: oracledb.OUT_FORMAT_OBJECT }
       );
+
+      // Get participants (socios + contacts)
+      const participantsResult = await conn.execute<any>(
+        `SELECT gp.id AS participant_id, gp.member_type, gp.member_id FROM group_participants gp WHERE gp.group_id = :groupId`,
+        { groupId: id },
+        { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      );
+
+      // Resolve names for socios and contacts
+      const members: any[] = [];
+
+      // Users
+      for (const u of usersResult.rows || []) {
+        members.push({ id: u.ID, name: u.NAME, email: u.EMAIL, avatarPath: u.AVATAR_PATH, memberType: "USER", participantId: null });
+      }
+
+      // Socios + Contacts from group_participants
+      for (const p of participantsResult.rows || []) {
+        if (p.MEMBER_TYPE === "USER") {
+          // Also check if already added from group_members
+          if (!members.find(m => m.id === p.MEMBER_ID)) {
+            const uResult = await conn.execute<any>(`SELECT id, name, email FROM users WHERE id = :id`, { id: p.MEMBER_ID }, { outFormat: oracledb.OUT_FORMAT_OBJECT });
+            const u = uResult.rows?.[0];
+            if (u) members.push({ id: u.ID, name: u.NAME, email: u.EMAIL, memberType: "USER", participantId: p.PARTICIPANT_ID });
+          }
+        } else if (p.MEMBER_TYPE === "SOCIO") {
+          const sResult = await conn.execute<any>(`SELECT id, nombre, apellidos, email FROM socios WHERE id = :id`, { id: p.MEMBER_ID }, { outFormat: oracledb.OUT_FORMAT_OBJECT });
+          const s = sResult.rows?.[0];
+          if (s) members.push({ id: s.ID, name: [s.NOMBRE, s.APELLIDOS].filter(Boolean).join(" "), email: s.EMAIL, memberType: "SOCIO", participantId: p.PARTICIPANT_ID });
+        } else if (p.MEMBER_TYPE === "CONTACT") {
+          const cResult = await conn.execute<any>(`SELECT id, name, email FROM contacts WHERE id = :id`, { id: p.MEMBER_ID }, { outFormat: oracledb.OUT_FORMAT_OBJECT });
+          const c = cResult.rows?.[0];
+          if (c) members.push({ id: c.ID, name: c.NAME, email: c.EMAIL, memberType: "CONTACT", participantId: p.PARTICIPANT_ID });
+        }
+      }
 
       return {
         id: group.ID,
         name: group.NAME,
         description: group.DESCRIPTION,
         createdAt: group.CREATED_AT,
-        members: (membersResult.rows || []).map((row: any) => ({
-          id: row.ID,
-          name: row.NAME,
-          email: row.EMAIL,
-          avatarPath: row.AVATAR_PATH,
-        })),
+        members,
       };
     });
   });
@@ -138,10 +167,7 @@ export async function groupRoutes(app: FastifyInstance) {
   // PUT /api/groups/:id
   app.put("/api/groups/:id", { preHandler: [requireAdmin] }, async (request, reply) => {
     const { id } = request.params as { id: string };
-    const { name, description } = request.body as {
-      name?: string;
-      description?: string;
-    };
+    const { name, description } = request.body as { name?: string; description?: string };
 
     if (!name || name.trim().length === 0) {
       return reply.code(400).send({ error: "El nombre es obligatorio" });
@@ -152,11 +178,7 @@ export async function groupRoutes(app: FastifyInstance) {
         `UPDATE groups SET name = :name, description = :description WHERE id = :id`,
         { name: name.trim(), description: description || null, id }
       );
-
-      if (result.rowsAffected === 0) {
-        return reply.code(404).send({ error: "Grupo no encontrado" });
-      }
-
+      if (result.rowsAffected === 0) return reply.code(404).send({ error: "Grupo no encontrado" });
       return { id, name: name.trim(), description: description || null };
     });
   });
@@ -166,48 +188,45 @@ export async function groupRoutes(app: FastifyInstance) {
     const { id } = request.params as { id: string };
 
     return withTenant(request.user.tenantId, request.user.id, async (conn) => {
-      const result = await conn.execute<any>(
-        `DELETE FROM groups WHERE id = :id`,
-        { id }
-      );
-
-      if (result.rowsAffected === 0) {
-        return reply.code(404).send({ error: "Grupo no encontrado" });
-      }
-
+      const result = await conn.execute<any>(`DELETE FROM groups WHERE id = :id`, { id });
+      if (result.rowsAffected === 0) return reply.code(404).send({ error: "Grupo no encontrado" });
       return { ok: true };
     });
   });
 
-  // POST /api/groups/:id/members — add member to group
+  // POST /api/groups/:id/members — add member (user, socio, or contact)
   app.post("/api/groups/:id/members", { preHandler: [requireAdmin] }, async (request, reply) => {
     const { id } = request.params as { id: string };
-    const { userId } = request.body as { userId: string };
-
-    if (!userId) {
-      return reply.code(400).send({ error: "userId es obligatorio" });
-    }
+    const { userId, memberId, memberType } = request.body as { userId?: string; memberId?: string; memberType?: string };
 
     return withTenant(request.user.tenantId, request.user.id, async (conn) => {
       // Verify group exists
-      const groupResult = await conn.execute<any>(
-        `SELECT id FROM groups WHERE id = :id`,
-        { id },
-        { outFormat: oracledb.OUT_FORMAT_OBJECT }
-      );
-      if (!groupResult.rows?.length) {
-        return reply.code(404).send({ error: "Grupo no encontrado" });
+      const groupResult = await conn.execute<any>(`SELECT id FROM groups WHERE id = :id`, { id }, { outFormat: oracledb.OUT_FORMAT_OBJECT });
+      if (!groupResult.rows?.length) return reply.code(404).send({ error: "Grupo no encontrado" });
+
+      // Legacy: userId only (backward compat)
+      if (userId && !memberType) {
+        try {
+          await conn.execute(`INSERT INTO group_members (group_id, user_id) VALUES (:groupId, :userId)`, { groupId: id, userId });
+        } catch (err: any) {
+          if (err.errorNum === 1) return reply.code(409).send({ error: "Ya es miembro del grupo" });
+          throw err;
+        }
+        return reply.code(201).send({ ok: true });
       }
+
+      // New: memberId + memberType
+      const mId = memberId || userId;
+      const mType = memberType || "USER";
+      if (!mId) return reply.code(400).send({ error: "memberId es obligatorio" });
 
       try {
         await conn.execute(
-          `INSERT INTO group_members (group_id, user_id) VALUES (:groupId, :userId)`,
-          { groupId: id, userId }
+          `INSERT INTO group_participants (id, group_id, member_type, member_id) VALUES (:id, :groupId, :memberType, :memberId)`,
+          { id: crypto.randomUUID(), groupId: id, memberType: mType, memberId: mId }
         );
       } catch (err: any) {
-        if (err.errorNum === 1) {
-          return reply.code(409).send({ error: "El usuario ya es miembro del grupo" });
-        }
+        if (err.errorNum === 1) return reply.code(409).send({ error: "Ya es miembro del grupo" });
         throw err;
       }
 
@@ -215,21 +234,27 @@ export async function groupRoutes(app: FastifyInstance) {
     });
   });
 
-  // DELETE /api/groups/:id/members/:userId — remove member from group
-  app.delete("/api/groups/:id/members/:userId", { preHandler: [requireAdmin] }, async (request, reply) => {
-    const { id, userId } = request.params as { id: string; userId: string };
+  // DELETE /api/groups/:id/members/:memberId — remove member
+  app.delete("/api/groups/:id/members/:memberId", { preHandler: [requireAdmin] }, async (request, reply) => {
+    const { id, memberId } = request.params as { id: string; memberId: string };
+    const { memberType } = request.query as { memberType?: string };
 
     return withTenant(request.user.tenantId, request.user.id, async (conn) => {
-      const result = await conn.execute<any>(
+      // Try legacy table first
+      const legacyResult = await conn.execute<any>(
         `DELETE FROM group_members WHERE group_id = :groupId AND user_id = :userId`,
-        { groupId: id, userId }
+        { groupId: id, userId: memberId }
       );
+      if (legacyResult.rowsAffected && legacyResult.rowsAffected > 0) return { ok: true };
 
-      if (result.rowsAffected === 0) {
-        return reply.code(404).send({ error: "Miembro no encontrado en el grupo" });
-      }
+      // Try new table
+      const newResult = await conn.execute<any>(
+        `DELETE FROM group_participants WHERE group_id = :groupId AND member_id = :memberId`,
+        { groupId: id, memberId }
+      );
+      if (newResult.rowsAffected && newResult.rowsAffected > 0) return { ok: true };
 
-      return { ok: true };
+      return reply.code(404).send({ error: "Miembro no encontrado en el grupo" });
     });
   });
 }

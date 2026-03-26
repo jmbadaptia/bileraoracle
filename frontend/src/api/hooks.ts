@@ -664,8 +664,10 @@ export function useDeleteGroup() {
 export function useAddGroupMember(groupId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (userId: string) =>
-      api.post(`/groups/${groupId}/members`, { userId }),
+    mutationFn: (data: string | { memberId: string; memberType: string }) => {
+      if (typeof data === "string") return api.post(`/groups/${groupId}/members`, { userId: data });
+      return api.post(`/groups/${groupId}/members`, data);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["groups", groupId] });
       qc.invalidateQueries({ queryKey: ["groups"] });
