@@ -21,6 +21,9 @@ import { AlbumFormPage } from "@/pages/album-form";
 import { ContactosPage } from "@/pages/contactos";
 import { ContactoDetailPage } from "@/pages/contacto-detail";
 import { ContactoFormPage } from "@/pages/contacto-form";
+import { SociosPage } from "@/pages/socios";
+import { SocioDetailPage } from "@/pages/socio-detail";
+import { SocioFormPage } from "@/pages/socio-form";
 import { MiembrosPage } from "@/pages/miembros";
 import { MiembroDetailPage } from "@/pages/miembro-detail";
 import { GruposPage } from "@/pages/grupos";
@@ -109,6 +112,10 @@ export function App() {
         <Route path="contactos/nuevo" element={<ContactoFormPage />} />
         <Route path="contactos/:id" element={<ContactoDetailPage />} />
         <Route path="contactos/:id/editar" element={<ContactoFormPage />} />
+        <Route path="socios" element={<SociosPage />} />
+        <Route path="socios/nuevo" element={<SocioFormPage />} />
+        <Route path="socios/:id" element={<SocioDetailPage />} />
+        <Route path="socios/:id/editar" element={<SocioFormPage />} />
         <Route path="inscripciones" element={<InscripcionesPage />} />
         <Route path="inscripciones/nueva" element={<InscripcionFormPage />} />
         <Route path="inscripciones/:id" element={<InscripcionDetailPage />} />

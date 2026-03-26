@@ -22,6 +22,7 @@ import {
   PanelLeftClose,
   PanelLeft,
   ChevronDown,
+  UserCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_NAME, NAV_SECTIONS } from "@/lib/constants";
@@ -44,6 +45,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Building2,
   CalendarCheck,
   ClipboardList,
+  UserCheck,
 };
 
 interface SidebarProps {

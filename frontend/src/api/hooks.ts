@@ -571,6 +571,50 @@ export function useContactCategories() {
   });
 }
 
+// ---- Socios ----
+export function useSocios(params?: Record<string, string>) {
+  const search = new URLSearchParams(params).toString();
+  return useQuery({
+    queryKey: ["socios", params],
+    queryFn: () => api.get<any>(`/socios${search ? `?${search}` : ""}`),
+  });
+}
+
+export function useSocio(id: string) {
+  return useQuery({
+    queryKey: ["socios", id],
+    queryFn: () => api.get<any>(`/socios/${id}`),
+    enabled: !!id,
+  });
+}
+
+export function useCreateSocio() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => api.post("/socios", data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["socios"] }),
+  });
+}
+
+export function useUpdateSocio(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => api.put(`/socios/${id}`, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["socios"] });
+      qc.invalidateQueries({ queryKey: ["socios", id] });
+    },
+  });
+}
+
+export function useDeleteSocio() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/socios/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["socios"] }),
+  });
+}
+
 // ---- Groups ----
 export function useGroups(params?: Record<string, string>) {
   const search = new URLSearchParams(params).toString();

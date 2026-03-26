@@ -19,6 +19,7 @@ export const NAV_SECTIONS = [
   {
     label: "Personas",
     items: [
+      { label: "Socios", href: "/socios", icon: "UserCheck" },
       { label: "Colaboradores", href: "/contactos", icon: "Contact" },
       { label: "Grupos de trabajo", href: "/grupos", icon: "UsersRound" },
     ],
