@@ -259,7 +259,7 @@ export function InscripcionFormPage() {
       else {
         const res: any = await createActivity.mutateAsync(data);
         actId = res.id;
-        toast.success(ps === "PUBLISHED" ? "Curso publicado" : "Borrador guardado");
+        toast.success(statusValue === "PUBLISHED" ? "Curso publicado" : "Borrador guardado");
         const pendingFile = (coverInputRef.current as any)?.__pendingFile;
         if (pendingFile && actId) { const fd = new FormData(); fd.append("file", pendingFile); await api.upload(`/activities/${actId}/cover`, fd); }
       }

@@ -163,7 +163,7 @@ export function KanbanView({ activities, mode = "tasks" }: { activities: any[]; 
 
   const statusColumns = mode === "activities" ? ACTIVITY_COLUMNS : TASK_COLUMNS;
   const defaultStatus = mode === "activities" ? "DRAFT" : "PENDING";
-  const validIds = statusColumns.map(c => c.id);
+  const validIds: string[] = statusColumns.map(c => c.id);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
