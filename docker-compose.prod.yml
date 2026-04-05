@@ -72,6 +72,10 @@ services:
       SMTP_PASS: ${SMTP_PASS}
       SMTP_FROM: ${SMTP_FROM}
       APP_URL: https://bilera.adaptiaservices.com
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI}
+      CLOUD_TOKEN_SECRET: ${CLOUD_TOKEN_SECRET}
     volumes:
       - uploads:/app/uploads
     depends_on:
