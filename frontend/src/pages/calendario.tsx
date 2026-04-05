@@ -25,7 +25,7 @@ const WEEKDAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
 // Layer toggle config
 const LAYERS = [
-  { key: "activities", label: "Actividades", types: ["EVENT", "TALLER", "OTHER"], dotColor: "bg-emerald-500", activeColor: "bg-emerald-100 text-emerald-800 border-emerald-300" },
+  { key: "activities", label: "Actividades", types: ["EVENT", "CURSO", "TALLER", "OTHER"], dotColor: "bg-emerald-500", activeColor: "bg-emerald-100 text-emerald-800 border-emerald-300" },
   { key: "tasks", label: "Tareas", types: ["TASK"], dotColor: "bg-blue-500", activeColor: "bg-blue-100 text-blue-800 border-blue-300" },
   { key: "meetings", label: "Reuniones", types: ["MEETING"], dotColor: "bg-sky-500", activeColor: "bg-sky-100 text-sky-800 border-sky-300" },
 ] as const;

@@ -54,12 +54,13 @@ export const ACTIVITY_TYPE_LABELS: Record<string, string> = {
   TASK: "Tarea",
   MEETING: "Reunión",
   EVENT: "Evento",
+  CURSO: "Curso",
   TALLER: "Taller",
   OTHER: "Otros",
 };
 
 /** Types shown in the public Actividades section (excludes internal types) */
-export const PUBLIC_ACTIVITY_TYPES = ["EVENT", "TALLER", "OTHER"] as const;
+export const PUBLIC_ACTIVITY_TYPES = ["EVENT", "CURSO", "TALLER", "OTHER"] as const;
 
 export const ACTIVITY_STATUS_LABELS: Record<string, string> = {
   PENDING: "Pendiente",
@@ -94,6 +95,7 @@ export const ACTIVITY_TYPE_CONFIG: Record<string, { label: string; color: string
   TASK: { label: "Tarea", color: "bg-blue-100 text-blue-800 border-blue-200" },
   MEETING: { label: "Reunión", color: "bg-sky-100 text-sky-800 border-sky-200" },
   EVENT: { label: "Evento", color: "bg-emerald-100 text-emerald-800 border-emerald-200" },
+  CURSO: { label: "Curso", color: "bg-red-100 text-red-800 border-red-200" },
   TALLER: { label: "Taller", color: "bg-violet-100 text-violet-800 border-violet-200" },
   OTHER: { label: "Otros", color: "bg-gray-100 text-gray-800 border-gray-200" },
 };

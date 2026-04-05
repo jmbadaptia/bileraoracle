@@ -174,7 +174,7 @@ export function InscripcionFormPage() {
   const [enrollmentPrice, setEnrollmentPrice] = useState("0");
   const [enrollmentDeadline, setEnrollmentDeadline] = useState("");
   const [enrollmentMode, setEnrollmentMode] = useState("FIFO");
-  const [courseType, setCourseType] = useState("EVENT");
+  const [courseType, setCourseType] = useState("CURSO");
   const [publishDate, setPublishDate] = useState("");
   const [programText, setProgramText] = useState("");
   const [programDoc, setProgramDoc] = useState<{ id: string; title: string; fileName: string } | null>(null);
@@ -419,7 +419,7 @@ export function InscripcionFormPage() {
             <div className="space-y-2">
               <Label>Tipo</Label>
               <div className="flex gap-2">
-                {[{ v: "EVENT", l: "Curso" }, { v: "TALLER", l: "Taller" }].map(t => (
+                {[{ v: "CURSO", l: "Curso" }, { v: "TALLER", l: "Taller" }].map(t => (
                   <button key={t.v} type="button" onClick={() => setCourseType(t.v)}
                     className={cn("flex-1 h-10 rounded-lg border transition-colors text-sm font-medium",
                       courseType === t.v ? "border-primary bg-primary text-primary-foreground" : "border-input text-muted-foreground hover:border-primary/30")}>
