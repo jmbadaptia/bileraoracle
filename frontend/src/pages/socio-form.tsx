@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function SocioFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -75,70 +75,85 @@ export function SocioFormPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">
-          {isEdit ? "Editar socio" : "Registrar socio"}
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {isEdit ? "Modifica los datos del socio" : "Añade un nuevo miembro a la organización"}
-        </p>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {isEdit ? "Editar socio" : "Registrar socio"}
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {isEdit ? "Modifica los datos del socio" : "Añade un nuevo miembro a la organización"}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" onClick={() => navigate(-1)}>Cancelar</Button>
+          <Button onClick={handleSubmit} disabled={createSocio.isPending || updateSocio.isPending}>
+            {isEdit ? "Guardar cambios" : "Registrar socio"}
+          </Button>
+        </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
-        {/* Información personal */}
-        <Card>
-          <CardContent className="pt-6 space-y-4">
-            <h2 className="text-base font-semibold">Información personal</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Nombre *</Label>
-                <Input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Nombre" required />
+      <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+        {/* Left column */}
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Información personal</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Nombre *</Label>
+                  <Input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Nombre" required />
+                </div>
+                <div className="space-y-2">
+                  <Label>Apellidos</Label>
+                  <Input value={apellidos} onChange={(e) => setApellidos(e.target.value)} placeholder="Apellidos" />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Apellidos</Label>
-                <Input value={apellidos} onChange={(e) => setApellidos(e.target.value)} placeholder="Apellidos" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>DNI / NIF</Label>
+                  <Input value={dni} onChange={(e) => setDni(e.target.value)} placeholder="12345678A" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Nº de socio</Label>
+                  <Input value={numeroSocio} onChange={(e) => setNumeroSocio(e.target.value)} placeholder="001" />
+                </div>
               </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>DNI / NIF</Label>
-                <Input value={dni} onChange={(e) => setDni(e.target.value)} placeholder="12345678A" />
-              </div>
-              <div className="space-y-2">
-                <Label>Nº de socio</Label>
-                <Input value={numeroSocio} onChange={(e) => setNumeroSocio(e.target.value)} placeholder="001" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* Contacto */}
-        <Card>
-          <CardContent className="pt-6 space-y-4">
-            <h2 className="text-base font-semibold">Contacto</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Email</Label>
-                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="socio@email.com" />
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Contacto</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="socio@email.com" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Teléfono</Label>
+                  <Input value={telefono} onChange={(e) => setTelefono(e.target.value)} placeholder="600 000 000" />
+                </div>
               </div>
               <div className="space-y-2">
-                <Label>Teléfono</Label>
-                <Input value={telefono} onChange={(e) => setTelefono(e.target.value)} placeholder="600 000 000" />
+                <Label>Dirección</Label>
+                <Input value={direccion} onChange={(e) => setDireccion(e.target.value)} placeholder="Calle, número, ciudad..." />
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Dirección</Label>
-              <Input value={direccion} onChange={(e) => setDireccion(e.target.value)} placeholder="Calle, número, ciudad..." />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
 
-        {/* Información interna */}
-        <Card>
-          <CardContent className="pt-6 space-y-4">
-            <h2 className="text-base font-semibold">Información interna</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Right column */}
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Información interna</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Fecha de alta</Label>
                 <Input type="date" value={fechaAlta} onChange={(e) => setFechaAlta(e.target.value)} />
@@ -153,19 +168,12 @@ export function SocioFormPage() {
                   </select>
                 </div>
               )}
-            </div>
-            <div className="space-y-2">
-              <Label>Notas</Label>
-              <Textarea value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Observaciones..." rows={3} />
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="flex justify-end gap-3">
-          <Button type="button" variant="outline" onClick={() => navigate(-1)}>Cancelar</Button>
-          <Button type="submit" disabled={createSocio.isPending || updateSocio.isPending}>
-            {isEdit ? "Guardar cambios" : "Registrar socio"}
-          </Button>
+              <div className="space-y-2">
+                <Label>Notas</Label>
+                <Textarea value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Observaciones..." rows={3} />
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </form>
     </div>
