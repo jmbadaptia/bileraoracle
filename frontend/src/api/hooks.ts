@@ -117,10 +117,11 @@ export function useUpdateActivityStatus() {
   });
 }
 
-export function useActivitiesForCalendar(from: string, to: string) {
+export function useActivitiesForCalendar(from: string, to: string, extraParams?: Record<string, string>) {
+  const qs = new URLSearchParams({ from, to, limit: "500", ...extraParams }).toString();
   return useQuery({
-    queryKey: ["activities", "calendar", from, to],
-    queryFn: () => api.get<any>(`/activities?from=${from}&to=${to}&limit=500`),
+    queryKey: ["activities", "calendar", from, to, extraParams],
+    queryFn: () => api.get<any>(`/activities?${qs}`),
     enabled: !!from && !!to,
   });
 }

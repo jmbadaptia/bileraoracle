@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router";
 import {
+  CalendarDays,
   ChevronLeft,
   ChevronRight,
   Users,
@@ -12,17 +13,16 @@ import {
   endOfWeek,
   eachDayOfInterval,
   format,
-  isSameDay,
   isSameMonth,
   addMonths,
   subMonths,
   isToday,
 } from "date-fns";
 import { es } from "date-fns/locale";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ACTIVITY_TYPE_LABELS, TYPE_COLORS } from "@/lib/constants";
 import { useActivitiesForCalendar } from "@/api/hooks";
+import { ACTIVITY_TYPE_LABELS, ACTIVITY_TYPE_CONFIG } from "@/lib/constants";
+import { Button } from "@/components/ui/button";
+import type { ActivityFilters } from "./use-activity-filters";
 
 const WEEKDAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
@@ -31,17 +31,20 @@ interface CalendarActivity {
   title: string;
   type: string;
   startDate: string;
-  location?: string | null;
-  attendees: { member: { id: string; name: string } }[];
+  attendees: { id: string; name: string }[];
+  enrollmentEnabled?: boolean;
 }
 
 function ActivityPill({ activity }: { activity: CalendarActivity }) {
-  const colors = TYPE_COLORS[activity.type] || TYPE_COLORS.OTHER;
+  const colors = ACTIVITY_TYPE_CONFIG[activity.type]?.color || ACTIVITY_TYPE_CONFIG.OTHER?.color || "";
   const attendeeCount = activity.attendees?.length || 0;
+  const link = activity.enrollmentEnabled
+    ? `/actividades/curso/${activity.id}`
+    : `/actividades/${activity.id}`;
 
   return (
     <Link
-      to={`/actividades/${activity.id}`}
+      to={link}
       className={`block text-[11px] leading-tight px-1.5 py-0.5 rounded border truncate ${colors} hover:opacity-80 transition-opacity`}
       title={`${activity.title} — ${ACTIVITY_TYPE_LABELS[activity.type] || activity.type}`}
     >
@@ -56,7 +59,7 @@ function ActivityPill({ activity }: { activity: CalendarActivity }) {
   );
 }
 
-export function CalendarioPage() {
+export function CalendarView({ filters }: { filters: ActivityFilters }) {
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const monthStart = startOfMonth(currentDate);
@@ -68,11 +71,31 @@ export function CalendarioPage() {
 
   const from = format(calendarStart, "yyyy-MM-dd");
   const to = format(calendarEnd, "yyyy-MM-dd");
-  const { data } = useActivitiesForCalendar(from, to);
+
+  // Build extra params from filters
+  const extraParams: Record<string, string> = {};
+  if (filters.types.size === 1) extraParams.type = [...filters.types][0];
+  if (filters.participantId) extraParams.participantId = filters.participantId;
+  if (filters.enrollmentEnabled) extraParams.enrollmentEnabled = "1";
+
+  const { data } = useActivitiesForCalendar(from, to, extraParams);
 
   const activitiesByDay = useMemo(() => {
     const map = new Map<string, CalendarActivity[]>();
-    const activities: CalendarActivity[] = data?.activities || [];
+    let activities: CalendarActivity[] = data?.activities || [];
+
+    // Client-side multi-type filter (API only supports single type)
+    if (filters.types.size > 1) {
+      activities = activities.filter((a) => filters.types.has(a.type));
+    }
+
+    // Client-side search filter
+    if (filters.search) {
+      const q = filters.search.toLowerCase();
+      activities = activities.filter((a) =>
+        a.title.toLowerCase().includes(q),
+      );
+    }
 
     for (const activity of activities) {
       const dayKey = format(new Date(activity.startDate), "yyyy-MM-dd");
@@ -80,23 +103,21 @@ export function CalendarioPage() {
       map.get(dayKey)!.push(activity);
     }
 
-    // Sort each day's activities by time
     for (const [, list] of map) {
-      list.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+      list.sort(
+        (a, b) =>
+          new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
+      );
     }
 
     return map;
-  }, [data]);
+  }, [data, filters.types, filters.search]);
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Calendario</h1>
-          <p className="text-muted-foreground">Vista unificada de tareas y eventos</p>
-        </div>
-        <div className="flex items-center gap-2">
+      {/* Month navigation */}
+      <div className="flex items-center gap-4 flex-wrap">
+        <div className="flex items-center gap-1.5">
           <Button
             variant="outline"
             size="sm"
@@ -124,23 +145,21 @@ export function CalendarioPage() {
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
+
+        <div className="flex flex-wrap gap-3 text-xs ml-auto">
+          {Object.entries(ACTIVITY_TYPE_LABELS).map(([type, label]) => (
+            <div key={type} className="flex items-center gap-1.5">
+              <span
+                className={`w-3 h-3 rounded-sm border ${ACTIVITY_TYPE_CONFIG[type]?.color || ""}`}
+              />
+              <span className="text-muted-foreground">{label}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Legend */}
-      <div className="flex flex-wrap gap-3 text-xs">
-        {Object.entries(ACTIVITY_TYPE_LABELS).map(([type, label]) => (
-          <div key={type} className="flex items-center gap-1.5">
-            <span
-              className={`w-3 h-3 rounded-sm border ${TYPE_COLORS[type] || TYPE_COLORS.OTHER}`}
-            />
-            <span className="text-muted-foreground">{label}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* Calendar grid */}
+      {/* Grid */}
       <div className="border rounded-lg overflow-hidden">
-        {/* Weekday headers */}
         <div className="grid grid-cols-7 bg-muted/50">
           {WEEKDAYS.map((day) => (
             <div
@@ -152,7 +171,6 @@ export function CalendarioPage() {
           ))}
         </div>
 
-        {/* Day cells */}
         <div className="grid grid-cols-7">
           {days.map((day, i) => {
             const dayKey = format(day, "yyyy-MM-dd");

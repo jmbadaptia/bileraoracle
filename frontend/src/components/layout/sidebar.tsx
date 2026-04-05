@@ -93,7 +93,7 @@ function loadExpandedSections(): Set<number> {
 }
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const navigate = useNavigate();
   const { data: conversations = [] } = useConversations();
   const deleteConversation = useDeleteConversation();
@@ -115,7 +115,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
     const activeIdx = NAV_SECTIONS.findIndex((s) =>
       s.items.some((item) => {
         if (item.href === "/") return pathname === "/";
-        return pathname === item.href || pathname.startsWith(item.href + "/");
+        const [hrefPath] = item.href.split("?");
+        return pathname === hrefPath || pathname.startsWith(hrefPath + "/");
       })
     );
     if (activeIdx >= 0 && !expandedSections.has(activeIdx)) {
@@ -135,12 +136,42 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
-    const matches = pathname === href || pathname.startsWith(href + "/");
-    if (!matches) return false;
-    // Only active if no other href is a more specific match
+
+    // Split href into path and query parts
+    const [hrefPath, hrefQuery] = href.split("?");
+
+    const pathMatches = pathname === hrefPath || pathname.startsWith(hrefPath + "/");
+    if (!pathMatches) return false;
+
+    // If href has query params, they must be present in current URL
+    if (hrefQuery) {
+      const hrefParams = new URLSearchParams(hrefQuery);
+      const currentParams = new URLSearchParams(search);
+      for (const [key, value] of hrefParams) {
+        if (currentParams.get(key) !== value) return false;
+      }
+      return true;
+    }
+
+    // For hrefs without query params, check that no other more-specific href matches
+    // Also, if another href with query params matches, prefer that
+    const currentParams = new URLSearchParams(search);
+    const hasMatchingQueryHref = allHrefs.some((other) => {
+      if (other === href || !other.includes("?")) return false;
+      const [otherPath, otherQuery] = other.split("?");
+      if (otherPath !== hrefPath) return false;
+      const otherParams = new URLSearchParams(otherQuery);
+      for (const [key, value] of otherParams) {
+        if (currentParams.get(key) !== value) return false;
+      }
+      return true;
+    });
+    if (hasMatchingQueryHref) return false;
+
     return !allHrefs.some(
       (other) =>
         other !== href &&
+        !other.includes("?") &&
         other.length > href.length &&
         (pathname === other || pathname.startsWith(other + "/"))
     );

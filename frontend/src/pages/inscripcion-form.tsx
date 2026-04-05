@@ -157,7 +157,7 @@ export function InscripcionFormPage() {
         const pendingFile = (coverInputRef.current as any)?.__pendingFile;
         if (pendingFile && actId) { const fd = new FormData(); fd.append("file", pendingFile); await api.upload(`/activities/${actId}/cover`, fd); }
       }
-      navigate("/inscripciones");
+      navigate("/actividades?inscripciones=1");
     } catch { toast.error("Error al guardar"); }
     setLoading(false);
   }
@@ -544,7 +544,7 @@ export function InscripcionFormPage() {
       {/* ── Footer sticky ── */}
       <div className="sticky bottom-0 z-20 bg-background/95 backdrop-blur border-t px-4 md:px-6 lg:px-8 py-2.5 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <button type="button" onClick={() => navigate("/inscripciones")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <button type="button" onClick={() => navigate("/actividades?inscripciones=1")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             <ChevronLeft className="h-3.5 w-3.5 inline mr-0.5" />Volver
           </button>
         </div>

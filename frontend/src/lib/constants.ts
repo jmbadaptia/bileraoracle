@@ -10,9 +10,8 @@ export const NAV_SECTIONS = [
   {
     label: "Gestión",
     items: [
-      { label: "Tareas", href: "/actividades/tareas", icon: "SquareKanban" },
-      { label: "Eventos", href: "/actividades", icon: "CalendarDays" },
-      { label: "Cursos y talleres", href: "/inscripciones", icon: "ClipboardList" },
+      { label: "Actividades", href: "/actividades", icon: "CalendarDays" },
+      { label: "Cursos y talleres", href: "/actividades?inscripciones=1", icon: "ClipboardList" },
       { label: "Espacios", href: "/espacios", icon: "Building2" },
     ],
   },
@@ -69,6 +68,11 @@ export const ACTIVITY_TYPE_CONFIG: Record<string, { label: string; color: string
   EVENT: { label: "Evento", color: "bg-purple-100 text-purple-800 border-purple-200" },
   OTHER: { label: "Otros", color: "bg-gray-100 text-gray-800 border-gray-200" },
 };
+
+/** Shorthand color map derived from ACTIVITY_TYPE_CONFIG */
+export const TYPE_COLORS: Record<string, string> = Object.fromEntries(
+  Object.entries(ACTIVITY_TYPE_CONFIG).map(([k, v]) => [k, v.color]),
+);
 
 export const ROLE_LABELS: Record<string, string> = {
   ADMIN: "Administrador",

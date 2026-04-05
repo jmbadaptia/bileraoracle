@@ -1,9 +1,9 @@
-import { Routes, Route, Navigate } from "react-router";
+import { Routes, Route, Navigate, useParams } from "react-router";
 import { useAuth } from "@/lib/auth";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { LoginPage } from "@/pages/login";
 import { DashboardPage } from "@/pages/dashboard";
-import { ActividadesPage } from "@/pages/actividades";
+import { ActividadesUnifiedPage } from "@/pages/actividades-unified";
 import { ActividadDetailPage } from "@/pages/actividad-detail";
 import { ActividadFormPage } from "@/pages/actividad-form";
 import { DocumentosPage } from "@/pages/documentos";
@@ -14,7 +14,6 @@ import { AdminPage } from "@/pages/admin";
 import { UsuariosPage } from "@/pages/usuarios";
 import { UsuarioFormPage } from "@/pages/usuario-form";
 import { HistorialPage } from "@/pages/historial";
-import { TareasPage } from "@/pages/tareas";
 import { CalendarioPage } from "@/pages/calendario";
 import { GaleriaPage } from "@/pages/galeria";
 import { AlbumDetailPage } from "@/pages/album-detail";
@@ -44,12 +43,17 @@ import { OnboardingPage } from "@/pages/onboarding";
 import { PlanPage } from "@/pages/plan";
 import { AiUsagePage } from "@/pages/ai-usage";
 import { InscribirsePage } from "@/pages/inscribirse";
-import { InscripcionesPage } from "@/pages/inscripciones";
 import { InscripcionFormPage } from "@/pages/inscripcion-form";
 import { InscripcionDetailPage } from "@/pages/inscripcion-detail";
 
 function AsistenteWrapper() {
   return <AsistentePage />;
+}
+
+function InscripcionRedirect({ edit }: { edit?: boolean }) {
+  const { id } = useParams();
+  const path = edit ? `/actividades/curso/${id}/editar` : `/actividades/curso/${id}`;
+  return <Navigate to={path} replace />;
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -85,10 +89,12 @@ export function App() {
       >
         <Route index element={<DashboardPage />} />
         <Route path="calendario" element={<CalendarioPage />} />
-        <Route path="actividades" element={<ActividadesPage />} />
-        <Route path="actividades/tareas" element={<TareasPage />} />
+        <Route path="actividades" element={<ActividadesUnifiedPage />} />
         <Route path="actividades/historial" element={<HistorialPage />} />
         <Route path="actividades/nueva" element={<ActividadFormPage />} />
+        <Route path="actividades/curso/nuevo" element={<InscripcionFormPage />} />
+        <Route path="actividades/curso/:id" element={<InscripcionDetailPage />} />
+        <Route path="actividades/curso/:id/editar" element={<InscripcionFormPage />} />
         <Route path="actividades/:id" element={<ActividadDetailPage />} />
         <Route path="actividades/:id/editar" element={<ActividadFormPage />} />
         <Route path="documentos" element={<DocumentosPage />} />
@@ -118,10 +124,10 @@ export function App() {
         <Route path="socios/nuevo" element={<SocioFormPage />} />
         <Route path="socios/:id" element={<SocioDetailPage />} />
         <Route path="socios/:id/editar" element={<SocioFormPage />} />
-        <Route path="inscripciones" element={<InscripcionesPage />} />
-        <Route path="inscripciones/nueva" element={<InscripcionFormPage />} />
-        <Route path="inscripciones/:id" element={<InscripcionDetailPage />} />
-        <Route path="inscripciones/:id/editar" element={<InscripcionFormPage />} />
+        <Route path="inscripciones" element={<Navigate to="/actividades?inscripciones=1" replace />} />
+        <Route path="inscripciones/nueva" element={<Navigate to="/actividades/curso/nuevo" replace />} />
+        <Route path="inscripciones/:id" element={<InscripcionRedirect />} />
+        <Route path="inscripciones/:id/editar" element={<InscripcionRedirect edit />} />
         <Route path="guia" element={<GuiaPage />} />
         <Route path="asistente" element={<AsistenteWrapper />} />
         <Route path="asistente/:conversationId" element={<AsistenteWrapper />} />

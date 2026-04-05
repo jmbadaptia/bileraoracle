@@ -3,19 +3,12 @@ import { Link } from "react-router";
 import { MapPin, Search, X, CalendarX } from "lucide-react";
 import { useActivities, useMembers } from "@/api/hooks";
 import { formatDate } from "@/lib/utils";
-import { ACTIVITY_TYPE_LABELS } from "@/lib/constants";
+import { ACTIVITY_TYPE_LABELS, TYPE_COLORS } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-
-const TYPE_COLORS: Record<string, string> = {
-  TASK: "bg-blue-100 text-blue-800 border-blue-200",
-  MEETING: "bg-amber-100 text-amber-800 border-amber-200",
-  EVENT: "bg-purple-100 text-purple-800 border-purple-200",
-  OTHER: "bg-gray-100 text-gray-800 border-gray-200",
-};
 
 export function HistorialPage() {
   const [selectedUser, setSelectedUser] = useState("");

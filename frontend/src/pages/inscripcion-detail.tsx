@@ -144,7 +144,7 @@ export function InscripcionDetailPage() {
                   <><Eye className="h-3.5 w-3.5 mr-1.5" />Publicar</>
                 )}
               </Button>
-              <Link to={`/inscripciones/${activity.id}/editar`}>
+              <Link to={`/actividades/curso/${activity.id}/editar`}>
                 <Button variant="outline" size="sm">
                   <Pencil className="h-3.5 w-3.5 mr-1.5" />
                   Editar
