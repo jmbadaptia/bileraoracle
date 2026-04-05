@@ -80,6 +80,20 @@ export async function socioRoutes(app: FastifyInstance) {
     });
   });
 
+  // GET /api/socios/next-number
+  app.get("/api/socios/next-number", { preHandler: [requireAuth] }, async (request) => {
+    return withTenant(request.user.tenantId, request.user.id, async (conn) => {
+      const result = await conn.execute<any>(
+        `SELECT MAX(TO_NUMBER(REGEXP_REPLACE(numero_socio, '[^0-9]', ''))) AS max_num FROM socios WHERE REGEXP_LIKE(numero_socio, '\\d+')`,
+        {},
+        { outFormat: (await import("oracledb")).OUT_FORMAT_OBJECT }
+      );
+      const maxNum = result.rows?.[0]?.MAX_NUM || 0;
+      const next = String(maxNum + 1).padStart(3, "0");
+      return { nextNumber: next };
+    });
+  });
+
   // GET /api/socios/:id
   app.get("/api/socios/:id", { preHandler: [requireAuth] }, async (request, reply) => {
     const { id } = request.params as { id: string };

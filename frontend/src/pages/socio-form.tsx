@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
 import { toast } from "sonner";
-import { useSocio, useCreateSocio, useUpdateSocio } from "@/api/hooks";
+import { useSocio, useCreateSocio, useUpdateSocio, useSocioNextNumber } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,7 @@ export function SocioFormPage() {
   const { data: existing } = useSocio(id || "");
   const createSocio = useCreateSocio();
   const updateSocio = useUpdateSocio(id || "");
+  const { data: nextNumberData } = useSocioNextNumber();
 
   const [nombre, setNombre] = useState("");
   const [apellidos, setApellidos] = useState("");
@@ -27,6 +28,15 @@ export function SocioFormPage() {
   const [fechaAlta, setFechaAlta] = useState("");
   const [estado, setEstado] = useState("ACTIVO");
   const [notas, setNotas] = useState("");
+  const [autoNumberApplied, setAutoNumberApplied] = useState(false);
+
+  // Auto-fill next number for new socios
+  useEffect(() => {
+    if (!isEdit && !autoNumberApplied && nextNumberData?.nextNumber) {
+      setNumeroSocio(nextNumberData.nextNumber);
+      setAutoNumberApplied(true);
+    }
+  }, [isEdit, autoNumberApplied, nextNumberData]);
 
   useEffect(() => {
     if (existing) {

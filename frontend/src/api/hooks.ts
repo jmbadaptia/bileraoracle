@@ -589,6 +589,13 @@ export function useSocio(id: string) {
   });
 }
 
+export function useSocioNextNumber() {
+  return useQuery({
+    queryKey: ["socios", "next-number"],
+    queryFn: () => api.get<{ nextNumber: string }>("/socios/next-number"),
+  });
+}
+
 export function useCreateSocio() {
   const qc = useQueryClient();
   return useMutation({
