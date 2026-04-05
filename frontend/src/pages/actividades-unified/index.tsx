@@ -86,6 +86,7 @@ function TimelineItem({ activity: a }: { activity: any }) {
       <div className={cn(
         "flex items-stretch rounded-lg border border-l-[3px] overflow-hidden transition-shadow hover:shadow-md bg-background",
         style.border,
+        (a.status === "DRAFT" || a.status === "IN_REVIEW") && "opacity-60",
       )}>
         {/* Date column */}
         <div className={cn("w-20 shrink-0 flex flex-col items-center justify-center py-3")}>
