@@ -78,10 +78,13 @@ export async function processDocument(
 
     // 6. Generate embeddings and insert chunks
     let successCount = 0;
+    let embeddingFailures = 0;
     for (const chunk of chunks) {
       const embResult = await getEmbedding(chunk.text);
       if (embResult) {
         trackAiUsage({ tenantId, userId, callType: "EMBEDDING", model: "cohere-embed-v3", inputChars: embResult.usage.inputChars });
+      } else {
+        embeddingFailures++;
       }
 
       await withTenant(tenantId, userId, async (conn) => {
@@ -132,16 +135,25 @@ export async function processDocument(
     // 8. Generate metadata embedding
     await generateMetadataEmbedding(documentId, tenantId, userId, title, description, fileName);
 
-    // 9. Mark as READY
+    // 9. Mark as READY or ERROR
+    const allEmbeddingsFailed = embeddingFailures > 0 && embeddingFailures === chunks.length;
+    const someEmbeddingsFailed = embeddingFailures > 0 && embeddingFailures < chunks.length;
+    const status = allEmbeddingsFailed ? "ERROR" : "READY";
+    const errorMsg = allEmbeddingsFailed
+      ? "No se pudieron generar los embeddings. El documento se puede reprocesar."
+      : someEmbeddingsFailed
+        ? `${embeddingFailures} de ${chunks.length} embeddings fallaron`
+        : null;
+
     await withTenant(tenantId, userId, async (conn) => {
       await conn.execute(
-        `UPDATE documents SET status = 'READY', chunk_count = :cnt,
-                processing_error = NULL, updated_at = SYSTIMESTAMP WHERE id = :id`,
-        { id: documentId, cnt: successCount }
+        `UPDATE documents SET status = :status, chunk_count = :cnt,
+                processing_error = :err, updated_at = SYSTIMESTAMP WHERE id = :id`,
+        { id: documentId, cnt: successCount, status, err: errorMsg }
       );
     });
 
-    console.log(`Document ${documentId} processed: ${successCount} chunks`);
+    console.log(`Document ${documentId} processed: ${successCount} chunks (${embeddingFailures} embedding failures)`);
   } catch (err) {
     console.error(`Document processing failed for ${documentId}:`, err);
     try {
