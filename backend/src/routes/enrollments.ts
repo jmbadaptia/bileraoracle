@@ -20,7 +20,7 @@ export async function enrollmentRoutes(app: FastifyInstance) {
       const result = await conn.execute<any>(
         `SELECT a.id, a.title, a.description, a.start_date, a.location, a.type,
                 a.enrollment_enabled, a.enrollment_mode, a.max_capacity,
-                a.enrollment_price, a.enrollment_deadline,
+                a.enrollment_price, a.enrollment_deadline, a.status,
                 a.publish_status, a.publish_date, a.program_text, t.name AS tenant_name
          FROM activities a
          JOIN tenants t ON t.id = a.tenant_id
@@ -34,10 +34,11 @@ export async function enrollmentRoutes(app: FastifyInstance) {
         return reply.code(404).send({ error: "Actividad no encontrada o sin inscripciones" });
       }
 
-      // Check publish status — auto-publish if publish_date has arrived
-      const publishStatus = activity.PUBLISH_STATUS || "PUBLISHED";
-      const autoPublished = publishStatus === "DRAFT" && activity.PUBLISH_DATE && new Date(activity.PUBLISH_DATE) <= new Date();
-      if (publishStatus === "DRAFT" && !autoPublished) {
+      // Check visibility — activity must be PUBLISHED or FINISHED (or auto-published via publish_date)
+      const actStatus = activity.STATUS || activity.PUBLISH_STATUS || "PUBLISHED";
+      const isVisible = ["PUBLISHED", "FINISHED"].includes(actStatus);
+      const autoPublished = !isVisible && activity.PUBLISH_DATE && new Date(activity.PUBLISH_DATE) <= new Date();
+      if (!isVisible && !autoPublished) {
         return reply.code(404).send({ error: "Inscripciones aún no publicadas" });
       }
 

@@ -18,10 +18,16 @@ import { formatDate } from "@/lib/utils";
 import { ACTIVITY_TYPE_LABELS, ACTIVITY_TYPE_CONFIG } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 
-const STATUS_COLUMNS = [
+const TASK_COLUMNS = [
   { id: "PENDING", label: "Pendiente", color: "border-t-amber-400", dotColor: "bg-amber-400" },
   { id: "IN_PROGRESS", label: "En progreso", color: "border-t-blue-400", dotColor: "bg-blue-400" },
   { id: "DONE", label: "Completado", color: "border-t-emerald-400", dotColor: "bg-emerald-400" },
+] as const;
+
+const ACTIVITY_COLUMNS = [
+  { id: "DRAFT", label: "Borrador", color: "border-t-gray-400", dotColor: "bg-gray-400" },
+  { id: "IN_REVIEW", label: "En revisión", color: "border-t-amber-400", dotColor: "bg-amber-400" },
+  { id: "PUBLISHED", label: "Publicado", color: "border-t-emerald-400", dotColor: "bg-emerald-400" },
 ] as const;
 
 // Map type to left-border color
@@ -151,30 +157,31 @@ function DroppableColumn({
   );
 }
 
-export function KanbanView({ activities }: { activities: any[] }) {
+export function KanbanView({ activities, mode = "tasks" }: { activities: any[]; mode?: "tasks" | "activities" }) {
   const updateStatus = useUpdateActivityStatus();
   const [activeId, setActiveId] = useState<string | null>(null);
+
+  const statusColumns = mode === "activities" ? ACTIVITY_COLUMNS : TASK_COLUMNS;
+  const defaultStatus = mode === "activities" ? "DRAFT" : "PENDING";
+  const validIds = statusColumns.map(c => c.id);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
 
   const columns = useMemo(() => {
-    const map: Record<string, ActivityCard[]> = {
-      PENDING: [],
-      IN_PROGRESS: [],
-      DONE: [],
-    };
+    const map: Record<string, ActivityCard[]> = {};
+    for (const col of statusColumns) map[col.id] = [];
     for (const activity of activities) {
-      const status = activity.status || "PENDING";
+      const status = activity.status || defaultStatus;
       if (map[status]) {
         map[status].push(activity);
       } else {
-        map.PENDING.push(activity);
+        map[statusColumns[0].id].push(activity);
       }
     }
     return map;
-  }, [activities]);
+  }, [activities, statusColumns, defaultStatus]);
 
   const activeActivity = activeId
     ? activities.find((a: any) => a.id === activeId)
@@ -192,7 +199,7 @@ export function KanbanView({ activities }: { activities: any[] }) {
     const activityId = active.id as string;
     const newStatus = over.id as string;
 
-    if (!["PENDING", "IN_PROGRESS", "DONE"].includes(newStatus)) return;
+    if (!validIds.includes(newStatus)) return;
 
     const activity = activities.find((a: any) => a.id === activityId);
     if (!activity || activity.status === newStatus) return;
@@ -208,7 +215,7 @@ export function KanbanView({ activities }: { activities: any[] }) {
       onDragEnd={handleDragEnd}
     >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {STATUS_COLUMNS.map((col) => (
+        {statusColumns.map((col) => (
           <DroppableColumn
             key={col.id}
             status={col.id}
@@ -217,7 +224,7 @@ export function KanbanView({ activities }: { activities: any[] }) {
             dotColor={col.dotColor}
             activities={columns[col.id] || []}
             onMarkDone={(id) =>
-              updateStatus.mutate({ id, status: "DONE" })
+              updateStatus.mutate({ id, status: statusColumns[statusColumns.length - 1].id })
             }
           />
         ))}

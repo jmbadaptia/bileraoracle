@@ -11,7 +11,7 @@ import {
   useActivity, useMembers, useContacts, useDocuments,
   useUploadDocument, useCreateActivity, useUpdateActivity, useSpaces,
 } from "@/api/hooks";
-import { ACTIVITY_TYPE_LABELS, ACTIVITY_STATUS_LABELS, PUBLIC_ACTIVITY_TYPES, ACTIVITY_TYPE_CONFIG } from "@/lib/constants";
+import { ACTIVITY_TYPE_LABELS, ACTIVITY_PIPELINE_LABELS, PUBLIC_ACTIVITY_TYPES, ACTIVITY_TYPE_CONFIG } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -111,7 +111,7 @@ export function ActividadFormPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [selectedType, setSelectedType] = useState("EVENT");
-  const [selectedStatus, setSelectedStatus] = useState("PENDING");
+  const [selectedStatus, setSelectedStatus] = useState("DRAFT");
   const [startDate, setStartDate] = useState(!isEdit ? nowLocal() : "");
   const [locationValue, setLocationValue] = useState("");
   const [selectedSpaceId, setSelectedSpaceId] = useState("");
@@ -152,7 +152,7 @@ export function ActividadFormPage() {
     setTitle(activity.title || "");
     setDescription(activity.description || "");
     setSelectedType(activity.type || "EVENT");
-    setSelectedStatus(activity.status || "PENDING");
+    setSelectedStatus(activity.status || "DRAFT");
     setStartDate(activity.startDate ? new Date(activity.startDate).toISOString().slice(0, 16) : "");
     setLocationValue(activity.location || "");
     setNotesContent(activity.description || "");
@@ -297,7 +297,7 @@ export function ActividadFormPage() {
                 <Select value={selectedStatus} onValueChange={setSelectedStatus}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {Object.entries(ACTIVITY_STATUS_LABELS).map(([v, l]) => (
+                    {Object.entries(ACTIVITY_PIPELINE_LABELS).map(([v, l]) => (
                       <SelectItem key={v} value={v}>{l}</SelectItem>
                     ))}
                   </SelectContent>

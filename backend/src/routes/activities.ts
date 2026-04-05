@@ -752,22 +752,31 @@ export async function activityRoutes(app: FastifyInstance) {
     const { id } = request.params as { id: string };
     const { status } = request.body as { status: string };
 
-    const validStatuses = ["PENDING", "IN_PROGRESS", "DONE"];
-    if (!validStatuses.includes(status)) {
-      return reply.code(400).send({ error: "Estado inválido. Valores: PENDING, IN_PROGRESS, DONE" });
+    const taskStatuses = ["PENDING", "IN_PROGRESS", "DONE"];
+    const activityStatuses = ["DRAFT", "IN_REVIEW", "PUBLISHED", "FINISHED", "ARCHIVED"];
+    const allValid = [...taskStatuses, ...activityStatuses];
+    if (!allValid.includes(status)) {
+      return reply.code(400).send({ error: `Estado inválido. Valores: ${allValid.join(", ")}` });
     }
 
     return withTenant(request.user.tenantId, request.user.id, async (conn) => {
-      const result = await conn.execute<any>(
-        `UPDATE activities SET status = :status, updated_at = SYSTIMESTAMP WHERE id = :id`,
-        { status, id }
-      );
+      // Also update publish_status for backwards compatibility
+      const publishStatus = ["PUBLISHED", "FINISHED", "ARCHIVED"].includes(status) ? "PUBLISHED" : ["DRAFT", "IN_REVIEW"].includes(status) ? "DRAFT" : undefined;
+      const updateSql = publishStatus
+        ? `UPDATE activities SET status = :status, publish_status = :publishStatus, updated_at = SYSTIMESTAMP WHERE id = :id`
+        : `UPDATE activities SET status = :status, updated_at = SYSTIMESTAMP WHERE id = :id`;
+      const binds = publishStatus ? { status, publishStatus, id } : { status, id };
+      const result = await conn.execute<any>(updateSql, binds);
 
       if (result.rowsAffected === 0) {
         return reply.code(404).send({ error: "Actividad no encontrada" });
       }
 
-      const statusLabels: Record<string, string> = { PENDING: "Pendiente", IN_PROGRESS: "En Progreso", DONE: "Hecho" };
+      const statusLabels: Record<string, string> = {
+        PENDING: "Pendiente", IN_PROGRESS: "En Progreso", DONE: "Hecho",
+        DRAFT: "Borrador", IN_REVIEW: "En revisión", PUBLISHED: "Publicado",
+        FINISHED: "Finalizado", ARCHIVED: "Archivado",
+      };
       await logActivity(conn, request.user.tenantId, id, request.user.id, request.user.name, "STATUS_CHANGED", `Cambio estado a "${statusLabels[status] || status}"`);
 
       return { id, status };

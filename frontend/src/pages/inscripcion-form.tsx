@@ -174,7 +174,7 @@ export function InscripcionFormPage() {
   const [enrollmentPrice, setEnrollmentPrice] = useState("0");
   const [enrollmentDeadline, setEnrollmentDeadline] = useState("");
   const [enrollmentMode, setEnrollmentMode] = useState("FIFO");
-  const [publishStatus, setPublishStatus] = useState("DRAFT");
+  const [courseType, setCourseType] = useState("EVENT");
   const [publishDate, setPublishDate] = useState("");
   const [programText, setProgramText] = useState("");
   const [programDoc, setProgramDoc] = useState<{ id: string; title: string; fileName: string } | null>(null);
@@ -209,7 +209,7 @@ export function InscripcionFormPage() {
     setEnrollmentPrice(activity.enrollmentPrice ? String(activity.enrollmentPrice) : "0");
     setEnrollmentDeadline(activity.enrollmentDeadline ? activity.enrollmentDeadline.slice(0, 16) : "");
     setEnrollmentMode(activity.enrollmentMode || "FIFO");
-    setPublishStatus(activity.publishStatus || "PUBLISHED");
+    setCourseType(activity.type || "EVENT");
     setPublishDate(activity.publishDate ? activity.publishDate.slice(0, 16) : "");
     setProgramText(activity.programText || "");
     if (activity.documents?.length) setProgramDoc({ id: activity.documents[0].id, title: activity.documents[0].title, fileName: activity.documents[0].fileName });
@@ -236,16 +236,16 @@ export function InscripcionFormPage() {
     }
     if (!title.trim()) { toast.error("El titulo es obligatorio"); return; }
     setLoading(true);
-    const ps = asDraft ? "DRAFT" : "PUBLISHED";
+    const statusValue = asDraft ? "DRAFT" : "PUBLISHED";
 
     const data: Record<string, any> = {
-      title: title.trim(), description: description.trim() || undefined, type: "EVENT", status: "PENDING",
+      title: title.trim(), description: description.trim() || undefined, type: courseType, status: statusValue,
       startDate: startDate || sessions[0]?.sessionDate || undefined,
       location: location.trim() || undefined, enrollmentEnabled: true, enrollmentMode,
       maxCapacity: maxCapacity ? parseInt(maxCapacity) : undefined,
       enrollmentPrice: enrollmentPrice ? parseFloat(enrollmentPrice) : 0,
       enrollmentDeadline: enrollmentDeadline || undefined,
-      publishStatus: ps, publishDate: publishDate || undefined,
+      publishStatus: statusValue, publishDate: publishDate || undefined,
       programText: !programDoc ? programText.trim() || undefined : undefined,
       documentIds: programDoc ? [programDoc.id] : undefined,
       instructorType: instructor?.type || undefined, instructorId: instructor?.id || undefined,
@@ -416,6 +416,18 @@ export function InscripcionFormPage() {
             summaryTags={getSummary(1)}
             footer={<StepFooter onContinue={() => markComplete(1)} canContinue={title.trim().length > 0} />}
           >
+            <div className="space-y-2">
+              <Label>Tipo</Label>
+              <div className="flex gap-2">
+                {[{ v: "EVENT", l: "Curso" }, { v: "TALLER", l: "Taller" }].map(t => (
+                  <button key={t.v} type="button" onClick={() => setCourseType(t.v)}
+                    className={cn("flex-1 h-10 rounded-lg border transition-colors text-sm font-medium",
+                      courseType === t.v ? "border-primary bg-primary text-primary-foreground" : "border-input text-muted-foreground hover:border-primary/30")}>
+                    {t.l}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="space-y-2">
               <Label>Título *</Label>
               <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ej: Curso de cocina vasca" />

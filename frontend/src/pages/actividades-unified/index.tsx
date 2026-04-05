@@ -128,7 +128,7 @@ export function ActividadesUnifiedPage() {
         isLoading ? (
           <p className="text-sm text-muted-foreground">Cargando...</p>
         ) : (
-          <KanbanView activities={filteredActivities} />
+          <KanbanView activities={filteredActivities} mode="activities" />
         )
       )}
     </div>

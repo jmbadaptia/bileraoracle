@@ -1,6 +1,6 @@
 import { Search, X } from "lucide-react";
 import { useMembers } from "@/api/hooks";
-import { ACTIVITY_TYPE_LABELS, ACTIVITY_STATUS_LABELS, PUBLIC_ACTIVITY_TYPES } from "@/lib/constants";
+import { ACTIVITY_TYPE_LABELS, ACTIVITY_PIPELINE_LABELS, PUBLIC_ACTIVITY_TYPES } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -68,7 +68,7 @@ export function FilterBar({ filters }: { filters: ActivityFilters }) {
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="_all">Todos</SelectItem>
-          {Object.entries(ACTIVITY_STATUS_LABELS).map(([key, label]) => (
+          {Object.entries(ACTIVITY_PIPELINE_LABELS).map(([key, label]) => (
             <SelectItem key={key} value={key}>
               {label}
             </SelectItem>

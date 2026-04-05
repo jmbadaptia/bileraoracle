@@ -43,9 +43,10 @@ export function InscripcionDetailPage() {
   const [statusFilter, setStatusFilter] = useState("active");
 
   function handleTogglePublish() {
-    const newStatus = activity?.publishStatus === "PUBLISHED" ? "DRAFT" : "PUBLISHED";
+    const isPublished = activity?.status === "PUBLISHED" || activity?.status === "FINISHED";
+    const newStatus = isPublished ? "DRAFT" : "PUBLISHED";
     updateActivity.mutate(
-      { ...activity, publishStatus: newStatus, publishDate: null },
+      { ...activity, status: newStatus, publishStatus: newStatus, publishDate: null },
       {
         onSuccess: () => toast.success(newStatus === "PUBLISHED" ? "Publicada" : "Despublicada"),
         onError: (err: any) => toast.error(err?.message || "Error"),
@@ -107,7 +108,7 @@ export function InscripcionDetailPage() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold tracking-tight">{activity.title}</h1>
-            {activity.publishStatus === "DRAFT" && (
+            {activity.status === "DRAFT" || activity.status === "IN_REVIEW" && (
               <Badge variant="outline" className="text-xs">Borrador</Badge>
             )}
           </div>
@@ -133,12 +134,12 @@ export function InscripcionDetailPage() {
           {isAdmin && (
             <>
               <Button
-                variant={activity.publishStatus === "PUBLISHED" ? "outline" : "default"}
+                variant={activity.status === "PUBLISHED" || activity.status === "FINISHED" ? "outline" : "default"}
                 size="sm"
                 onClick={handleTogglePublish}
                 disabled={updateActivity.isPending}
               >
-                {activity.publishStatus === "PUBLISHED" ? (
+                {activity.status === "PUBLISHED" || activity.status === "FINISHED" ? (
                   <><EyeOff className="h-3.5 w-3.5 mr-1.5" />Despublicar</>
                 ) : (
                   <><Eye className="h-3.5 w-3.5 mr-1.5" />Publicar</>

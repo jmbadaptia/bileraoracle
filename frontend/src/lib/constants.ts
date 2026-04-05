@@ -73,6 +73,23 @@ export const ACTIVITY_STATUS_CONFIG: Record<string, { label: string; color: stri
   DONE: { label: "Hecho", color: "bg-emerald-100 text-emerald-800 border-emerald-200", icon: "CircleCheck" },
 };
 
+/** Pipeline for public activities (EVENT, TALLER, OTHER) */
+export const ACTIVITY_PIPELINE_LABELS: Record<string, string> = {
+  DRAFT: "Borrador",
+  IN_REVIEW: "En revisión",
+  PUBLISHED: "Publicado",
+  FINISHED: "Finalizado",
+  ARCHIVED: "Archivado",
+};
+
+export const ACTIVITY_PIPELINE_CONFIG: Record<string, { label: string; color: string }> = {
+  DRAFT: { label: "Borrador", color: "bg-gray-100 text-gray-700 border-gray-200" },
+  IN_REVIEW: { label: "En revisión", color: "bg-amber-100 text-amber-800 border-amber-200" },
+  PUBLISHED: { label: "Publicado", color: "bg-emerald-100 text-emerald-800 border-emerald-200" },
+  FINISHED: { label: "Finalizado", color: "bg-blue-100 text-blue-800 border-blue-200" },
+  ARCHIVED: { label: "Archivado", color: "bg-gray-100 text-gray-500 border-gray-200" },
+};
+
 export const ACTIVITY_TYPE_CONFIG: Record<string, { label: string; color: string }> = {
   TASK: { label: "Tarea", color: "bg-blue-100 text-blue-800 border-blue-200" },
   MEETING: { label: "Reunión", color: "bg-sky-100 text-sky-800 border-sky-200" },

@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate, formatScheduleSummary } from "@/lib/utils";
-import { ACTIVITY_TYPE_LABELS, ACTIVITY_TYPE_CONFIG, ACTIVITY_STATUS_CONFIG } from "@/lib/constants";
+import { ACTIVITY_TYPE_LABELS, ACTIVITY_TYPE_CONFIG, ACTIVITY_PIPELINE_CONFIG } from "@/lib/constants";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { ActivityFilters } from "./use-activity-filters";
@@ -74,7 +74,7 @@ function CourseCard({ activity: a }: { activity: any }) {
                 {a.title}
               </h3>
               <div className="flex gap-1.5 shrink-0">
-                {a.publishStatus === "DRAFT" && (
+                {(a.status === "DRAFT" || a.status === "IN_REVIEW") && (
                   <Badge variant="outline" className="text-xs">Borrador</Badge>
                 )}
                 <Badge variant={status.variant} className="text-xs whitespace-nowrap">
@@ -200,7 +200,7 @@ function ActivityTable({ activities }: { activities: any[] }) {
             const link = a.enrollmentEnabled
               ? `/actividades/curso/${a.id}`
               : `/actividades/${a.id}`;
-            const statusCfg = ACTIVITY_STATUS_CONFIG[a.status];
+            const statusCfg = ACTIVITY_PIPELINE_CONFIG[a.status];
             const dotColor = TYPE_DOT[a.type] || TYPE_DOT.OTHER;
 
             return (
