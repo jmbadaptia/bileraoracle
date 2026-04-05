@@ -13,10 +13,8 @@ function getKey(): Buffer {
   return Buffer.from(secret, "hex");
 }
 
-export function encryptToken(plaintext: string): {
-  encrypted: string;
-  iv: string;
-} {
+/** Encrypts a string. Returns a self-contained string: iv.ciphertext.authTag (all base64) */
+export function encryptToken(plaintext: string): string {
   const key = getKey();
   const iv = randomBytes(12);
   const cipher = createCipheriv(ALGORITHM, key, iv, {
@@ -27,19 +25,17 @@ export function encryptToken(plaintext: string): {
   encrypted += cipher.final("base64");
   const authTag = cipher.getAuthTag().toString("base64");
 
-  return {
-    encrypted: encrypted + "." + authTag,
-    iv: iv.toString("base64"),
-  };
+  return iv.toString("base64") + "." + encrypted + "." + authTag;
 }
 
-export function decryptToken(encrypted: string, iv: string): string {
+/** Decrypts a self-contained encrypted string (iv.ciphertext.authTag) */
+export function decryptToken(encrypted: string): string {
   const key = getKey();
-  const [ciphertext, authTagB64] = encrypted.split(".");
+  const [ivB64, ciphertext, authTagB64] = encrypted.split(".");
   const decipher = createDecipheriv(
     ALGORITHM,
     key,
-    Buffer.from(iv, "base64"),
+    Buffer.from(ivB64, "base64"),
     { authTagLength: AUTH_TAG_LENGTH }
   );
   decipher.setAuthTag(Buffer.from(authTagB64, "base64"));

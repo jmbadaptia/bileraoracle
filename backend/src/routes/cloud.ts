@@ -89,16 +89,15 @@ export async function cloudRoutes(app: FastifyInstance) {
 
           await conn.execute(
             `INSERT INTO cloud_connections (id, tenant_id, user_id, provider, provider_email, access_token_enc, refresh_token_enc, token_iv, token_expires_at)
-             VALUES (:id, :tenantId, :userId, :provider, :email, :accessEnc, :refreshEnc, :iv, :expiresAt)`,
+             VALUES (:id, :tenantId, :userId, :provider, :email, :accessEnc, :refreshEnc, '-', :expiresAt)`,
             {
               id: crypto.randomUUID(),
               tenantId: decoded.tenantId,
               userId: decoded.userId,
               provider,
               email: tokens.email,
-              accessEnc: accessEnc.encrypted,
-              refreshEnc: refreshEnc.encrypted,
-              iv: accessEnc.iv,
+              accessEnc,
+              refreshEnc,
               expiresAt: tokens.expiresAt,
             }
           );
@@ -194,11 +193,8 @@ export async function cloudRoutes(app: FastifyInstance) {
           }
 
           const row = connResult.rows[0] as any;
-          let accessToken = decryptToken(row.ACCESS_TOKEN_ENC, row.TOKEN_IV);
-          const refreshToken = decryptToken(
-            row.REFRESH_TOKEN_ENC,
-            row.TOKEN_IV
-          );
+          let accessToken = decryptToken(row.ACCESS_TOKEN_ENC);
+          const refreshToken = decryptToken(row.REFRESH_TOKEN_ENC);
 
           // Refresh token if expired
           const expiresAt = row.TOKEN_EXPIRES_AT
@@ -211,11 +207,10 @@ export async function cloudRoutes(app: FastifyInstance) {
 
             const newEnc = encryptToken(accessToken);
             await conn.execute(
-              `UPDATE cloud_connections SET access_token_enc = :enc, token_iv = :iv, token_expires_at = :exp, updated_at = SYSTIMESTAMP
+              `UPDATE cloud_connections SET access_token_enc = :enc, token_expires_at = :exp, updated_at = SYSTIMESTAMP
                WHERE id = :id`,
               {
-                enc: newEnc.encrypted,
-                iv: newEnc.iv,
+                enc: newEnc,
                 exp: refreshed.expiresAt,
                 id,
               }
@@ -322,7 +317,7 @@ export async function cloudRoutes(app: FastifyInstance) {
             }
 
             const row = connResult.rows[0] as any;
-            let accessToken = decryptToken(row.ACCESS_TOKEN_ENC, row.TOKEN_IV);
+            let accessToken = decryptToken(row.ACCESS_TOKEN_ENC);
             const refreshToken = decryptToken(
               row.REFRESH_TOKEN_ENC,
               row.TOKEN_IV
