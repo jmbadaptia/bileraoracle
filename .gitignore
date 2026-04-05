@@ -6,3 +6,4 @@ uploads/
 .oci/
 *.pem
 ssl/
+gdrive_client_secret_*

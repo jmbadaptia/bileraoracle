@@ -78,10 +78,10 @@ services:
       SMTP_PORT: "1025"
       SMTP_FROM: "Bilera <noreply@bilera.es>"
       APP_URL: http://localhost:3001
-      GOOGLE_CLIENT_ID: ""
-      GOOGLE_CLIENT_SECRET: ""
-      GOOGLE_REDIRECT_URI: http://localhost:4000/api/cloud/callback/GOOGLE_DRIVE
-      CLOUD_TOKEN_SECRET: ""  # 64-char hex string (openssl rand -hex 32)
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:4000/api/cloud/callback/GOOGLE_DRIVE}
+      CLOUD_TOKEN_SECRET: ${CLOUD_TOKEN_SECRET}
     volumes:
       - ./backend/src:/app/src
       - uploads:/app/uploads
