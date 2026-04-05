@@ -395,21 +395,21 @@ export async function cloudRoutes(app: FastifyInstance) {
                 }
               );
 
-              // Track the import
+              // Track the import (delete + insert instead of MERGE, VPD incompatible)
               await conn.execute(
-                `MERGE INTO cloud_imported_files t
-                 USING (SELECT :connId AS connection_id, :remoteId AS remote_file_id FROM dual) s
-                 ON (t.connection_id = s.connection_id AND t.remote_file_id = s.remote_file_id)
-                 WHEN MATCHED THEN UPDATE SET document_id = :docId, remote_name = :remoteName, remote_modified_at = SYSTIMESTAMP, imported_at = SYSTIMESTAMP
-                 WHEN NOT MATCHED THEN INSERT (id, tenant_id, connection_id, remote_file_id, remote_name, remote_modified_at, document_id)
-                 VALUES (:newId, :tenantId, :connId, :remoteId, :remoteName, SYSTIMESTAMP, :docId)`,
+                `DELETE FROM cloud_imported_files WHERE connection_id = :connId AND remote_file_id = :remoteId`,
+                { connId: connectionId, remoteId: file.id }
+              );
+              await conn.execute(
+                `INSERT INTO cloud_imported_files (id, tenant_id, connection_id, remote_file_id, remote_name, remote_modified_at, document_id)
+                 VALUES (:id, :tenantId, :connId, :remoteId, :remoteName, SYSTIMESTAMP, :docId)`,
                 {
+                  id: crypto.randomUUID(),
+                  tenantId: request.user.tenantId,
                   connId: connectionId,
                   remoteId: file.id,
-                  docId,
                   remoteName: file.name,
-                  newId: crypto.randomUUID(),
-                  tenantId: request.user.tenantId,
+                  docId,
                 }
               );
 
