@@ -1,4 +1,4 @@
-import { Search, X, Filter } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { useMembers } from "@/api/hooks";
 import { ACTIVITY_TYPE_LABELS, ACTIVITY_STATUS_LABELS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,6 @@ export function FilterBar({ filters }: { filters: ActivityFilters }) {
   const { data: membersData } = useMembers({ limit: "200", active: "true" });
   const members: any[] = membersData?.members || membersData || [];
 
-  // For single-type select, use the first type from the set
   const selectedType = filters.types.size === 1 ? [...filters.types][0] : "";
 
   return (
@@ -36,23 +35,20 @@ export function FilterBar({ filters }: { filters: ActivityFilters }) {
       <Select
         value={selectedType || "_all"}
         onValueChange={(v) => {
-          // Clear all types first, then set new one (or clear if _all)
           if (v === "_all") {
-            // Remove all types
             for (const t of filters.types) filters.toggleType(t);
           } else {
-            // Clear existing, set new
             for (const t of filters.types) filters.toggleType(t);
             filters.toggleType(v);
           }
         }}
       >
-        <SelectTrigger className="w-[140px] h-9">
-          <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-          <SelectValue placeholder="Tipo" />
+        <SelectTrigger className="w-auto min-w-[130px] h-9">
+          <span className="text-muted-foreground mr-1">Tipo:</span>
+          <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="_all">Todos los tipos</SelectItem>
+          <SelectItem value="_all">Todos</SelectItem>
           {Object.entries(ACTIVITY_TYPE_LABELS).map(([key, label]) => (
             <SelectItem key={key} value={key}>
               {label}
@@ -66,8 +62,9 @@ export function FilterBar({ filters }: { filters: ActivityFilters }) {
         value={filters.status || "_all"}
         onValueChange={(v) => filters.setStatus(v === "_all" ? null : v)}
       >
-        <SelectTrigger className="w-[140px] h-9">
-          <SelectValue placeholder="Estado" />
+        <SelectTrigger className="w-auto min-w-[140px] h-9">
+          <span className="text-muted-foreground mr-1">Estado:</span>
+          <SelectValue />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="_all">Todos</SelectItem>
@@ -85,8 +82,9 @@ export function FilterBar({ filters }: { filters: ActivityFilters }) {
           value={filters.participantId || "_all"}
           onValueChange={(v) => filters.setParticipantId(v === "_all" ? null : v)}
         >
-          <SelectTrigger className="w-[160px] h-9">
-            <SelectValue placeholder="Persona" />
+          <SelectTrigger className="w-auto min-w-[150px] h-9">
+            <span className="text-muted-foreground mr-1">Persona:</span>
+            <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="_all">Todas</SelectItem>
