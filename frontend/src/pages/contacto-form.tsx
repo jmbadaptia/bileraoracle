@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function ContactoFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -46,8 +46,8 @@ export function ContactoFormPage() {
 
   const resolvedCategory = category === "_custom" ? customCategory.trim() : category;
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  function handleSubmit(e?: React.FormEvent) {
+    e?.preventDefault();
     if (!name.trim()) {
       toast.error("El nombre es obligatorio");
       return;
@@ -84,22 +84,34 @@ export function ContactoFormPage() {
   const isPending = createContact.isPending || updateContact.isPending;
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">
-          {isEdit ? "Editar colaborador" : "Nuevo colaborador"}
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {isEdit ? "Modifica los datos del colaborador" : "Añade una persona o entidad externa"}
-        </p>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {isEdit ? "Editar colaborador" : "Nuevo colaborador"}
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {isEdit ? "Modifica los datos del colaborador" : "Añade una persona o entidad externa"}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" onClick={() => navigate(-1)}>
+            Cancelar
+          </Button>
+          <Button onClick={() => handleSubmit()} disabled={isPending}>
+            {isPending ? "Guardando..." : isEdit ? "Guardar cambios" : "Crear colaborador"}
+          </Button>
+        </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Datos principales */}
-        <div>
-          <h2 className="text-sm font-semibold mb-3">Datos principales</h2>
+      <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+        {/* Left column */}
+        <div className="space-y-6">
           <Card>
-            <CardContent className="pt-5 space-y-4">
+            <CardHeader>
+              <CardTitle className="text-base">Datos principales</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Nombre *</Label>
                 <Input
@@ -109,7 +121,6 @@ export function ContactoFormPage() {
                   placeholder="Nombre completo o entidad"
                 />
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="category">Categoría</Label>
                 <select
@@ -135,13 +146,12 @@ export function ContactoFormPage() {
               </div>
             </CardContent>
           </Card>
-        </div>
 
-        {/* Contacto */}
-        <div>
-          <h2 className="text-sm font-semibold mb-3">Contacto</h2>
           <Card>
-            <CardContent className="pt-5 space-y-4">
+            <CardHeader>
+              <CardTitle className="text-base">Contacto</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="phone">Teléfono</Label>
@@ -163,7 +173,6 @@ export function ContactoFormPage() {
                   />
                 </div>
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="web">Web</Label>
                 <Input
@@ -177,29 +186,22 @@ export function ContactoFormPage() {
           </Card>
         </div>
 
-        {/* Notas */}
+        {/* Right column */}
         <div>
-          <h2 className="text-sm font-semibold mb-3">Notas</h2>
-          <Card>
-            <CardContent className="pt-5">
+          <Card className="h-full flex flex-col">
+            <CardHeader>
+              <CardTitle className="text-base">Notas</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 flex flex-col">
               <Textarea
                 id="notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Información adicional..."
-                rows={4}
+                className="flex-1 min-h-[80px]"
               />
             </CardContent>
           </Card>
-        </div>
-
-        <div className="flex justify-end gap-3">
-          <Button type="button" variant="outline" onClick={() => navigate(-1)}>
-            Cancelar
-          </Button>
-          <Button type="submit" disabled={isPending}>
-            {isPending ? "Guardando..." : isEdit ? "Guardar cambios" : "Crear colaborador"}
-          </Button>
         </div>
       </form>
     </div>
