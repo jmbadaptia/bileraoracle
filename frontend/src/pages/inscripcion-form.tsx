@@ -230,6 +230,10 @@ export function InscripcionFormPage() {
   }
 
   async function handleSubmit(asDraft?: boolean) {
+    if (!asDraft && !canPublish) {
+      toast.error(`Faltan campos obligatorios: ${missingFields.join(", ")}`);
+      return;
+    }
     if (!title.trim()) { toast.error("El titulo es obligatorio"); return; }
     setLoading(true);
     const ps = asDraft ? "DRAFT" : "PUBLISHED";
@@ -276,6 +280,14 @@ export function InscripcionFormPage() {
   // Summary helpers
   const sessionCount = sessions.filter(s => s.title || s.sessionDate).length;
   const isFree = !enrollmentPrice || parseFloat(enrollmentPrice) === 0;
+
+  // Validation: what's missing for publishing
+  const missingFields: string[] = [];
+  if (!title.trim()) missingFields.push("Título");
+  if (!category) missingFields.push("Categoría");
+  if (sessionCount === 0) missingFields.push("Al menos 1 sesión");
+  if (!maxCapacity || parseInt(maxCapacity) <= 0) missingFields.push("Plazas");
+  const canPublish = missingFields.length === 0;
 
   function getSummary(step: number): string[] {
     switch (step) {
@@ -326,7 +338,7 @@ export function InscripcionFormPage() {
           <Button variant="outline" size="sm" disabled={loading} onClick={() => handleSubmit(true)}>
             Guardar borrador
           </Button>
-          <Button size="sm" disabled={loading || !title.trim()} onClick={() => handleSubmit(false)}>
+          <Button size="sm" disabled={loading || !canPublish} onClick={() => handleSubmit(false)}>
             <Eye className="h-3.5 w-3.5 mr-1.5" />Publicar curso
           </Button>
         </div>
@@ -619,7 +631,7 @@ export function InscripcionFormPage() {
                 <Button variant="outline" size="sm" disabled={loading} onClick={() => handleSubmit(true)}>
                   Guardar borrador
                 </Button>
-                <Button size="sm" disabled={loading || !title.trim()} onClick={() => handleSubmit(false)}>
+                <Button size="sm" disabled={loading || !canPublish} onClick={() => handleSubmit(false)}>
                   Publicar curso
                 </Button>
               </div>
@@ -656,9 +668,18 @@ export function InscripcionFormPage() {
                   ))}
                 </div>
               )}
-              <div className="rounded-lg p-3 bg-emerald-50 border border-emerald-200/50 text-sm text-emerald-700">
-                Todo listo. Puedes publicar el curso o guardarlo como borrador.
-              </div>
+              {canPublish ? (
+                <div className="rounded-lg p-3 bg-emerald-50 border border-emerald-200/50 text-sm text-emerald-700">
+                  Todo listo. Puedes publicar el curso o guardarlo como borrador.
+                </div>
+              ) : (
+                <div className="rounded-lg p-3 bg-amber-50 border border-amber-200/50 text-sm text-amber-700">
+                  <p className="font-medium">Faltan campos obligatorios:</p>
+                  <ul className="list-disc list-inside mt-1">
+                    {missingFields.map((f, i) => <li key={i}>{f}</li>)}
+                  </ul>
+                </div>
+              )}
             </div>
           </AccordionStep>
         </div>
