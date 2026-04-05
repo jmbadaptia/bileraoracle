@@ -837,3 +837,44 @@ export function useRenameConversation() {
   });
 }
 
+// ---- Cloud Connections ----
+export function useCloudConnections() {
+  return useQuery({
+    queryKey: ["cloud-connections"],
+    queryFn: () => api.get<any>("/cloud/connections"),
+  });
+}
+
+export function useCloudFiles(connectionId: string, folderId?: string) {
+  const params = folderId ? `?folderId=${folderId}` : "";
+  return useQuery({
+    queryKey: ["cloud-files", connectionId, folderId],
+    queryFn: () =>
+      api.get<any>(`/cloud/connections/${connectionId}/files${params}`),
+    enabled: !!connectionId,
+  });
+}
+
+export function useCloudImport() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: {
+      connectionId: string;
+      files: { id: string; name: string; mimeType: string }[];
+    }) => api.post<any>("/cloud/import", body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["documents"] });
+      qc.invalidateQueries({ queryKey: ["cloud-files"] });
+    },
+  });
+}
+
+export function useDisconnectCloud() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/cloud/connections/${id}`),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ["cloud-connections"] }),
+  });
+}
+

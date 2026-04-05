@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router";
-import { Plus, FileText, Search, X, LayoutGrid, List } from "lucide-react";
+import { Plus, FileText, Search, X, LayoutGrid, List, Cloud } from "lucide-react";
 import { useDocuments, useDocumentCategories } from "@/api/hooks";
 import { formatDate } from "@/lib/utils";
 import { DOCUMENT_STATUS_LABELS } from "@/lib/constants";
@@ -76,12 +76,20 @@ export function DocumentosPage() {
           <h1 className="text-2xl font-bold tracking-tight">Documentos</h1>
           <p className="text-muted-foreground">Gestiona y consulta los documentos de tu organización</p>
         </div>
-        <Link to="/documentos/subir">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Subir
-          </Button>
-        </Link>
+        <div className="flex gap-2">
+          <Link to="/documentos/nube">
+            <Button variant="outline">
+              <Cloud className="mr-2 h-4 w-4" />
+              Importar desde la nube
+            </Button>
+          </Link>
+          <Link to="/documentos/subir">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Subir
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Search + Filters + View Toggle */}

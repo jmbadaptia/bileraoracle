@@ -9,6 +9,7 @@ import { ActividadFormPage } from "@/pages/actividad-form";
 import { DocumentosPage } from "@/pages/documentos";
 import { DocumentoDetailPage } from "@/pages/documento-detail";
 import { DocumentoUploadPage } from "@/pages/documento-upload";
+import { DocumentosNubePage } from "@/pages/documentos-nube";
 import { AdminPage } from "@/pages/admin";
 import { UsuariosPage } from "@/pages/usuarios";
 import { UsuarioFormPage } from "@/pages/usuario-form";
@@ -92,6 +93,7 @@ export function App() {
         <Route path="actividades/:id/editar" element={<ActividadFormPage />} />
         <Route path="documentos" element={<DocumentosPage />} />
         <Route path="documentos/subir" element={<DocumentoUploadPage />} />
+        <Route path="documentos/nube" element={<DocumentosNubePage />} />
         <Route path="documentos/:id" element={<DocumentoDetailPage />} />
         <Route path="espacios" element={<EspaciosPage />} />
         <Route path="espacios/nuevo" element={<AdminRoute><EspacioFormPage /></AdminRoute>} />
