@@ -148,12 +148,12 @@ export function SocioFormPage() {
         </div>
 
         {/* Right column */}
-        <div className="space-y-6">
-          <Card>
+        <div>
+          <Card className="h-full flex flex-col">
             <CardHeader>
               <CardTitle className="text-base">Información interna</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 flex-1 flex flex-col">
               <div className="space-y-2">
                 <Label>Fecha de alta</Label>
                 <Input type="date" value={fechaAlta} onChange={(e) => setFechaAlta(e.target.value)} />
@@ -168,9 +168,9 @@ export function SocioFormPage() {
                   </select>
                 </div>
               )}
-              <div className="space-y-2">
+              <div className="space-y-2 flex-1 flex flex-col">
                 <Label>Notas</Label>
-                <Textarea value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Observaciones..." rows={3} />
+                <Textarea value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Observaciones..." className="flex-1 min-h-[80px]" />
               </div>
             </CardContent>
           </Card>
