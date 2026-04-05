@@ -135,8 +135,22 @@ export function DocumentosNubePage() {
     setSelected(new Set());
   }
 
-  function handleConnect() {
-    window.location.href = `${API_BASE}/cloud/auth/GOOGLE_DRIVE`;
+  async function handleConnect() {
+    try {
+      const res = await fetch(`${API_BASE}/cloud/auth/GOOGLE_DRIVE`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      const data = await res.json();
+      if (data.authUrl) {
+        window.location.href = data.authUrl;
+      } else {
+        toast.error("Error al obtener la URL de autorización");
+      }
+    } catch {
+      toast.error("Error al conectar con Google Drive");
+    }
   }
 
   function handleDisconnect() {

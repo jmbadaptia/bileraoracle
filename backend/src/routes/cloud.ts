@@ -33,11 +33,11 @@ export async function cloudRoutes(app: FastifyInstance) {
         { expiresIn: "10m" }
       );
 
-      const redirectUri = `${request.protocol}://${request.hostname}/api/cloud/callback/${provider}`;
+      const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${request.protocol}://${request.hostname}/api/cloud/callback/${provider}`;
       const cloudProvider = getCloudProvider(provider);
       const authUrl = cloudProvider.getAuthUrl(state, redirectUri);
 
-      return reply.redirect(authUrl);
+      return { authUrl };
     }
   );
 
@@ -70,7 +70,7 @@ export async function cloudRoutes(app: FastifyInstance) {
 
       try {
         const cloudProvider = getCloudProvider(provider);
-        const redirectUri = `${request.protocol}://${request.hostname}/api/cloud/callback/${provider}`;
+        const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${request.protocol}://${request.hostname}/api/cloud/callback/${provider}`;
         const tokens = await cloudProvider.exchangeCode(code, redirectUri);
 
         const accessEnc = encryptToken(tokens.accessToken);
