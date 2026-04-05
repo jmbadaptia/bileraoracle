@@ -32,11 +32,12 @@ async function updateActivityEmbedding(
 export async function activityRoutes(app: FastifyInstance) {
   // GET /api/activities
   app.get("/api/activities", { preHandler: [requireAuth] }, async (request) => {
-    const { userId, participantId, type, status, from, to, page, limit, enrollmentEnabled } =
+    const { userId, participantId, type, excludeTypes, status, from, to, page, limit, enrollmentEnabled } =
       request.query as {
         userId?: string;
         participantId?: string;
         type?: string;
+        excludeTypes?: string;
         status?: string;
         from?: string;
         to?: string;
@@ -77,6 +78,16 @@ export async function activityRoutes(app: FastifyInstance) {
         whereClause += " AND a.type = :type";
         countBinds.type = type;
         listBinds.type = type;
+      }
+
+      if (excludeTypes) {
+        const excluded = excludeTypes.split(",").map(t => t.trim()).filter(Boolean);
+        excluded.forEach((t, i) => {
+          const key = `excType${i}`;
+          whereClause += ` AND a.type != :${key}`;
+          countBinds[key] = t;
+          listBinds[key] = t;
+        });
       }
 
       if (status) {

@@ -8,11 +8,18 @@ export const NAV_SECTIONS = [
     ],
   },
   {
-    label: "Gestión",
+    label: "Organización",
     items: [
       { label: "Actividades", href: "/actividades", icon: "CalendarDays" },
-      { label: "Cursos y talleres", href: "/actividades?inscripciones=1", icon: "ClipboardList" },
+      { label: "Tareas", href: "/tareas", icon: "CheckSquare" },
+      { label: "Reuniones", href: "/reuniones", icon: "Handshake" },
       { label: "Espacios", href: "/espacios", icon: "Building2" },
+    ],
+  },
+  {
+    label: "",
+    items: [
+      { label: "Calendario", href: "/calendario", icon: "Calendar" },
     ],
   },
   {
@@ -47,8 +54,12 @@ export const ACTIVITY_TYPE_LABELS: Record<string, string> = {
   TASK: "Tarea",
   MEETING: "Reunión",
   EVENT: "Evento",
+  TALLER: "Taller",
   OTHER: "Otros",
 };
+
+/** Types shown in the public Actividades section (excludes internal types) */
+export const PUBLIC_ACTIVITY_TYPES = ["EVENT", "TALLER", "OTHER"] as const;
 
 export const ACTIVITY_STATUS_LABELS: Record<string, string> = {
   PENDING: "Pendiente",
@@ -64,8 +75,9 @@ export const ACTIVITY_STATUS_CONFIG: Record<string, { label: string; color: stri
 
 export const ACTIVITY_TYPE_CONFIG: Record<string, { label: string; color: string }> = {
   TASK: { label: "Tarea", color: "bg-blue-100 text-blue-800 border-blue-200" },
-  MEETING: { label: "Reunion", color: "bg-amber-100 text-amber-800 border-amber-200" },
-  EVENT: { label: "Evento", color: "bg-purple-100 text-purple-800 border-purple-200" },
+  MEETING: { label: "Reunión", color: "bg-sky-100 text-sky-800 border-sky-200" },
+  EVENT: { label: "Evento", color: "bg-emerald-100 text-emerald-800 border-emerald-200" },
+  TALLER: { label: "Taller", color: "bg-violet-100 text-violet-800 border-violet-200" },
   OTHER: { label: "Otros", color: "bg-gray-100 text-gray-800 border-gray-200" },
 };
 
@@ -73,6 +85,18 @@ export const ACTIVITY_TYPE_CONFIG: Record<string, { label: string; color: string
 export const TYPE_COLORS: Record<string, string> = Object.fromEntries(
   Object.entries(ACTIVITY_TYPE_CONFIG).map(([k, v]) => [k, v.color]),
 );
+
+export const PRIORITY_LABELS: Record<string, string> = {
+  HIGH: "Alta",
+  MEDIUM: "Media",
+  LOW: "Baja",
+};
+
+export const PRIORITY_CONFIG: Record<string, { label: string; color: string; dot: string }> = {
+  HIGH: { label: "Alta", color: "bg-red-100 text-red-800 border-red-200", dot: "bg-red-500" },
+  MEDIUM: { label: "Media", color: "bg-amber-100 text-amber-800 border-amber-200", dot: "bg-amber-500" },
+  LOW: { label: "Baja", color: "bg-gray-100 text-gray-600 border-gray-200", dot: "bg-gray-400" },
+};
 
 export const ROLE_LABELS: Record<string, string> = {
   ADMIN: "Administrador",

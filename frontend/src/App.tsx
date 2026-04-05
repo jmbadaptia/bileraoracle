@@ -45,6 +45,10 @@ import { AiUsagePage } from "@/pages/ai-usage";
 import { InscribirsePage } from "@/pages/inscribirse";
 import { InscripcionFormPage } from "@/pages/inscripcion-form";
 import { InscripcionDetailPage } from "@/pages/inscripcion-detail";
+import { TareasPage } from "@/pages/tareas";
+import { TareaFormPage } from "@/pages/tarea-form";
+import { ReunionesPage } from "@/pages/reuniones";
+import { ReunionFormPage } from "@/pages/reunion-form";
 
 function AsistenteWrapper() {
   return <AsistentePage />;
@@ -97,6 +101,14 @@ export function App() {
         <Route path="actividades/curso/:id/editar" element={<InscripcionFormPage />} />
         <Route path="actividades/:id" element={<ActividadDetailPage />} />
         <Route path="actividades/:id/editar" element={<ActividadFormPage />} />
+        <Route path="tareas" element={<TareasPage />} />
+        <Route path="tareas/nueva" element={<TareaFormPage />} />
+        <Route path="tareas/:id" element={<ActividadDetailPage />} />
+        <Route path="tareas/:id/editar" element={<TareaFormPage />} />
+        <Route path="reuniones" element={<ReunionesPage />} />
+        <Route path="reuniones/nueva" element={<ReunionFormPage />} />
+        <Route path="reuniones/:id" element={<ActividadDetailPage />} />
+        <Route path="reuniones/:id/editar" element={<ReunionFormPage />} />
         <Route path="documentos" element={<DocumentosPage />} />
         <Route path="documentos/subir" element={<DocumentoUploadPage />} />
         <Route path="documentos/nube" element={<DocumentosNubePage />} />

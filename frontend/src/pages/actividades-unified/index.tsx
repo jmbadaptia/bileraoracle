@@ -50,7 +50,7 @@ export function ActividadesUnifiedPage() {
     return list;
   }, [activities, filters.types, filters.search]);
 
-  const title = filters.enrollmentEnabled ? "Cursos y Talleres" : "Actividades";
+  const title = "Actividades";
 
   return (
     <div className="space-y-5">

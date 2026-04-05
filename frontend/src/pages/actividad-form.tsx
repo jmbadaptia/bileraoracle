@@ -16,7 +16,7 @@ import {
   useUpdateActivity,
   useSpaces,
 } from "@/api/hooks";
-import { ACTIVITY_TYPE_LABELS, ACTIVITY_STATUS_LABELS } from "@/lib/constants";
+import { ACTIVITY_TYPE_LABELS, ACTIVITY_STATUS_LABELS, PUBLIC_ACTIVITY_TYPES } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -84,7 +84,7 @@ export function ActividadFormPage() {
   const spaces = spacesData?.spaces || [];
 
   const [loading, setLoading] = useState(false);
-  const [selectedType, setSelectedType] = useState(activity?.type || "MEETING");
+  const [selectedType, setSelectedType] = useState(activity?.type || "EVENT");
   const [selectedStatus, setSelectedStatus] = useState(activity?.status || "PENDING");
   const [selectedOwnerId, setSelectedOwnerId] = useState("");
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -274,8 +274,8 @@ export function ActividadFormPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(ACTIVITY_TYPE_LABELS).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                  {PUBLIC_ACTIVITY_TYPES.map((value) => (
+                    <SelectItem key={value} value={value}>{ACTIVITY_TYPE_LABELS[value]}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

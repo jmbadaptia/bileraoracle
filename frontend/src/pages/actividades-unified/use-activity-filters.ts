@@ -112,8 +112,8 @@ export function useActivityFilters(): ActivityFilters {
     });
   }, [setSearchParams]);
 
-  // Build API params
-  const apiParams: Record<string, string> = {};
+  // Build API params — exclude internal types (TASK, MEETING)
+  const apiParams: Record<string, string> = { excludeTypes: "TASK,MEETING" };
   if (types.size > 0 && types.size === 1) {
     apiParams.type = [...types][0];
   }
