@@ -84,11 +84,11 @@ function TimelineItem({ activity: a }: { activity: any }) {
   return (
     <Link to={link} className="block">
       <div className={cn(
-        "flex items-stretch rounded-lg border border-l-[3px] overflow-hidden transition-shadow hover:shadow-md",
-        style.bg, style.border,
+        "flex items-stretch rounded-lg border border-l-[3px] overflow-hidden transition-shadow hover:shadow-md bg-background",
+        style.border,
       )}>
         {/* Date column */}
-        <div className={cn("w-20 shrink-0 flex flex-col items-center justify-center py-3", style.dateBg)}>
+        <div className={cn("w-20 shrink-0 flex flex-col items-center justify-center py-3")}>
           {date ? (
             <>
               <p className={cn("text-xs font-semibold uppercase", style.dateText)}>
