@@ -32,12 +32,13 @@ export function ContactosPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Contactos</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Colaboradores</h1>
           <p className="text-sm text-muted-foreground">
             Personas y organizaciones externas
           </p>
         </div>
         <Link to="/contactos/nuevo">
+
           <Button>
             <Plus className="mr-2 h-4 w-4" />
             Nuevo
@@ -76,14 +77,14 @@ export function ContactosPage() {
           <Contact className="h-10 w-10 text-muted-foreground/50 mb-3" />
           <p className="text-sm text-muted-foreground">
             {search || category
-              ? "No se encontraron contactos con esos filtros"
-              : "No hay contactos todavía"}
+              ? "No se encontraron colaboradores con esos filtros"
+              : "No hay colaboradores todavía"}
           </p>
         </div>
       ) : (
         <>
           <p className="text-xs text-muted-foreground">
-            {contacts.length} contacto{contacts.length !== 1 ? "s" : ""}
+            {contacts.length} colaborador{contacts.length !== 1 ? "es" : ""}
           </p>
           <div className="rounded-lg border divide-y">
             {contacts.map((contact: any) => (

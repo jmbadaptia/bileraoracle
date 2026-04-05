@@ -7,8 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { User } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 
 export function ContactoFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -66,7 +65,7 @@ export function ContactoFormPage() {
     if (isEdit) {
       updateContact.mutate(data, {
         onSuccess: () => {
-          toast.success("Contacto actualizado");
+          toast.success("Colaborador actualizado");
           navigate(`/contactos/${id}`);
         },
         onError: () => toast.error("Error al actualizar"),
@@ -74,7 +73,7 @@ export function ContactoFormPage() {
     } else {
       createContact.mutate(data, {
         onSuccess: (res: any) => {
-          toast.success("Contacto creado");
+          toast.success("Colaborador creado");
           navigate(`/contactos/${res.id}`);
         },
         onError: () => toast.error("Error al crear"),
@@ -86,102 +85,120 @@ export function ContactoFormPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-        <User className="h-6 w-6 text-muted-foreground" />
-        {isEdit ? "Editar contacto" : "Nuevo contacto"}
-      </h1>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">
+          {isEdit ? "Editar colaborador" : "Nuevo colaborador"}
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          {isEdit ? "Modifica los datos del colaborador" : "Añade una persona o entidad externa"}
+        </p>
+      </div>
 
-      <form onSubmit={handleSubmit}>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Datos del contacto</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nombre *</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Nombre completo o entidad"
-              />
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Datos principales */}
+        <div>
+          <h2 className="text-sm font-semibold mb-3">Datos principales</h2>
+          <Card>
+            <CardContent className="pt-5 space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="phone">Teléfono</Label>
+                <Label htmlFor="name">Nombre *</Label>
                 <Input
-                  id="phone"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+34 600 000 000"
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Nombre completo o entidad"
                 />
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="category">Categoría</Label>
+                <select
+                  id="category"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="">Sin categoría</option>
+                  {CONTACT_CATEGORY_OPTIONS.map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                  <option value="_custom">Otra (personalizada)</option>
+                </select>
+                {category === "_custom" && (
+                  <Input
+                    value={customCategory}
+                    onChange={(e) => setCustomCategory(e.target.value)}
+                    placeholder="Escribe la categoría..."
+                    className="mt-2"
+                  />
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Contacto */}
+        <div>
+          <h2 className="text-sm font-semibold mb-3">Contacto</h2>
+          <Card>
+            <CardContent className="pt-5 space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Teléfono</Label>
+                  <Input
+                    id="phone"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="+34 600 000 000"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="email@ejemplo.com"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="web">Web</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="email@ejemplo.com"
+                  id="web"
+                  value={web}
+                  onChange={(e) => setWeb(e.target.value)}
+                  placeholder="https://..."
                 />
               </div>
-            </div>
+            </CardContent>
+          </Card>
+        </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="web">Web</Label>
-              <Input
-                id="web"
-                value={web}
-                onChange={(e) => setWeb(e.target.value)}
-                placeholder="https://..."
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="category">Categoría</Label>
-              <select
-                id="category"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
-              >
-                <option value="">Sin categoría</option>
-                {CONTACT_CATEGORY_OPTIONS.map((cat) => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-                <option value="_custom">Otra (personalizada)</option>
-              </select>
-              {category === "_custom" && (
-                <Input
-                  value={customCategory}
-                  onChange={(e) => setCustomCategory(e.target.value)}
-                  placeholder="Escribe la categoría..."
-                  className="mt-2"
-                />
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notas</Label>
+        {/* Notas */}
+        <div>
+          <h2 className="text-sm font-semibold mb-3">Notas</h2>
+          <Card>
+            <CardContent className="pt-5">
               <Textarea
                 id="notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Información adicional sobre este contacto..."
+                placeholder="Información adicional..."
                 rows={4}
               />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
 
-        <div className="flex justify-end gap-3 mt-6">
+        <div className="flex justify-end gap-3">
           <Button type="button" variant="outline" onClick={() => navigate(-1)}>
             Cancelar
           </Button>
           <Button type="submit" disabled={isPending}>
-            {isPending ? "Guardando..." : isEdit ? "Guardar cambios" : "Crear contacto"}
+            {isPending ? "Guardando..." : isEdit ? "Guardar cambios" : "Crear colaborador"}
           </Button>
         </div>
       </form>

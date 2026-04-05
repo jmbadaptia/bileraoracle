@@ -42,7 +42,7 @@ export function ContactoDetailPage() {
   if (!contact) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold tracking-tight">Contacto no encontrado</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Colaborador no encontrado</h1>
       </div>
     );
   }
