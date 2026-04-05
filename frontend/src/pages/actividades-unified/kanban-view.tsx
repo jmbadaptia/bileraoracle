@@ -1,11 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router";
-import {
-  MapPin,
-  CalendarDays,
-  GripVertical,
-  CircleCheck,
-} from "lucide-react";
+import { CalendarDays } from "lucide-react";
 import {
   DndContext,
   DragOverlay,
@@ -21,15 +16,21 @@ import {
 import { useUpdateActivityStatus } from "@/api/hooks";
 import { formatDate } from "@/lib/utils";
 import { ACTIVITY_TYPE_LABELS, ACTIVITY_TYPE_CONFIG } from "@/lib/constants";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AvatarGroup } from "@/components/ui/avatar-group";
 
 const STATUS_COLUMNS = [
-  { id: "PENDING", label: "Por Hacer", color: "border-t-yellow-400" },
-  { id: "IN_PROGRESS", label: "En Progreso", color: "border-t-blue-400" },
-  { id: "DONE", label: "Hecho", color: "border-t-green-400" },
+  { id: "PENDING", label: "Pendiente", color: "border-t-amber-400", dotColor: "bg-amber-400" },
+  { id: "IN_PROGRESS", label: "En progreso", color: "border-t-blue-400", dotColor: "bg-blue-400" },
+  { id: "DONE", label: "Completado", color: "border-t-emerald-400", dotColor: "bg-emerald-400" },
 ] as const;
+
+// Map type to left-border color
+const TYPE_BORDER: Record<string, string> = {
+  TASK: "border-l-blue-400",
+  MEETING: "border-l-amber-400",
+  EVENT: "border-l-purple-400",
+  OTHER: "border-l-gray-400",
+};
 
 interface ActivityCard {
   id: string;
@@ -37,76 +38,34 @@ interface ActivityCard {
   type: string;
   status: string;
   startDate: string;
-  dueDate?: string;
-  location?: string;
-  ownerName: string;
-  description?: string;
-  attendees?: { id: string; name: string }[];
-  tags?: { id: string; name: string; color: string }[];
   enrollmentEnabled?: boolean;
 }
 
-function KanbanCardContent({
-  activity,
-  onMarkDone,
-}: {
-  activity: ActivityCard;
-  onMarkDone?: (e: React.MouseEvent) => void;
-}) {
+function CardContent({ activity }: { activity: ActivityCard }) {
+  const borderColor = TYPE_BORDER[activity.type] || TYPE_BORDER.OTHER;
+
   return (
-    <CardContent className="p-3">
-      <div className="flex items-start gap-2">
-        <GripVertical className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground/40 cursor-grab" />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-1">
-            <h4 className="text-sm font-medium leading-tight truncate">
-              {activity.title}
-            </h4>
-            {onMarkDone && activity.status !== "DONE" && (
-              <button
-                type="button"
-                title="Marcar como hecho"
-                onClick={onMarkDone}
-                className="shrink-0 text-muted-foreground/40 hover:text-green-600 transition-colors"
-              >
-                <CircleCheck className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-          <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-            <Badge
-              variant="outline"
-              className={`text-[10px] px-1.5 py-0 ${ACTIVITY_TYPE_CONFIG[activity.type]?.color || ""}`}
-            >
-              {ACTIVITY_TYPE_LABELS[activity.type] || activity.type}
-            </Badge>
-          </div>
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1.5 text-[11px] text-muted-foreground">
-            <span className="flex items-center gap-0.5">
-              <CalendarDays className="h-3 w-3" />
-              {formatDate(activity.startDate)}
-            </span>
-            {activity.location && (
-              <span className="flex items-center gap-0.5">
-                <MapPin className="h-3 w-3" />
-                {activity.location}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center justify-between mt-1.5">
-            <p className="text-[11px] text-muted-foreground">
-              {activity.ownerName}
-            </p>
-            <AvatarGroup people={activity.attendees || []} max={3} size="sm" />
-          </div>
-          {activity.dueDate && (
-            <p className="text-[10px] text-orange-600 mt-0.5">
-              Límite: {formatDate(activity.dueDate)}
-            </p>
-          )}
-        </div>
+    <div
+      className={`rounded-lg border border-l-[3px] ${borderColor} bg-background p-3 hover:shadow-md transition-shadow cursor-pointer`}
+    >
+      <h4 className="text-sm font-medium leading-snug line-clamp-2">
+        {activity.title}
+      </h4>
+      <div className="flex items-center gap-2 mt-2">
+        <Badge
+          variant="outline"
+          className={`text-[10px] px-1.5 py-0 ${ACTIVITY_TYPE_CONFIG[activity.type]?.color || ""}`}
+        >
+          {ACTIVITY_TYPE_LABELS[activity.type] || activity.type}
+        </Badge>
+        {activity.startDate && (
+          <span className="text-[11px] text-muted-foreground flex items-center gap-0.5">
+            <CalendarDays className="h-3 w-3" />
+            {formatDate(activity.startDate)}
+          </span>
+        )}
       </div>
-    </CardContent>
+    </div>
   );
 }
 
@@ -138,15 +97,7 @@ function DraggableCard({
       className={isDragging ? "opacity-30" : ""}
       onClick={() => navigate(link)}
     >
-      <Card className="hover:bg-muted/50 hover:shadow-sm transition-all cursor-pointer">
-        <KanbanCardContent
-          activity={activity}
-          onMarkDone={(e) => {
-            e.stopPropagation();
-            onMarkDone(activity.id);
-          }}
-        />
-      </Card>
+      <CardContent activity={activity} />
     </div>
   );
 }
@@ -155,12 +106,14 @@ function DroppableColumn({
   status,
   label,
   color,
+  dotColor,
   activities,
   onMarkDone,
 }: {
   status: string;
   label: string;
   color: string;
+  dotColor: string;
   activities: ActivityCard[];
   onMarkDone: (id: string) => void;
 }) {
@@ -169,17 +122,18 @@ function DroppableColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`flex flex-col rounded-lg border-t-4 ${color} bg-muted/30 min-h-[300px] ${
-        isOver ? "ring-2 ring-primary/30 bg-muted/50" : ""
+      className={`flex flex-col rounded-lg border-t-[3px] ${color} bg-muted/20 min-h-[300px] ${
+        isOver ? "ring-2 ring-primary/20 bg-muted/40" : ""
       }`}
     >
-      <div className="flex items-center justify-between px-3 py-2 border-b">
-        <h3 className="text-sm font-semibold">{label}</h3>
-        <Badge variant="secondary" className="text-xs">
+      <div className="flex items-center gap-2 px-3 py-2.5">
+        <span className={`w-2 h-2 rounded-full ${dotColor}`} />
+        <h3 className="text-sm font-medium">{label}</h3>
+        <span className="text-xs text-muted-foreground ml-auto">
           {activities.length}
-        </Badge>
+        </span>
       </div>
-      <div className="flex-1 p-2 space-y-2 overflow-y-auto max-h-[calc(100vh-280px)]">
+      <div className="flex-1 px-2 pb-2 space-y-2 overflow-y-auto max-h-[calc(100vh-300px)]">
         {activities.map((activity) => (
           <DraggableCard
             key={activity.id}
@@ -223,7 +177,7 @@ export function KanbanView({ activities }: { activities: any[] }) {
   }, [activities]);
 
   const activeActivity = activeId
-    ? activities.find((a) => a.id === activeId)
+    ? activities.find((a: any) => a.id === activeId)
     : null;
 
   function handleDragStart(event: DragStartEvent) {
@@ -240,7 +194,7 @@ export function KanbanView({ activities }: { activities: any[] }) {
 
     if (!["PENDING", "IN_PROGRESS", "DONE"].includes(newStatus)) return;
 
-    const activity = activities.find((a) => a.id === activityId);
+    const activity = activities.find((a: any) => a.id === activityId);
     if (!activity || activity.status === newStatus) return;
 
     updateStatus.mutate({ id: activityId, status: newStatus });
@@ -260,6 +214,7 @@ export function KanbanView({ activities }: { activities: any[] }) {
             status={col.id}
             label={col.label}
             color={col.color}
+            dotColor={col.dotColor}
             activities={columns[col.id] || []}
             onMarkDone={(id) =>
               updateStatus.mutate({ id, status: "DONE" })
@@ -271,9 +226,7 @@ export function KanbanView({ activities }: { activities: any[] }) {
       <DragOverlay>
         {activeActivity ? (
           <div className="w-72 opacity-90">
-            <Card>
-              <KanbanCardContent activity={activeActivity} />
-            </Card>
+            <CardContent activity={activeActivity} />
           </div>
         ) : null}
       </DragOverlay>

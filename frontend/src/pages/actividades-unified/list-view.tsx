@@ -1,19 +1,18 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import {
   CalendarDays,
   MapPin,
   Link2,
   LayoutGrid,
   List,
+  ArrowUpDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate, formatScheduleSummary } from "@/lib/utils";
-import { ACTIVITY_TYPE_LABELS } from "@/lib/constants";
+import { ACTIVITY_TYPE_LABELS, ACTIVITY_TYPE_CONFIG, ACTIVITY_STATUS_CONFIG } from "@/lib/constants";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { AvatarGroup } from "@/components/ui/avatar-group";
 import type { ActivityFilters } from "./use-activity-filters";
 
 // ---- Enrollment helpers ----
@@ -26,44 +25,12 @@ function getEnrollmentStatus(a: any) {
   const almostFull = a.maxCapacity && count >= a.maxCapacity * 0.8 && !isFull;
 
   if (deadlinePassed)
-    return {
-      key: "closed" as const,
-      label: "Cerrada",
-      variant: "outline" as const,
-    };
+    return { key: "closed" as const, label: "Cerrada", variant: "outline" as const };
   if (isFull)
-    return {
-      key: "full" as const,
-      label: "Completa",
-      variant: "destructive" as const,
-    };
+    return { key: "full" as const, label: "Completa", variant: "destructive" as const };
   if (almostFull)
-    return {
-      key: "open" as const,
-      label: "Últimas plazas",
-      variant: "warning" as const,
-    };
+    return { key: "open" as const, label: "Últimas plazas", variant: "warning" as const };
   return { key: "open" as const, label: "Abierta", variant: "default" as const };
-}
-
-function CapacityBar({ count, max }: { count: number; max: number }) {
-  const pct = Math.min((count / max) * 100, 100);
-  const color =
-    pct >= 100 ? "bg-red-500" : pct >= 80 ? "bg-amber-500" : "bg-green-500";
-
-  return (
-    <div className="flex items-center gap-2 mt-auto pt-2">
-      <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-        <div
-          className={`h-full rounded-full transition-all ${color}`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <span className="text-xs text-muted-foreground tabular-nums">
-        {count}/{max}
-      </span>
-    </div>
-  );
 }
 
 function CopyLinkButton({
@@ -91,7 +58,7 @@ function CopyLinkButton({
   );
 }
 
-// ---- Course views ----
+// ---- Course Card (grid mode) ----
 
 function CourseCard({ activity: a }: { activity: any }) {
   const status = getEnrollmentStatus(a);
@@ -100,7 +67,7 @@ function CourseCard({ activity: a }: { activity: any }) {
   return (
     <div className="relative group">
       <Link to={`/actividades/curso/${a.id}`}>
-        <Card className="hover:border-primary/30 transition-colors cursor-pointer h-full">
+        <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
           <CardContent className="pt-5 pb-4 space-y-2 flex flex-col h-full">
             <div className="flex items-start justify-between gap-2">
               <h3 className="font-semibold text-base leading-snug">
@@ -108,9 +75,7 @@ function CourseCard({ activity: a }: { activity: any }) {
               </h3>
               <div className="flex gap-1.5 shrink-0">
                 {a.publishStatus === "DRAFT" && (
-                  <Badge variant="outline" className="text-xs">
-                    Borrador
-                  </Badge>
+                  <Badge variant="outline" className="text-xs">Borrador</Badge>
                 )}
                 <Badge variant={status.variant} className="text-xs whitespace-nowrap">
                   {status.label}
@@ -119,43 +84,45 @@ function CourseCard({ activity: a }: { activity: any }) {
             </div>
 
             {a.description && (
-              <p className="text-sm text-muted-foreground line-clamp-2">
-                {a.description}
-              </p>
+              <p className="text-sm text-muted-foreground line-clamp-2">{a.description}</p>
             )}
 
             {(() => {
               const summary = formatScheduleSummary(a.sessions || []);
-              if (summary)
-                return (
-                  <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                    <CalendarDays className="h-3.5 w-3.5 shrink-0" />
-                    {summary}
-                  </p>
-                );
-              if (a.startDate)
-                return (
-                  <p className="text-sm text-muted-foreground">
-                    {new Date(a.startDate).toLocaleDateString("es-ES", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </p>
-                );
+              if (summary) return (
+                <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                  <CalendarDays className="h-3.5 w-3.5 shrink-0" />
+                  {summary}
+                </p>
+              );
+              if (a.startDate) return (
+                <p className="text-sm text-muted-foreground">
+                  {new Date(a.startDate).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" })}
+                </p>
+              );
               return null;
             })()}
 
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
               {a.location && <span>{a.location}</span>}
               {a.enrollmentPrice > 0 && (
-                <span className="font-semibold text-foreground">
-                  {a.enrollmentPrice.toFixed(2)} €
-                </span>
+                <span className="font-semibold text-foreground">{a.enrollmentPrice.toFixed(2)} €</span>
               )}
             </div>
 
-            {a.maxCapacity && <CapacityBar count={count} max={a.maxCapacity} />}
+            {a.maxCapacity && (
+              <div className="flex items-center gap-2 mt-auto pt-2">
+                <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${
+                      count >= a.maxCapacity ? "bg-red-500" : count >= a.maxCapacity * 0.8 ? "bg-amber-500" : "bg-green-500"
+                    }`}
+                    style={{ width: `${Math.min((count / a.maxCapacity) * 100, 100)}%` }}
+                  />
+                </div>
+                <span className="text-xs text-muted-foreground tabular-nums">{count}/{a.maxCapacity}</span>
+              </div>
+            )}
           </CardContent>
         </Card>
       </Link>
@@ -164,162 +131,7 @@ function CourseCard({ activity: a }: { activity: any }) {
   );
 }
 
-function CourseListItem({ activity: a }: { activity: any }) {
-  const status = getEnrollmentStatus(a);
-  const count = a.enrollmentCount || 0;
-
-  return (
-    <div className="relative group">
-      <Link to={`/actividades/curso/${a.id}`}>
-        <Card className="hover:border-primary/30 transition-colors cursor-pointer">
-          <CardContent className="py-3 flex items-center gap-4">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-sm truncate">{a.title}</h3>
-                {a.publishStatus === "DRAFT" && (
-                  <Badge variant="outline" className="text-xs shrink-0">
-                    Borrador
-                  </Badge>
-                )}
-              </div>
-              {a.description && (
-                <p className="text-xs text-muted-foreground truncate mt-0.5">
-                  {a.description}
-                </p>
-              )}
-            </div>
-
-            <div className="hidden sm:flex items-center gap-4 text-sm text-muted-foreground shrink-0">
-              {(() => {
-                const summary = formatScheduleSummary(a.sessions || []);
-                if (summary)
-                  return (
-                    <span className="flex items-center gap-1">
-                      <CalendarDays className="h-3.5 w-3.5" />
-                      {summary}
-                    </span>
-                  );
-                if (a.startDate)
-                  return (
-                    <span className="flex items-center gap-1">
-                      <CalendarDays className="h-3.5 w-3.5" />
-                      {new Date(a.startDate).toLocaleDateString("es-ES", {
-                        day: "numeric",
-                        month: "short",
-                      })}
-                    </span>
-                  );
-                return null;
-              })()}
-              {a.location && (
-                <span className="flex items-center gap-1">
-                  <MapPin className="h-3.5 w-3.5" />
-                  {a.location}
-                </span>
-              )}
-              {a.enrollmentPrice > 0 && (
-                <span className="font-semibold text-foreground">
-                  {a.enrollmentPrice.toFixed(2)} €
-                </span>
-              )}
-            </div>
-
-            {a.maxCapacity && (
-              <div className="hidden sm:flex items-center gap-2 w-28 shrink-0">
-                <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full ${
-                      count >= a.maxCapacity
-                        ? "bg-red-500"
-                        : count >= a.maxCapacity * 0.8
-                          ? "bg-amber-500"
-                          : "bg-green-500"
-                    }`}
-                    style={{
-                      width: `${Math.min((count / a.maxCapacity) * 100, 100)}%`,
-                    }}
-                  />
-                </div>
-                <span className="text-xs text-muted-foreground tabular-nums">
-                  {count}/{a.maxCapacity}
-                </span>
-              </div>
-            )}
-
-            <Badge
-              variant={status.variant}
-              className="text-xs shrink-0 whitespace-nowrap"
-            >
-              {status.label}
-            </Badge>
-          </CardContent>
-        </Card>
-      </Link>
-      <CopyLinkButton
-        activityId={a.id}
-        className="top-1/2 -translate-y-1/2"
-      />
-    </div>
-  );
-}
-
-// ---- Generic activity list item ----
-
-function ActivityListItem({ activity }: { activity: any }) {
-  const link = activity.enrollmentEnabled
-    ? `/actividades/curso/${activity.id}`
-    : `/actividades/${activity.id}`;
-
-  return (
-    <Link to={link}>
-      <Card className="hover:bg-muted/50 hover:shadow-sm transition-all cursor-pointer">
-        <CardContent className="py-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-semibold">{activity.title}</h3>
-                <Badge variant="secondary" className="text-xs">
-                  {ACTIVITY_TYPE_LABELS[activity.type]}
-                </Badge>
-                <StatusBadge status={activity.status} className="text-xs" />
-                {activity.tags?.map((tag: any) => (
-                  <Badge
-                    key={tag.id}
-                    variant="outline"
-                    className="text-xs"
-                    style={
-                      tag.color
-                        ? { borderColor: tag.color, color: tag.color }
-                        : undefined
-                    }
-                  >
-                    {tag.name}
-                  </Badge>
-                ))}
-              </div>
-              <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                <span>{activity.ownerName}</span>
-                <span className="flex items-center gap-1">
-                  <CalendarDays className="h-3 w-3" />
-                  {formatDate(activity.startDate)}
-                </span>
-                {activity.location && (
-                  <span className="flex items-center gap-1">
-                    <MapPin className="h-3 w-3" />
-                    {activity.location}
-                  </span>
-                )}
-              </div>
-            </div>
-            <AvatarGroup people={activity.attendees || []} max={4} />
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
-  );
-}
-
-// ---- Enrollment status filter for course mode ----
+// ---- Enrollment status filter options ----
 
 const ENROLLMENT_FILTER_OPTIONS = [
   { value: "all", label: "Todas" },
@@ -327,6 +139,105 @@ const ENROLLMENT_FILTER_OPTIONS = [
   { value: "full", label: "Completa" },
   { value: "closed", label: "Cerrada" },
 ] as const;
+
+// ---- Table row for generic activities ----
+
+const TYPE_DOT: Record<string, string> = {
+  TASK: "bg-blue-500",
+  MEETING: "bg-amber-500",
+  EVENT: "bg-purple-500",
+  OTHER: "bg-gray-400",
+};
+
+function ActivityTable({ activities }: { activities: any[] }) {
+  const navigate = useNavigate();
+  const [sortField, setSortField] = useState<"title" | "startDate" | "type" | "status">("startDate");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  const sorted = useMemo(() => {
+    return [...activities].sort((a, b) => {
+      let cmp = 0;
+      if (sortField === "title") cmp = (a.title || "").localeCompare(b.title || "");
+      else if (sortField === "startDate") cmp = new Date(a.startDate || 0).getTime() - new Date(b.startDate || 0).getTime();
+      else if (sortField === "type") cmp = (a.type || "").localeCompare(b.type || "");
+      else if (sortField === "status") cmp = (a.status || "").localeCompare(b.status || "");
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+  }, [activities, sortField, sortDir]);
+
+  function toggleSort(field: typeof sortField) {
+    if (sortField === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortField(field); setSortDir("asc"); }
+  }
+
+  function SortHeader({ field, children }: { field: typeof sortField; children: React.ReactNode }) {
+    return (
+      <th
+        className="text-left text-xs font-medium text-muted-foreground px-4 py-2.5 cursor-pointer select-none hover:text-foreground transition-colors"
+        onClick={() => toggleSort(field)}
+      >
+        <span className="inline-flex items-center gap-1">
+          {children}
+          <ArrowUpDown className={`h-3 w-3 ${sortField === field ? "text-foreground" : "text-muted-foreground/40"}`} />
+        </span>
+      </th>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border overflow-hidden">
+      <table className="w-full">
+        <thead className="bg-muted/50">
+          <tr>
+            <SortHeader field="title">Nombre</SortHeader>
+            <SortHeader field="type">Tipo</SortHeader>
+            <SortHeader field="startDate">Fecha</SortHeader>
+            <SortHeader field="status">Estado</SortHeader>
+          </tr>
+        </thead>
+        <tbody className="divide-y">
+          {sorted.map((a: any) => {
+            const link = a.enrollmentEnabled
+              ? `/actividades/curso/${a.id}`
+              : `/actividades/${a.id}`;
+            const statusCfg = ACTIVITY_STATUS_CONFIG[a.status];
+            const dotColor = TYPE_DOT[a.type] || TYPE_DOT.OTHER;
+
+            return (
+              <tr
+                key={a.id}
+                className="hover:bg-muted/30 cursor-pointer transition-colors"
+                onClick={() => navigate(link)}
+              >
+                <td className="px-4 py-3">
+                  <span className="text-sm font-medium">{a.title}</span>
+                </td>
+                <td className="px-4 py-3">
+                  <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <span className={`w-2 h-2 rounded-full ${dotColor}`} />
+                    {ACTIVITY_TYPE_LABELS[a.type] || a.type}
+                  </span>
+                </td>
+                <td className="px-4 py-3">
+                  <span className="text-sm text-muted-foreground">
+                    {a.startDate ? formatDate(a.startDate) : "—"}
+                  </span>
+                </td>
+                <td className="px-4 py-3">
+                  {statusCfg && (
+                    <Badge variant="outline" className={`text-xs ${statusCfg.color}`}>
+                      {statusCfg.label}
+                    </Badge>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 // ---- Main ListView ----
 
@@ -342,30 +253,14 @@ export function ListView({
   const [courseViewMode, setCourseViewMode] = useState<"grid" | "list">("grid");
   const isCourseMode = filters.enrollmentEnabled;
 
-  // Client-side enrollment status filter + multi-type filter + search
+  // Client-side enrollment status filter
   const filtered = useMemo(() => {
+    if (!isCourseMode || !filters.enrollmentStatus) return activities;
     return activities.filter((a: any) => {
-      // Multi-type client-side filter (API only supports single type)
-      if (filters.types.size > 1 && !filters.types.has(a.type)) return false;
-
-      // Search filter
-      if (filters.search) {
-        const q = filters.search.toLowerCase();
-        const matchTitle = a.title?.toLowerCase().includes(q);
-        const matchLocation = a.location?.toLowerCase().includes(q);
-        const matchDesc = a.description?.toLowerCase().includes(q);
-        if (!matchTitle && !matchLocation && !matchDesc) return false;
-      }
-
-      // Enrollment status filter (only in course mode)
-      if (isCourseMode && filters.enrollmentStatus && filters.enrollmentStatus !== "all") {
-        const status = getEnrollmentStatus(a);
-        if (status.key !== filters.enrollmentStatus) return false;
-      }
-
-      return true;
+      const status = getEnrollmentStatus(a);
+      return status.key === filters.enrollmentStatus;
     });
-  }, [activities, filters.types, filters.search, isCourseMode, filters.enrollmentStatus]);
+  }, [activities, isCourseMode, filters.enrollmentStatus]);
 
   if (isLoading) {
     return <p className="text-muted-foreground">Cargando...</p>;
@@ -377,29 +272,23 @@ export function ListView({
         <CardContent className="flex flex-col items-center justify-center py-12">
           <CalendarDays className="h-12 w-12 text-muted-foreground mb-4" />
           <p className="text-muted-foreground">
-            {isCourseMode
-              ? "No hay cursos creados"
-              : "No hay actividades registradas."}
+            {isCourseMode ? "No hay cursos creados" : "No hay actividades registradas."}
           </p>
         </CardContent>
       </Card>
     );
   }
 
+  // Course mode: grid/list with enrollment controls
   if (isCourseMode) {
     return (
       <div className="space-y-4">
-        {/* Course-specific controls */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 rounded-lg border p-1">
+          <div className="flex items-center gap-1 rounded-lg border p-0.5">
             {ENROLLMENT_FILTER_OPTIONS.map((f) => (
               <button
                 key={f.value}
-                onClick={() =>
-                  filters.setEnrollmentStatus(
-                    f.value === "all" ? null : f.value,
-                  )
-                }
+                onClick={() => filters.setEnrollmentStatus(f.value === "all" ? null : f.value)}
                 className={`px-3 py-1 text-sm rounded-md transition-colors ${
                   (filters.enrollmentStatus || "all") === f.value
                     ? "bg-primary text-primary-foreground"
@@ -410,26 +299,18 @@ export function ListView({
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-1 rounded-lg border p-1">
+          <div className="flex items-center gap-1 rounded-lg border p-0.5">
             <button
               onClick={() => setCourseViewMode("grid")}
-              className={`p-1.5 rounded-md transition-colors ${
-                courseViewMode === "grid"
-                  ? "bg-muted text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-              title="Vista cuadrícula"
+              className={`p-1.5 rounded-md transition-colors ${courseViewMode === "grid" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              title="Cuadrícula"
             >
               <LayoutGrid className="h-4 w-4" />
             </button>
             <button
               onClick={() => setCourseViewMode("list")}
-              className={`p-1.5 rounded-md transition-colors ${
-                courseViewMode === "list"
-                  ? "bg-muted text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-              title="Vista lista"
+              className={`p-1.5 rounded-md transition-colors ${courseViewMode === "list" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              title="Lista"
             >
               <List className="h-4 w-4" />
             </button>
@@ -447,30 +328,12 @@ export function ListView({
             ))}
           </div>
         ) : (
-          <div className="space-y-2">
-            {filtered.map((a: any) => (
-              <CourseListItem key={a.id} activity={a} />
-            ))}
-          </div>
+          <ActivityTable activities={filtered} />
         )}
       </div>
     );
   }
 
-  // Standard activity list
-  if (filtered.length === 0) {
-    return (
-      <div className="text-center py-12 text-muted-foreground">
-        <p>No se encontraron actividades con estos filtros</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-3">
-      {filtered.map((activity: any) => (
-        <ActivityListItem key={activity.id} activity={activity} />
-      ))}
-    </div>
-  );
+  // Standard: clean table
+  return <ActivityTable activities={filtered} />;
 }
