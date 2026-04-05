@@ -121,8 +121,7 @@ export function useActivityFilters(): ActivityFilters {
   if (participantId) apiParams.participantId = participantId;
   if (search) apiParams.q = search;
   if (enrollmentEnabled) apiParams.enrollmentEnabled = "1";
-  if (viewMode === "kanban") apiParams.limit = "500";
-  else apiParams.limit = "50";
+  apiParams.limit = "200";
 
   return {
     viewMode,
