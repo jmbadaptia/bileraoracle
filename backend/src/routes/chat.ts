@@ -1,9 +1,15 @@
 import { FastifyInstance } from "fastify";
 import oracledb from "oracledb";
-import { withTenant } from "../lib/db.js";
+import { readFile } from "fs/promises";
+import path from "path";
+import { withTenant, withConnection } from "../lib/db.js";
 import { requireAuth } from "../middleware/auth.js";
 import { getEmbedding, chatCompletion, estimateTokens } from "../lib/ai.js";
 import { trackAiUsage, checkAiCostLimit } from "../lib/ai-usage.js";
+import {
+  Document, Packer, Paragraph, TextRun, HeadingLevel,
+  AlignmentType, ImageRun, BorderStyle,
+} from "docx";
 
 // Detect intent like "última reunión", "último evento", "últimas tareas"
 function detectTypeIntent(message: string): { type: string; limit: number } | null {
@@ -714,4 +720,214 @@ Citas:
       return reply;
     }
   });
+
+  // POST /api/chat/export — export a chat message as .docx
+  app.post("/api/chat/export", { preHandler: [requireAuth] }, async (request, reply) => {
+    const { content, title } = request.body as {
+      content: string;
+      title?: string;
+    };
+    const tenantId = request.user.tenantId;
+
+    if (!content || content.trim().length === 0) {
+      return reply.code(400).send({ error: "El contenido no puede estar vacío" });
+    }
+
+    // Get tenant info for header
+    let tenantName = "";
+    let logoBuffer: Buffer | null = null;
+    await withConnection(async (conn) => {
+      const r = await conn.execute<any>(
+        `SELECT name, logo_path FROM tenants WHERE id = :id`,
+        { id: tenantId },
+        { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      );
+      if (r.rows?.[0]) {
+        tenantName = r.rows[0].NAME;
+        if (r.rows[0].LOGO_PATH) {
+          try {
+            const UPLOAD_DIR = process.env.UPLOAD_DIR || "./uploads";
+            logoBuffer = await readFile(path.join(UPLOAD_DIR, r.rows[0].LOGO_PATH));
+          } catch { /* no logo available */ }
+        }
+      }
+    });
+
+    // Parse markdown into docx paragraphs
+    const paragraphs: Paragraph[] = [];
+
+    // Header with logo and tenant name
+    if (logoBuffer) {
+      paragraphs.push(new Paragraph({
+        children: [
+          new ImageRun({ data: logoBuffer, transformation: { width: 80, height: 80 }, type: "png" }),
+        ],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 100 },
+      }));
+    }
+    if (tenantName) {
+      paragraphs.push(new Paragraph({
+        children: [new TextRun({ text: tenantName, bold: true, size: 28, color: "444444" })],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 200 },
+      }));
+    }
+
+    // Title
+    if (title) {
+      paragraphs.push(new Paragraph({
+        text: title,
+        heading: HeadingLevel.HEADING_1,
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 300 },
+      }));
+    }
+
+    // Separator line
+    paragraphs.push(new Paragraph({
+      border: { bottom: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" } },
+      spacing: { after: 200 },
+    }));
+
+    // Date
+    const dateStr = new Date().toLocaleDateString("es-ES", {
+      day: "numeric", month: "long", year: "numeric",
+    });
+    paragraphs.push(new Paragraph({
+      children: [new TextRun({ text: dateStr, italics: true, size: 20, color: "888888" })],
+      alignment: AlignmentType.RIGHT,
+      spacing: { after: 300 },
+    }));
+
+    // Parse markdown content to paragraphs
+    const lines = content.split("\n");
+    for (const line of lines) {
+      const trimmed = line.trim();
+
+      // Skip empty lines — add spacing
+      if (!trimmed) {
+        paragraphs.push(new Paragraph({ spacing: { after: 100 } }));
+        continue;
+      }
+
+      // Headings
+      if (trimmed.startsWith("### ")) {
+        paragraphs.push(new Paragraph({
+          text: trimmed.slice(4),
+          heading: HeadingLevel.HEADING_3,
+          spacing: { before: 200, after: 100 },
+        }));
+        continue;
+      }
+      if (trimmed.startsWith("## ")) {
+        paragraphs.push(new Paragraph({
+          text: trimmed.slice(3),
+          heading: HeadingLevel.HEADING_2,
+          spacing: { before: 200, after: 100 },
+        }));
+        continue;
+      }
+      if (trimmed.startsWith("# ")) {
+        paragraphs.push(new Paragraph({
+          text: trimmed.slice(2),
+          heading: HeadingLevel.HEADING_1,
+          spacing: { before: 200, after: 100 },
+        }));
+        continue;
+      }
+
+      // Bullet lists
+      if (/^[-*]\s/.test(trimmed)) {
+        paragraphs.push(new Paragraph({
+          children: parseInlineMarkdown(trimmed.slice(2)),
+          bullet: { level: 0 },
+          spacing: { after: 60 },
+        }));
+        continue;
+      }
+
+      // Numbered lists
+      const numMatch = trimmed.match(/^(\d+)\.\s/);
+      if (numMatch) {
+        paragraphs.push(new Paragraph({
+          children: parseInlineMarkdown(trimmed.slice(numMatch[0].length)),
+          numbering: { reference: "default-numbering", level: 0 },
+          spacing: { after: 60 },
+        }));
+        continue;
+      }
+
+      // Regular paragraph
+      paragraphs.push(new Paragraph({
+        children: parseInlineMarkdown(trimmed),
+        spacing: { after: 120 },
+      }));
+    }
+
+    // Footer
+    paragraphs.push(new Paragraph({ spacing: { after: 300 } }));
+    paragraphs.push(new Paragraph({
+      border: { top: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" } },
+      spacing: { before: 200, after: 100 },
+    }));
+    paragraphs.push(new Paragraph({
+      children: [new TextRun({
+        text: `Generado por ${tenantName || "Bilera"} — ${dateStr}`,
+        italics: true, size: 16, color: "AAAAAA",
+      })],
+      alignment: AlignmentType.CENTER,
+    }));
+
+    const doc = new Document({
+      numbering: {
+        config: [{
+          reference: "default-numbering",
+          levels: [{ level: 0, format: "decimal", text: "%1.", alignment: AlignmentType.START }],
+        }],
+      },
+      sections: [{ children: paragraphs }],
+    });
+
+    const buffer = await Packer.toBuffer(doc);
+    const fileName = `${(title || "documento").replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ\s-]/g, "").trim().replace(/\s+/g, "-").toLowerCase()}.docx`;
+
+    reply.header("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+    reply.header("Content-Disposition", `attachment; filename="${fileName}"`);
+    return reply.send(buffer);
+  });
+}
+
+/** Parse inline markdown (**bold**, *italic*) into TextRun array */
+function parseInlineMarkdown(text: string): TextRun[] {
+  const runs: TextRun[] = [];
+  // Remove citation markers like [1], [2] etc.
+  const clean = text.replace(/\[(?:Fuente\s*)?\d+(?:\s*,\s*\d+)*\]/g, "");
+  const regex = /(\*\*(.+?)\*\*|\*(.+?)\*)/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = regex.exec(clean)) !== null) {
+    if (match.index > lastIndex) {
+      runs.push(new TextRun({ text: clean.slice(lastIndex, match.index), size: 22 }));
+    }
+    if (match[2]) {
+      // **bold**
+      runs.push(new TextRun({ text: match[2], bold: true, size: 22 }));
+    } else if (match[3]) {
+      // *italic*
+      runs.push(new TextRun({ text: match[3], italics: true, size: 22 }));
+    }
+    lastIndex = regex.lastIndex;
+  }
+
+  if (lastIndex < clean.length) {
+    runs.push(new TextRun({ text: clean.slice(lastIndex), size: 22 }));
+  }
+
+  if (runs.length === 0) {
+    runs.push(new TextRun({ text: clean, size: 22 }));
+  }
+
+  return runs;
 }

@@ -11,6 +11,7 @@ import {
   Image,
   Loader2,
   MessageSquare,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -368,6 +369,40 @@ export function AsistentePage() {
     }
   }
 
+  async function handleExport(content: string) {
+    try {
+      const token = localStorage.getItem("token");
+      const API_BASE =
+        import.meta.env.VITE_API_URL ||
+        `${window.location.protocol}//${window.location.hostname}:4000/api`;
+      const res = await fetch(`${API_BASE}/chat/export`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          content,
+          title: conversationData?.title || "Documento",
+        }),
+      });
+      if (!res.ok) throw new Error("Error al exportar");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const disposition = res.headers.get("Content-Disposition");
+      const match = disposition?.match(/filename="(.+)"/);
+      a.download = match?.[1] || "documento.docx";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Export error:", err);
+    }
+  }
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Messages area */}
@@ -433,9 +468,21 @@ export function AsistentePage() {
                     )
                   )}
 
-                  {msg.sources && msg.sources.length > 0 && (
-                    <SourcesList sources={msg.sources} />
-                  )}
+                  <div className="flex items-center gap-1 mt-1">
+                    {msg.content && msg.content.length > 100 && !loading && (
+                      <button
+                        onClick={() => handleExport(msg.content)}
+                        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-1.5 py-0.5 rounded hover:bg-muted"
+                        title="Descargar como Word"
+                      >
+                        <Download className="h-3 w-3" />
+                        Word
+                      </button>
+                    )}
+                    {msg.sources && msg.sources.length > 0 && (
+                      <SourcesList sources={msg.sources} />
+                    )}
+                  </div>
                 </div>
               </div>
             )}
