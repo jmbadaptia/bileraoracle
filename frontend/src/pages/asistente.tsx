@@ -285,6 +285,7 @@ export function AsistentePage() {
 
       let fullText = "";
       let sources: Source[] = [];
+      let exportable = false;
       let buffer = "";
 
       while (true) {
@@ -304,9 +305,21 @@ export function AsistentePage() {
             const parsed = JSON.parse(data);
             if (parsed.text) {
               fullText += parsed.text;
+              // Strip [DOCUMENTO] marker from displayed text in real-time
+              const displayText = fullText.replace(/\s*\[DOCUMENTO\]\s*$/, "");
               setMessages((prev) => {
                 const updated = [...prev];
-                updated[updated.length - 1] = { role: "assistant", content: fullText, sources };
+                updated[updated.length - 1] = { role: "assistant", content: displayText, sources, exportable };
+                return updated;
+              });
+            }
+            if (parsed.exportable) {
+              exportable = true;
+              // Update with clean text + exportable flag
+              const displayText = fullText.replace(/\s*\[DOCUMENTO\]\s*$/, "");
+              setMessages((prev) => {
+                const updated = [...prev];
+                updated[updated.length - 1] = { role: "assistant", content: displayText, sources, exportable: true };
                 return updated;
               });
             }
@@ -314,7 +327,7 @@ export function AsistentePage() {
               sources = parsed.sources;
               setMessages((prev) => {
                 const updated = [...prev];
-                updated[updated.length - 1] = { role: "assistant", content: fullText, sources };
+                updated[updated.length - 1] = { role: "assistant", content: fullText.replace(/\s*\[DOCUMENTO\]\s*$/, ""), sources, exportable };
                 return updated;
               });
             }
@@ -468,21 +481,20 @@ export function AsistentePage() {
                     )
                   )}
 
-                  <div className="flex items-center gap-1 mt-1">
-                    {msg.content && msg.content.length > 100 && !loading && (
+                  {msg.exportable && !loading && (
+                    <div className="mt-2">
                       <button
                         onClick={() => handleExport(msg.content)}
-                        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-1.5 py-0.5 rounded hover:bg-muted"
-                        title="Descargar como Word"
+                        className="inline-flex items-center gap-1.5 text-sm font-medium text-primary bg-primary/10 hover:bg-primary/20 transition-colors px-3 py-1.5 rounded-lg"
                       >
-                        <Download className="h-3 w-3" />
-                        Word
+                        <Download className="h-4 w-4" />
+                        Descargar como Word
                       </button>
-                    )}
-                    {msg.sources && msg.sources.length > 0 && (
-                      <SourcesList sources={msg.sources} />
-                    )}
-                  </div>
+                    </div>
+                  )}
+                  {msg.sources && msg.sources.length > 0 && (
+                    <SourcesList sources={msg.sources} />
+                  )}
                 </div>
               </div>
             )}

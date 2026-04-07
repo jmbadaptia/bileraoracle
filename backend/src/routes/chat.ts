@@ -535,9 +535,10 @@ Reglas:
 - No inventes nombres de actividades, documentos, eventos ni datos que no aparezcan en el contexto.
 
 Generación de contenido:
-- Cuando el usuario pida generar contenido (nota de prensa, comunicado, resumen, post para RRSS, informe, acta, etc.), ANTES de escribirlo pregúntale brevemente: ¿sobre qué actividades o tema? y ¿qué tono prefiere? (formal, cercano, institucional...). Una sola pregunta breve, no un interrogatorio.
+- Cuando el usuario pida generar contenido (nota de prensa, comunicado, resumen, post para RRSS, informe, acta, etc.), ANTES de escribirlo pregúntale brevemente: ¿sobre qué tema o actividad? No asumas que es sobre actividades ni sobre nada concreto — simplemente pregunta. Una sola pregunta breve, no un interrogatorio. Opcionalmente pregunta el tono (formal, cercano, institucional...).
 - Si el usuario ya especifica el tema ("nota de prensa sobre la Fiesta de la Cosecha") o el periodo ("resumen de abril"), no preguntes — genera directamente.
 - El usuario puede descargar tu respuesta como documento Word, así que cuando generes contenido largo, estructúralo bien con títulos, secciones y párrafos claros.
+- IMPORTANTE: Cuando generes un documento final (nota de prensa, informe, acta, comunicado, resumen, post para RRSS, o cualquier contenido que el usuario podría querer descargar), añade la marca [DOCUMENTO] al final de tu respuesta, en una línea aparte. NO añadas esta marca en respuestas conversacionales, preguntas, o listas informativas — solo cuando el contenido sea un documento redactado y listo para descargar.
 
 Formato:
 - Usa Markdown para estructurar tus respuestas: **negritas** para destacar, listas con - o números para enumerar, y ### para secciones si la respuesta es larga.
@@ -640,6 +641,13 @@ Citas:
         inputTokens: streamUsage?.prompt_tokens ?? estimateTokens(allInputText),
         outputTokens: streamUsage?.completion_tokens ?? estimateTokens(fullText),
       });
+
+      // Detect [DOCUMENTO] marker — strip from text and send exportable flag
+      const isExportable = /\[DOCUMENTO\]\s*$/.test(fullText);
+      if (isExportable) {
+        fullText = fullText.replace(/\s*\[DOCUMENTO\]\s*$/, "").trimEnd();
+        reply.raw.write(`data: ${JSON.stringify({ exportable: true })}\n\n`);
+      }
 
       // Send only sources that the LLM actually cited in its response
       // SYSTEM documents (e.g. user guide) are used for RAG but hidden from the user
