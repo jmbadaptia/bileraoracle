@@ -5,6 +5,36 @@ import { requireAuth } from "../middleware/auth.js";
 import { getEmbedding, chatCompletion, estimateTokens } from "../lib/ai.js";
 import { trackAiUsage, checkAiCostLimit } from "../lib/ai-usage.js";
 
+// Detect intent like "última reunión", "último evento", "últimas tareas"
+function detectTypeIntent(message: string): { type: string; limit: number } | null {
+  const lower = message.toLowerCase();
+  const typeMap: Record<string, string> = {
+    "reunión": "MEETING", "reuniones": "MEETING",
+    "tarea": "TASK", "tareas": "TASK",
+    "evento": "EVENT", "eventos": "EVENT",
+    "curso": "COURSE", "cursos": "COURSE",
+    "actividad": "%", "actividades": "%",
+  };
+  // "última(s) X", "la última X", "las últimas X"
+  const matchLast = lower.match(/[uú]ltim[ao]s?\s+(?:\d+\s+)?(reuni[oó]n(?:es)?|tareas?|eventos?|cursos?|actividades?)/);
+  if (matchLast) {
+    const word = matchLast[1].replace("ó", "o");
+    const key = Object.keys(typeMap).find(k => word.startsWith(k.replace("ó", "o").slice(0, 4)));
+    if (key) {
+      const numMatch = lower.match(/[uú]ltim[ao]s?\s+(\d+)/);
+      return { type: typeMap[key], limit: numMatch ? parseInt(numMatch[1]) : 1 };
+    }
+  }
+  // "qué reuniones hay", "dime las tareas", "lista de eventos"
+  const matchList = lower.match(/(?:qu[eé]|lista|dime|cu[aá]les|muestra|ense[ñn]a).*?(reuni[oó]n(?:es)?|tareas?|eventos?|cursos?|actividades?)/);
+  if (matchList) {
+    const word = matchList[1].replace("ó", "o");
+    const key = Object.keys(typeMap).find(k => word.startsWith(k.replace("ó", "o").slice(0, 4)));
+    if (key) return { type: typeMap[key], limit: 10 };
+  }
+  return null;
+}
+
 function detectTemporalRange(message: string): { from: Date; to: Date } | null {
   const lower = message.toLowerCase();
   const now = new Date();
@@ -133,6 +163,7 @@ export async function chatRoutes(app: FastifyInstance) {
       let searchQuery = message.trim();
       let queryVec: Float32Array | null = null;
       let temporalRange: { from: Date; to: Date } | null = null;
+      let typeIntent: { type: string; limit: number } | null = null;
 
       // For short messages ("sí", "vale", "cuéntame más"), use last user message from history as search query
       if (searchQuery.length < 10 && history.length > 0) {
@@ -158,6 +189,12 @@ export async function chatRoutes(app: FastifyInstance) {
           console.log(`[RAG] Temporal range detected: ${temporal.from.toISOString()} → ${temporal.to.toISOString()}`);
         }
 
+        // Detect type intent ("última reunión", "qué tareas hay", etc.)
+        typeIntent = detectTypeIntent(message.trim());
+        if (typeIntent) {
+          console.log(`[RAG] Type intent detected: ${typeIntent.type} (limit ${typeIntent.limit})`);
+        }
+
         const embResult = await getEmbedding(searchQuery);
         if (embResult) {
           queryVec = new Float32Array(embResult.embedding);
@@ -173,8 +210,11 @@ export async function chatRoutes(app: FastifyInstance) {
           {},
           { outFormat: oracledb.OUT_FORMAT_OBJECT }
         );
-        const actCount = await conn.execute<any>(
-          `SELECT COUNT(*) AS cnt FROM activities`,
+        const actList = await conn.execute<any>(
+          `SELECT a.id, a.title, a.type, a.status, a.start_date, a.location,
+                  (SELECT COUNT(*) FROM activity_attendees aa WHERE aa.activity_id = a.id) AS attendee_count,
+                  (SELECT COUNT(*) FROM document_activities da WHERE da.activity_id = a.id) AS doc_count
+           FROM activities a ORDER BY a.start_date DESC NULLS LAST FETCH FIRST 20 ROWS ONLY`,
           {},
           { outFormat: oracledb.OUT_FORMAT_OBJECT }
         );
@@ -185,10 +225,10 @@ export async function chatRoutes(app: FastifyInstance) {
         );
 
         const docs = docList.rows || [];
-        const numActs = actCount.rows?.[0]?.CNT || 0;
+        const acts = actList.rows || [];
         const numAlbums = albumCount.rows?.[0]?.CNT || 0;
 
-        if (docs.length > 0 || numActs > 0 || numAlbums > 0) {
+        if (docs.length > 0 || acts.length > 0 || numAlbums > 0) {
           const parts: string[] = [];
           if (docs.length > 0) {
             const docLines = docs.map((d: any) => {
@@ -197,7 +237,21 @@ export async function chatRoutes(app: FastifyInstance) {
             });
             parts.push(`Documentos disponibles (${docs.length}):\n${docLines.join("\n")}`);
           }
-          if (numActs > 0) parts.push(`Actividades: ${numActs} registradas`);
+          if (acts.length > 0) {
+            const typeMap: Record<string, string> = { MEETING: "Reunión", TASK: "Tarea", EVENT: "Evento", COURSE: "Curso" };
+            const statusMap: Record<string, string> = { PENDING: "Pendiente", IN_PROGRESS: "En progreso", DONE: "Hecho", CANCELLED: "Cancelada" };
+            const actLines = acts.map((a: any) => {
+              const tipo = typeMap[a.TYPE] || a.TYPE;
+              const estado = statusMap[a.STATUS] || a.STATUS;
+              const fecha = a.START_DATE ? new Date(a.START_DATE).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" }) : "sin fecha";
+              const extras: string[] = [];
+              if (a.LOCATION) extras.push(a.LOCATION);
+              if (a.ATTENDEE_COUNT > 0) extras.push(`${a.ATTENDEE_COUNT} asistentes`);
+              if (a.DOC_COUNT > 0) extras.push(`${a.DOC_COUNT} docs`);
+              return `  - "${a.TITLE}" (${tipo}, ${estado}, ${fecha}${extras.length > 0 ? ", " + extras.join(", ") : ""})`;
+            });
+            parts.push(`Actividades (${acts.length}):\n${actLines.join("\n")}`);
+          }
           if (numAlbums > 0) parts.push(`Álbumes: ${numAlbums} registrados`);
           inventoryContext = parts.join("\n");
         }
@@ -211,21 +265,44 @@ export async function chatRoutes(app: FastifyInstance) {
           const vecBind = { val: queryVec, type: oracledb.DB_TYPE_VECTOR };
 
           const actResult = await conn.execute<any>(
-            `SELECT id, title, description, type, status, start_date,
-                    VECTOR_DISTANCE(embedding, :qvec, COSINE) AS distance
-             FROM activities WHERE embedding IS NOT NULL
-             ORDER BY VECTOR_DISTANCE(embedding, :qvec, COSINE)
+            `SELECT a.id, a.title, a.description, a.type, a.status, a.priority,
+                    a.start_date, a.location,
+                    VECTOR_DISTANCE(a.embedding, :qvec, COSINE) AS distance,
+                    (SELECT LISTAGG(u.name, ', ') WITHIN GROUP (ORDER BY u.name)
+                     FROM activity_attendees aa JOIN users u ON u.id = aa.user_id
+                     WHERE aa.activity_id = a.id) AS attendees,
+                    (SELECT LISTAGG(t.name, ', ') WITHIN GROUP (ORDER BY t.name)
+                     FROM activity_tags at2 JOIN tags t ON t.id = at2.tag_id
+                     WHERE at2.activity_id = a.id) AS tags,
+                    (SELECT LISTAGG(d.title, ', ') WITHIN GROUP (ORDER BY d.title)
+                     FROM document_activities da JOIN documents d ON d.id = da.document_id
+                     WHERE da.activity_id = a.id) AS linked_docs
+             FROM activities a WHERE a.embedding IS NOT NULL
+             ORDER BY VECTOR_DISTANCE(a.embedding, :qvec, COSINE)
              FETCH FIRST 5 ROWS ONLY`,
             { qvec: vecBind },
             { outFormat: oracledb.OUT_FORMAT_OBJECT }
           );
           for (const row of actResult.rows || []) {
+            const typeMap: Record<string, string> = { MEETING: "Reunión", TASK: "Tarea", EVENT: "Evento", COURSE: "Curso" };
+            const statusMap: Record<string, string> = { PENDING: "Pendiente", IN_PROGRESS: "En progreso", DONE: "Hecho", CANCELLED: "Cancelada" };
+            const tipo = typeMap[row.TYPE] || row.TYPE;
+            const estado = statusMap[row.STATUS] || row.STATUS;
+            const fecha = row.START_DATE ? new Date(row.START_DATE).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long", year: "numeric" }) : "";
+            const descParts: string[] = [];
+            if (row.DESCRIPTION) descParts.push(row.DESCRIPTION);
+            descParts.push(`${tipo}, ${estado}`);
+            if (fecha) descParts.push(`Fecha: ${fecha}`);
+            if (row.LOCATION) descParts.push(`Lugar: ${row.LOCATION}`);
+            if (row.PRIORITY && row.PRIORITY !== "MEDIUM") descParts.push(`Prioridad: ${row.PRIORITY}`);
+            if (row.ATTENDEES) descParts.push(`Asistentes: ${row.ATTENDEES}`);
+            if (row.TAGS) descParts.push(`Etiquetas: ${row.TAGS}`);
+            if (row.LINKED_DOCS) descParts.push(`Documentos asociados: ${row.LINKED_DOCS}`);
             sources.push({
               type: "activity",
               id: row.ID,
               title: row.TITLE,
-              description: row.DESCRIPTION,
-              extra: `Tipo: ${row.TYPE}, Estado: ${row.STATUS}`,
+              description: descParts.join(" | "),
               distance: row.DISTANCE,
             });
           }
@@ -301,24 +378,95 @@ export async function chatRoutes(app: FastifyInstance) {
       if (temporalRange) {
         await withTenant(tenantId, userId, async (conn) => {
           const result = await conn.execute<any>(
-            `SELECT id, title, description, type, status, priority, start_date, location
-             FROM activities
-             WHERE start_date >= :fromDate AND start_date <= :toDate
-             ORDER BY start_date`,
+            `SELECT a.id, a.title, a.description, a.type, a.status, a.priority,
+                    a.start_date, a.location,
+                    (SELECT LISTAGG(u.name, ', ') WITHIN GROUP (ORDER BY u.name)
+                     FROM activity_attendees aa JOIN users u ON u.id = aa.user_id
+                     WHERE aa.activity_id = a.id) AS attendees,
+                    (SELECT LISTAGG(t.name, ', ') WITHIN GROUP (ORDER BY t.name)
+                     FROM activity_tags at2 JOIN tags t ON t.id = at2.tag_id
+                     WHERE at2.activity_id = a.id) AS tags,
+                    (SELECT LISTAGG(d.title, ', ') WITHIN GROUP (ORDER BY d.title)
+                     FROM document_activities da JOIN documents d ON d.id = da.document_id
+                     WHERE da.activity_id = a.id) AS linked_docs
+             FROM activities a
+             WHERE a.start_date >= :fromDate AND a.start_date <= :toDate
+             ORDER BY a.start_date`,
             { fromDate: temporalRange!.from, toDate: temporalRange!.to },
             { outFormat: oracledb.OUT_FORMAT_OBJECT }
           );
           for (const row of result.rows || []) {
-            // Avoid duplicates from vector search
             if (!sources.find(s => s.type === "activity" && s.id === row.ID)) {
-              const dateStr = row.START_DATE ? new Date(row.START_DATE).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" }) : "";
+              const typeMap: Record<string, string> = { MEETING: "Reunión", TASK: "Tarea", EVENT: "Evento", COURSE: "Curso" };
+              const statusMap: Record<string, string> = { PENDING: "Pendiente", IN_PROGRESS: "En progreso", DONE: "Hecho", CANCELLED: "Cancelada" };
+              const tipo = typeMap[row.TYPE] || row.TYPE;
+              const estado = statusMap[row.STATUS] || row.STATUS;
+              const fecha = row.START_DATE ? new Date(row.START_DATE).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long", year: "numeric" }) : "";
+              const descParts: string[] = [];
+              if (row.DESCRIPTION) descParts.push(row.DESCRIPTION);
+              descParts.push(`${tipo}, ${estado}`);
+              if (fecha) descParts.push(`Fecha: ${fecha}`);
+              if (row.LOCATION) descParts.push(`Lugar: ${row.LOCATION}`);
+              if (row.ATTENDEES) descParts.push(`Asistentes: ${row.ATTENDEES}`);
+              if (row.TAGS) descParts.push(`Etiquetas: ${row.TAGS}`);
+              if (row.LINKED_DOCS) descParts.push(`Documentos asociados: ${row.LINKED_DOCS}`);
               sources.push({
                 type: "activity",
                 id: row.ID,
                 title: row.TITLE,
-                description: `${row.DESCRIPTION || ""} | ${row.TYPE} | ${row.STATUS} | ${dateStr}${row.LOCATION ? ` | ${row.LOCATION}` : ""}`.trim(),
-                extra: `Fecha: ${dateStr}, Estado: ${row.STATUS}`,
-                distance: 0, // exact SQL match = highest relevance
+                description: descParts.join(" | "),
+                distance: 0,
+              });
+            }
+          }
+        });
+      }
+
+      // 3c. Type-intent SQL search ("última reunión", "qué tareas hay")
+      if (typeIntent) {
+        await withTenant(tenantId, userId, async (conn) => {
+          const typeFilter = typeIntent!.type === "%" ? "" : "WHERE a.type = :actType";
+          const binds: any = {};
+          if (typeIntent!.type !== "%") binds.actType = typeIntent!.type;
+          const result = await conn.execute<any>(
+            `SELECT a.id, a.title, a.description, a.type, a.status, a.priority,
+                    a.start_date, a.location,
+                    (SELECT LISTAGG(u.name, ', ') WITHIN GROUP (ORDER BY u.name)
+                     FROM activity_attendees aa JOIN users u ON u.id = aa.user_id
+                     WHERE aa.activity_id = a.id) AS attendees,
+                    (SELECT LISTAGG(t.name, ', ') WITHIN GROUP (ORDER BY t.name)
+                     FROM activity_tags at2 JOIN tags t ON t.id = at2.tag_id
+                     WHERE at2.activity_id = a.id) AS tags,
+                    (SELECT LISTAGG(d.title, ', ') WITHIN GROUP (ORDER BY d.title)
+                     FROM document_activities da JOIN documents d ON d.id = da.document_id
+                     WHERE da.activity_id = a.id) AS linked_docs
+             FROM activities a ${typeFilter}
+             ORDER BY a.start_date DESC NULLS LAST
+             FETCH FIRST :lim ROWS ONLY`,
+            { ...binds, lim: typeIntent!.limit },
+            { outFormat: oracledb.OUT_FORMAT_OBJECT }
+          );
+          for (const row of result.rows || []) {
+            if (!sources.find(s => s.type === "activity" && s.id === row.ID)) {
+              const typeMap: Record<string, string> = { MEETING: "Reunión", TASK: "Tarea", EVENT: "Evento", COURSE: "Curso" };
+              const statusMap: Record<string, string> = { PENDING: "Pendiente", IN_PROGRESS: "En progreso", DONE: "Hecho", CANCELLED: "Cancelada" };
+              const tipo = typeMap[row.TYPE] || row.TYPE;
+              const estado = statusMap[row.STATUS] || row.STATUS;
+              const fecha = row.START_DATE ? new Date(row.START_DATE).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long", year: "numeric" }) : "";
+              const descParts: string[] = [];
+              if (row.DESCRIPTION) descParts.push(row.DESCRIPTION);
+              descParts.push(`${tipo}, ${estado}`);
+              if (fecha) descParts.push(`Fecha: ${fecha}`);
+              if (row.LOCATION) descParts.push(`Lugar: ${row.LOCATION}`);
+              if (row.ATTENDEES) descParts.push(`Asistentes: ${row.ATTENDEES}`);
+              if (row.TAGS) descParts.push(`Etiquetas: ${row.TAGS}`);
+              if (row.LINKED_DOCS) descParts.push(`Documentos asociados: ${row.LINKED_DOCS}`);
+              sources.push({
+                type: "activity",
+                id: row.ID,
+                title: row.TITLE,
+                description: descParts.join(" | "),
+                distance: 0,
               });
             }
           }
