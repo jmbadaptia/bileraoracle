@@ -52,26 +52,33 @@ function Section({
   return (
     <details
       open={defaultOpen}
-      className="group rounded-xl border bg-card overflow-hidden"
+      className="group rounded-xl border bg-card overflow-hidden transition-colors open:shadow-sm open:border-primary/30"
     >
       <summary
         className={cn(
-          "flex items-center gap-3 px-5 py-4 cursor-pointer select-none transition-colors list-none",
+          "flex items-center gap-3 px-5 py-3.5 cursor-pointer select-none transition-colors list-none",
           "hover:bg-muted/30 [&::-webkit-details-marker]:hidden",
+          "group-open:bg-primary/5",
         )}
       >
-        {Icon && <Icon className="h-4 w-4 text-muted-foreground shrink-0" />}
+        {Icon && (
+          <div className="h-8 w-8 rounded-full flex items-center justify-center shrink-0 transition-colors bg-muted text-muted-foreground group-open:bg-primary group-open:text-primary-foreground">
+            <Icon className="h-4 w-4" />
+          </div>
+        )}
         <div className="flex-1 min-w-0 flex items-baseline gap-3 flex-wrap">
-          <span className="text-sm font-semibold">{title}</span>
+          <span className="text-sm font-semibold transition-colors group-open:text-primary">
+            {title}
+          </span>
           {summary && (
             <span className="text-xs text-muted-foreground truncate">
               {summary}
             </span>
           )}
         </div>
-        <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 transition-transform group-open:rotate-180" />
+        <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 transition-transform group-open:rotate-180 group-open:text-primary" />
       </summary>
-      <div className="px-5 pb-5 pt-1 border-t">{children}</div>
+      <div className="px-5 pb-5  border-t bg-background">{children}</div>
     </details>
   );
 }
@@ -202,7 +209,7 @@ export function AdminMiniSitePage() {
 
       {/* ── Identidad ── */}
       <Section title="Identidad" summary={identitySummary} icon={Globe}>
-        <div className="grid gap-5 md:grid-cols-[2fr_1fr] pt-4">
+        <div className="grid gap-5 md:grid-cols-[2fr_1fr] ">
           <div className="space-y-1.5">
             <Label htmlFor="slug">Slug (nombre corto)</Label>
             <Input
@@ -251,7 +258,7 @@ export function AdminMiniSitePage() {
 
       {/* ── Portada ── */}
       <Section title="Portada (Hero)" summary={heroSummary} icon={ImageIcon}>
-        <div className="grid gap-5 md:grid-cols-[3fr_2fr] pt-4">
+        <div className="grid gap-5 md:grid-cols-[3fr_2fr] ">
           <div className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="heroTitle">Título</Label>
@@ -326,7 +333,7 @@ export function AdminMiniSitePage() {
 
       {/* ── Sobre nosotros ── */}
       <Section title="Sobre nosotros" summary={aboutSummary}>
-        <div className="pt-4">
+        <div className="">
           <Textarea
             value={aboutText}
             onChange={(e) => setAboutText(e.target.value)}
@@ -342,7 +349,7 @@ export function AdminMiniSitePage() {
         summary={`${[galleryEnabled].filter(Boolean).length} activo(s)`}
         defaultOpen={false}
       >
-        <div className="grid gap-4 md:grid-cols-3 pt-4">
+        <div className="grid gap-4 md:grid-cols-3 ">
           <label className="flex items-start gap-3 cursor-pointer">
             <Checkbox
               checked={galleryEnabled}
