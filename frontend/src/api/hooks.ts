@@ -23,18 +23,51 @@ export function useUpdateTheme() {
 }
 
 // ---- Mini-site ----
+export type SiteConfig = {
+  hero?: { title?: string; subtitle?: string };
+  about?: { text?: string };
+  gallery?: { enabled?: boolean };
+};
+
+export type SiteData = {
+  slug: string | null;
+  enabled: boolean;
+  config: SiteConfig;
+  hasHero: boolean;
+};
+
 export function useSiteConfig() {
   return useQuery({
     queryKey: ["my-tenant-site"],
-    queryFn: () => api.get<{ slug: string | null; enabled: boolean; config: Record<string, any> }>("/my-tenant/site"),
+    queryFn: () => api.get<SiteData>("/my-tenant/site"),
   });
 }
 
 export function useUpdateSite() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: { slug?: string; enabled?: boolean; config?: Record<string, any> }) =>
+    mutationFn: (data: { slug?: string; enabled?: boolean; config?: SiteConfig }) =>
       api.put("/my-tenant/site", data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["my-tenant-site"] }),
+  });
+}
+
+export function useUploadHero() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => {
+      const fd = new FormData();
+      fd.append("file", file);
+      return api.upload("/my-tenant/site/hero", fd);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["my-tenant-site"] }),
+  });
+}
+
+export function useDeleteHero() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.delete("/my-tenant/site/hero"),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["my-tenant-site"] }),
   });
 }

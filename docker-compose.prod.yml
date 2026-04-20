@@ -104,6 +104,7 @@ services:
       target: prod
     environment:
       BACKEND_URL: http://backend:4000
+      PUBLIC_API_URL: https://bilera.adaptiaservices.com/api
       MINI_SITE_DOMAIN: adaptiaservices.com
       HOST: 0.0.0.0
       PORT: "4321"
