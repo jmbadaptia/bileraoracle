@@ -22,6 +22,23 @@ export function useUpdateTheme() {
   });
 }
 
+// ---- Mini-site ----
+export function useSiteConfig() {
+  return useQuery({
+    queryKey: ["my-tenant-site"],
+    queryFn: () => api.get<{ slug: string | null; enabled: boolean; config: Record<string, any> }>("/my-tenant/site"),
+  });
+}
+
+export function useUpdateSite() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { slug?: string; enabled?: boolean; config?: Record<string, any> }) =>
+      api.put("/my-tenant/site", data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["my-tenant-site"] }),
+  });
+}
+
 // ---- Members ----
 export function useMembers(params?: Record<string, string>) {
   const search = new URLSearchParams(params).toString();

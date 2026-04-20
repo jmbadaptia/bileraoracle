@@ -119,6 +119,19 @@ services:
     depends_on:
       - backend
 
+  mini-sites:
+    build:
+      context: ./mini-sites
+      target: dev
+    ports:
+      - "127.0.0.1:3002:4321"
+    environment:
+      BACKEND_URL: http://backend:4000
+    volumes:
+      - ./mini-sites/src:/app/src
+    depends_on:
+      - backend
+
 volumes:
   oracle_data:
   uploads:

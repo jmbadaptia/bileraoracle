@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { Link } from "react-router";
-import { Users, FileText, Database, Upload, ImageIcon, Palette, Check, Crown, Building2, Bot } from "lucide-react";
+import { Users, FileText, Database, Upload, ImageIcon, Palette, Check, Crown, Building2, Bot, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { useAdminStats, useUpdateTheme } from "@/api/hooks";
 import { useAuth } from "@/lib/auth";
@@ -192,6 +192,23 @@ export function AdminPage() {
               </p>
               <Link to="/admin/ai-usage">
                 <Button variant="outline">Ver costes</Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Globe className="h-4 w-4" />
+                Mini-site
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Configura la página pública de tu asociación con eventos, cursos y galería.
+              </p>
+              <Link to="/admin/mini-site">
+                <Button variant="outline">Configurar mini-site</Button>
               </Link>
             </CardContent>
           </Card>

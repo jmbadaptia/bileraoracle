@@ -42,6 +42,7 @@ import { RegistroPage } from "@/pages/registro";
 import { OnboardingPage } from "@/pages/onboarding";
 import { PlanPage } from "@/pages/plan";
 import { AiUsagePage } from "@/pages/ai-usage";
+import { AdminMiniSitePage } from "@/pages/admin-mini-site";
 import { InscribirsePage } from "@/pages/inscribirse";
 import { InscripcionFormPage } from "@/pages/inscripcion-form";
 import { InscripcionDetailPage } from "@/pages/inscripcion-detail";
@@ -149,6 +150,7 @@ export function App() {
         <Route path="admin/usuarios/:id/editar" element={<AdminRoute><UsuarioFormPage /></AdminRoute>} />
         <Route path="admin/plan" element={<AdminRoute><PlanPage /></AdminRoute>} />
         <Route path="admin/ai-usage" element={<AdminRoute><AiUsagePage /></AdminRoute>} />
+        <Route path="admin/mini-site" element={<AdminRoute><AdminMiniSitePage /></AdminRoute>} />
       </Route>
     </Routes>
   );
