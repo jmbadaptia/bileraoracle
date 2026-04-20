@@ -12,9 +12,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/;
 
-const MINI_SITE_BASE =
-  import.meta.env.VITE_MINI_SITE_URL ||
-  `${window.location.protocol}//${window.location.hostname}:3002`;
+const MINI_SITE_DOMAIN = import.meta.env.VITE_MINI_SITE_DOMAIN as string | undefined;
+
+function buildPreviewUrl(slug: string): string {
+  if (!slug) return "";
+  if (MINI_SITE_DOMAIN) {
+    return `https://${slug}.${MINI_SITE_DOMAIN}`;
+  }
+  return `${window.location.protocol}//${window.location.hostname}:3002/${slug}`;
+}
 
 export function AdminMiniSitePage() {
   const { data, isLoading } = useSiteConfig();
@@ -68,7 +74,7 @@ export function AdminMiniSitePage() {
     );
   }
 
-  const previewUrl = slug ? `${MINI_SITE_BASE}/${slug}` : null;
+  const previewUrl = slug ? buildPreviewUrl(slug) : null;
 
   return (
     <div className="space-y-6 max-w-3xl">
