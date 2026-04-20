@@ -1,14 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
-  Globe,
   ExternalLink,
   Upload,
   Trash2,
   ImageIcon,
   ChevronDown,
-  Check,
-  X as XIcon,
 } from "lucide-react";
 import {
   useSiteConfig,
@@ -35,50 +32,50 @@ function buildPreviewUrl(slug: string): string {
   return `${window.location.protocol}//${window.location.hostname}:3002/${slug}`;
 }
 
-// ── Collapsible section ───────────────────────────────────────────────
+// ── Collapsible section (same look as inscripcion-form wizard) ──────────
 function Section({
+  number,
   title,
-  summary,
-  icon: Icon,
+  subtitle,
   defaultOpen = true,
   children,
 }: {
+  number: number;
   title: string;
-  summary?: React.ReactNode;
-  icon?: React.ComponentType<{ className?: string }>;
+  subtitle?: string;
   defaultOpen?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <details
-      open={defaultOpen}
-      className="group rounded-xl border bg-card overflow-hidden transition-colors open:shadow-sm open:border-primary/30"
-    >
+    <details open={defaultOpen} className="group rounded-xl border bg-card overflow-hidden">
       <summary
         className={cn(
-          "flex items-center gap-3 px-5 py-3.5 cursor-pointer select-none transition-colors list-none",
-          "hover:bg-muted/30 [&::-webkit-details-marker]:hidden",
-          "group-open:bg-primary/5",
+          "flex items-center gap-3 px-5 py-4 cursor-pointer select-none list-none transition-colors",
+          "hover:bg-muted/20 [&::-webkit-details-marker]:hidden",
         )}
       >
-        {Icon && (
-          <div className="h-8 w-8 rounded-full flex items-center justify-center shrink-0 transition-colors bg-muted text-muted-foreground group-open:bg-primary group-open:text-primary-foreground">
-            <Icon className="h-4 w-4" />
-          </div>
-        )}
-        <div className="flex-1 min-w-0 flex items-baseline gap-3 flex-wrap">
-          <span className="text-sm font-semibold transition-colors group-open:text-primary">
+        <div
+          className={cn(
+            "h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-colors",
+            "border-2 border-muted-foreground/20 text-muted-foreground",
+            "group-open:bg-primary group-open:text-primary-foreground group-open:border-primary",
+          )}
+        >
+          {number}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-semibold transition-colors group-open:text-primary">
             {title}
-          </span>
-          {summary && (
-            <span className="text-xs text-muted-foreground truncate">
-              {summary}
-            </span>
+          </div>
+          {subtitle && (
+            <div className="text-xs text-muted-foreground mt-0.5 group-open:hidden">
+              {subtitle}
+            </div>
           )}
         </div>
-        <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 transition-transform group-open:rotate-180 group-open:text-primary" />
+        <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 transition-transform group-open:rotate-180" />
       </summary>
-      <div className="px-5 pb-5  border-t bg-background">{children}</div>
+      <div className="px-5 pb-5 pt-2 ml-10">{children}</div>
     </details>
   );
 }
@@ -169,29 +166,6 @@ export function AdminMiniSitePage() {
   const previewUrl = slug ? buildPreviewUrl(slug) : null;
   const heroImageUrl = slug && data?.hasHero ? api.streamUrl(`/public/sites/${slug}/hero-image?v=${heroKey}`) : null;
 
-  // Summaries for collapsed sections
-  const identitySummary = (
-    <span className="flex items-center gap-2">
-      {slug ? <>{slug}.{MINI_SITE_DOMAIN ?? "—"}</> : "sin slug"}
-      <span className="text-muted-foreground/50">·</span>
-      {enabled ? (
-        <span className="inline-flex items-center gap-1 text-emerald-600">
-          <Check className="h-3 w-3" /> activo
-        </span>
-      ) : (
-        <span className="inline-flex items-center gap-1 text-muted-foreground">
-          <XIcon className="h-3 w-3" /> inactivo
-        </span>
-      )}
-    </span>
-  );
-  const heroSummary = heroTitle || heroSubtitle || heroImageUrl
-    ? `${heroTitle || "sin título"} · ${heroImageUrl ? "con imagen" : "sin imagen"}`
-    : "vacío";
-  const aboutSummary = aboutText.trim()
-    ? `${aboutText.length} caracteres`
-    : "vacío";
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -208,7 +182,7 @@ export function AdminMiniSitePage() {
       </div>
 
       {/* ── Identidad ── */}
-      <Section title="Identidad" summary={identitySummary} icon={Globe}>
+      <Section number={1} title="Identidad" subtitle="Slug, URL pública y estado de publicación">
         <div className="grid gap-5 md:grid-cols-[2fr_1fr] ">
           <div className="space-y-1.5">
             <Label htmlFor="slug">Slug (nombre corto)</Label>
@@ -257,7 +231,7 @@ export function AdminMiniSitePage() {
       </Section>
 
       {/* ── Portada ── */}
-      <Section title="Portada (Hero)" summary={heroSummary} icon={ImageIcon}>
+      <Section number={2} title="Portada" subtitle="Título, subtítulo e imagen de fondo">
         <div className="grid gap-5 md:grid-cols-[3fr_2fr] ">
           <div className="space-y-4">
             <div className="space-y-1.5">
@@ -332,7 +306,7 @@ export function AdminMiniSitePage() {
       </Section>
 
       {/* ── Sobre nosotros ── */}
-      <Section title="Sobre nosotros" summary={aboutSummary}>
+      <Section number={3} title="Sobre nosotros" subtitle="Descripción de tu asociación">
         <div className="">
           <Textarea
             value={aboutText}
@@ -345,8 +319,9 @@ export function AdminMiniSitePage() {
 
       {/* ── Bloques opcionales ── */}
       <Section
+        number={4}
         title="Bloques opcionales"
-        summary={`${[galleryEnabled].filter(Boolean).length} activo(s)`}
+        subtitle="Galería, eventos, cursos…"
         defaultOpen={false}
       >
         <div className="grid gap-4 md:grid-cols-3 ">
