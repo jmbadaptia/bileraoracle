@@ -1,0 +1,77 @@
+---
+import type { SiteConfig } from "../lib/api";
+
+interface Props {
+  siteConfig: SiteConfig;
+}
+
+const { siteConfig } = Astro.props;
+const eventos = siteConfig.eventos!;
+
+const MESES = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"];
+
+function formatDate(iso: string) {
+  const d = new Date(iso);
+  return { dia: d.getUTCDate(), mes: MESES[d.getUTCMonth()] };
+}
+---
+
+<section id="eventos" class="max-w-6xl mx-auto px-4 md:px-6 py-16 md:py-20">
+  <div class="flex items-end justify-between mb-8 flex-wrap gap-3">
+    <div>
+      <div
+        class="text-xs font-semibold tracking-widest uppercase mb-2"
+        style="color: var(--color-tema);"
+      >
+        Próximos eventos
+      </div>
+      <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight">Lo que viene</h2>
+    </div>
+    <a
+      href="#"
+      class="text-sm font-semibold hover:underline"
+      style="color: var(--color-tema);"
+    >
+      Ver todos los eventos →
+    </a>
+  </div>
+
+  <div class="grid gap-5" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+    {eventos.map((evento) => {
+      const { dia, mes } = formatDate(evento.fecha);
+      return (
+        <article class="group rounded-xl overflow-hidden bg-white border border-neutral-200 hover:shadow-md transition-shadow">
+          <div class="relative h-40 overflow-hidden">
+            <img
+              src={evento.imagenUrl}
+              alt=""
+              loading="lazy"
+              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+            <div class="absolute top-3 left-3 bg-white/95 rounded-lg px-2.5 py-1 text-center leading-tight shadow-sm">
+              <div class="text-lg font-extrabold" style="color: var(--color-tema);">{dia}</div>
+              <div class="text-[10px] font-semibold tracking-widest text-neutral-600">{mes}</div>
+            </div>
+            <div class="absolute top-3 right-3 bg-black/70 text-white rounded-md px-2 py-0.5 text-xs font-medium">
+              {evento.hora}
+            </div>
+          </div>
+          <div class="p-4 space-y-2">
+            <h3 class="font-semibold leading-snug">{evento.titulo}</h3>
+            <div class="text-sm text-neutral-600 flex items-center gap-1.5">
+              <span aria-hidden="true">📍</span>
+              <span>{evento.lugar}</span>
+            </div>
+            <p class="text-sm text-neutral-600 line-clamp-2">{evento.descripcion}</p>
+            <span
+              class="inline-block text-[11px] font-semibold uppercase tracking-wider px-2 py-1 rounded mt-1"
+              style="background-color: color-mix(in srgb, var(--color-tema) 15%, transparent); color: var(--color-tema);"
+            >
+              {evento.categoria}
+            </span>
+          </div>
+        </article>
+      );
+    })}
+  </div>
+</section>

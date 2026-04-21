@@ -1,0 +1,86 @@
+---
+import type { SiteConfig } from "../lib/api";
+
+interface Props {
+  siteConfig: SiteConfig;
+}
+
+const { siteConfig } = Astro.props;
+const { nombre, bloques } = siteConfig;
+
+const links = [
+  { href: "#inicio", label: "Inicio", show: true },
+  { href: "#sobre-nosotros", label: "Sobre nosotros", show: bloques.sobreNosotros },
+  { href: "#eventos", label: "Eventos", show: bloques.eventos },
+  { href: "#cursos", label: "Cursos", show: bloques.cursos },
+  { href: "#galeria", label: "Galería", show: bloques.galeria },
+  { href: "#contacto", label: "Contacto", show: bloques.contacto },
+].filter((l) => l.show);
+---
+
+<header
+  id="inicio"
+  class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-neutral-200"
+>
+  <nav class="max-w-6xl mx-auto px-4 md:px-6 h-16 flex items-center gap-4">
+    <a href="#inicio" class="flex items-center gap-2.5 shrink-0">
+      <span
+        class="h-8 w-8 rounded-lg flex items-center justify-center text-white text-sm font-bold"
+        style="background-color: var(--color-tema);"
+        aria-hidden="true"
+      >
+        {nombre.charAt(0)}
+      </span>
+      <span class="font-semibold text-sm md:text-base truncate max-w-[12rem] md:max-w-none">
+        {nombre}
+      </span>
+    </a>
+
+    <ul class="hidden md:flex items-center gap-6 text-sm text-neutral-700 ml-4">
+      {links.slice(1).map((link) => (
+        <li>
+          <a href={link.href} class="hover:text-[color:var(--color-tema)] transition-colors">
+            {link.label}
+          </a>
+        </li>
+      ))}
+    </ul>
+
+    <div class="ml-auto flex items-center gap-2">
+      <a
+        href={bloques.contacto ? "#contacto" : "#inicio"}
+        class="hidden sm:inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium text-white shadow-sm hover:opacity-90 transition-opacity"
+        style="background-color: var(--color-tema);"
+      >
+        Hazte socio
+      </a>
+
+      <button
+        type="button"
+        class="md:hidden p-2 -mr-2 text-neutral-700 hover:text-neutral-900"
+        aria-label="Abrir menú"
+        onclick="document.getElementById('site-mobile-menu')?.classList.toggle('hidden')"
+      >
+        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+    </div>
+  </nav>
+
+  <div id="site-mobile-menu" class="hidden md:hidden border-t border-neutral-200 bg-white">
+    <ul class="max-w-6xl mx-auto px-4 py-3 flex flex-col gap-1 text-sm text-neutral-700">
+      {links.map((link) => (
+        <li>
+          <a
+            href={link.href}
+            class="block px-2 py-2 rounded hover:bg-neutral-50"
+            onclick="document.getElementById('site-mobile-menu')?.classList.add('hidden')"
+          >
+            {link.label}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+</header>

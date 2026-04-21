@@ -1,0 +1,55 @@
+---
+import type { SiteConfig } from "../lib/api";
+
+interface Props {
+  siteConfig: SiteConfig;
+}
+
+const { siteConfig } = Astro.props;
+const fotos = (siteConfig.galeria || []).slice(0, 5);
+---
+
+<section id="galeria" class="max-w-6xl mx-auto px-4 md:px-6 py-16 md:py-20">
+  <div class="flex items-end justify-between mb-8 flex-wrap gap-3">
+    <div>
+      <div
+        class="text-xs font-semibold tracking-widest uppercase mb-2"
+        style="color: var(--color-tema);"
+      >
+        Galería de fotos
+      </div>
+      <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight">
+        Momentos compartidos
+      </h2>
+    </div>
+    <a
+      href="#"
+      class="text-sm font-semibold hover:underline"
+      style="color: var(--color-tema);"
+    >
+      Ver toda la galería →
+    </a>
+  </div>
+
+  <div
+    class="grid gap-3"
+    style="grid-template-columns: 2fr 1fr 1fr; grid-template-rows: 140px 140px;"
+  >
+    {fotos.map((foto, i) => (
+      <a
+        href={foto.imagenUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="block overflow-hidden rounded-xl bg-neutral-100 group"
+        style={i === 0 ? "grid-row: span 2;" : ""}
+      >
+        <img
+          src={foto.imagenUrl}
+          alt={foto.alt}
+          loading="lazy"
+          class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+        />
+      </a>
+    ))}
+  </div>
+</section>

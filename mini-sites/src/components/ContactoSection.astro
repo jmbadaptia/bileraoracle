@@ -1,0 +1,182 @@
+---
+import type { SiteConfig } from "../lib/api";
+
+interface Props {
+  siteConfig: SiteConfig;
+}
+
+const { siteConfig } = Astro.props;
+const contacto = siteConfig.contacto!;
+---
+
+<section id="contacto" class="max-w-6xl mx-auto px-4 md:px-6 py-16 md:py-20">
+  <div class="grid gap-10 md:grid-cols-[1fr_2fr]">
+    <div>
+      <div
+        class="text-xs font-semibold tracking-widest uppercase mb-3"
+        style="color: var(--color-tema);"
+      >
+        Contacto
+      </div>
+      <h2 class="text-3xl md:text-4xl font-extrabold tracking-tight mb-4">Hablemos</h2>
+      <p class="text-neutral-600 mb-6">
+        ¿Tienes dudas o quieres saber más? Escríbenos y te responderemos lo antes posible.
+      </p>
+
+      <ul class="space-y-3 text-sm text-neutral-700">
+        <li class="flex items-start gap-3">
+          <span class="h-8 w-8 rounded-full bg-neutral-100 flex items-center justify-center shrink-0" aria-hidden="true">
+            ✉️
+          </span>
+          <a href={`mailto:${contacto.email}`} class="mt-1.5 hover:text-[color:var(--color-tema)]">
+            {contacto.email}
+          </a>
+        </li>
+        {contacto.telefono && (
+          <li class="flex items-start gap-3">
+            <span class="h-8 w-8 rounded-full bg-neutral-100 flex items-center justify-center shrink-0" aria-hidden="true">
+              📞
+            </span>
+            <a href={`tel:${contacto.telefono.replace(/\s/g, "")}`} class="mt-1.5 hover:text-[color:var(--color-tema)]">
+              {contacto.telefono}
+            </a>
+          </li>
+        )}
+        {contacto.direccion && (
+          <li class="flex items-start gap-3">
+            <span class="h-8 w-8 rounded-full bg-neutral-100 flex items-center justify-center shrink-0" aria-hidden="true">
+              📍
+            </span>
+            <span class="mt-1.5">{contacto.direccion}</span>
+          </li>
+        )}
+      </ul>
+
+      {contacto.redesSociales && (
+        <div class="flex gap-3 mt-6">
+          {contacto.redesSociales.facebook && (
+            <a
+              href={contacto.redesSociales.facebook}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Facebook"
+              class="h-9 w-9 rounded-full bg-neutral-100 flex items-center justify-center hover:bg-neutral-200 transition-colors"
+            >
+              <span class="text-sm font-semibold">f</span>
+            </a>
+          )}
+          {contacto.redesSociales.instagram && (
+            <a
+              href={contacto.redesSociales.instagram}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Instagram"
+              class="h-9 w-9 rounded-full bg-neutral-100 flex items-center justify-center hover:bg-neutral-200 transition-colors"
+            >
+              <span class="text-sm font-semibold">ig</span>
+            </a>
+          )}
+        </div>
+      )}
+    </div>
+
+    <form id="contacto-form" class="space-y-3" novalidate>
+      <div class="grid gap-3 md:grid-cols-2">
+        <div class="space-y-1">
+          <label class="text-xs font-medium text-neutral-600" for="c-nombre">Nombre</label>
+          <input
+            id="c-nombre"
+            name="nombre"
+            type="text"
+            required
+            class="w-full rounded-lg bg-neutral-900 text-white placeholder-neutral-400 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--color-tema)]"
+            placeholder="Tu nombre"
+          />
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs font-medium text-neutral-600" for="c-email">Email</label>
+          <input
+            id="c-email"
+            name="email"
+            type="email"
+            required
+            class="w-full rounded-lg bg-neutral-900 text-white placeholder-neutral-400 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--color-tema)]"
+            placeholder="tu@email.com"
+          />
+        </div>
+      </div>
+      <div class="space-y-1">
+        <label class="text-xs font-medium text-neutral-600" for="c-asunto">Asunto</label>
+        <input
+          id="c-asunto"
+          name="asunto"
+          type="text"
+          required
+          class="w-full rounded-lg bg-neutral-900 text-white placeholder-neutral-400 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--color-tema)]"
+          placeholder="Motivo del mensaje"
+        />
+      </div>
+      <div class="space-y-1">
+        <label class="text-xs font-medium text-neutral-600" for="c-mensaje">Mensaje</label>
+        <textarea
+          id="c-mensaje"
+          name="mensaje"
+          rows="5"
+          required
+          class="w-full rounded-lg bg-neutral-900 text-white placeholder-neutral-400 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--color-tema)] resize-none"
+          placeholder="Escribe tu mensaje..."
+        ></textarea>
+      </div>
+      <div class="flex justify-end">
+        <button
+          type="submit"
+          class="inline-flex items-center px-6 py-3 rounded-lg text-sm font-semibold text-white shadow-sm hover:opacity-90 transition-opacity"
+          style="background-color: var(--color-tema);"
+        >
+          Enviar mensaje
+        </button>
+      </div>
+      <p id="contacto-status" class="text-sm text-neutral-600 hidden"></p>
+    </form>
+  </div>
+</section>
+
+<script is:inline>
+  (function () {
+    const form = document.getElementById("contacto-form");
+    const status = document.getElementById("contacto-status");
+    if (!form || !status) return;
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      status.classList.remove("hidden", "text-red-600", "text-emerald-600");
+      status.textContent = "Enviando...";
+
+      const fd = new FormData(form);
+      const data = {
+        nombre: fd.get("nombre"),
+        email: fd.get("email"),
+        asunto: fd.get("asunto"),
+        mensaje: fd.get("mensaje"),
+      };
+      if (!data.nombre || !data.email || !data.asunto || !data.mensaje) {
+        status.textContent = "Todos los campos son obligatorios.";
+        status.classList.add("text-red-600");
+        return;
+      }
+      try {
+        const res = await fetch("/api/contacto", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+        if (!res.ok) throw new Error(String(res.status));
+        status.textContent = "¡Gracias! Te responderemos pronto.";
+        status.classList.add("text-emerald-600");
+        form.reset();
+      } catch {
+        status.textContent = "No se pudo enviar. Inténtalo de nuevo.";
+        status.classList.add("text-red-600");
+      }
+    });
+  })();
+</script>
