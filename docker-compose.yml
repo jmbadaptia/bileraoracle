@@ -128,6 +128,7 @@ services:
     environment:
       BACKEND_URL: http://backend:4000
       PUBLIC_API_URL: http://localhost:4000/api
+      PUBLIC_APP_URL: http://localhost:3001
     volumes:
       - ./mini-sites/src:/app/src
     depends_on:

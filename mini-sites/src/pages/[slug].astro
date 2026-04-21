@@ -1,16 +1,25 @@
 ---
 import MiniSiteLayout from "../layouts/MiniSiteLayout.astro";
 import Base from "../layouts/Base.astro";
-import { fetchSite, composeSiteConfig } from "../lib/api";
+import { fetchSite, fetchEvents, fetchCourses, composeSiteConfig } from "../lib/api";
 
 const { slug } = Astro.params;
 
 let site = null;
+let events: any[] = [];
+let courses: any[] = [];
 let error: string | null = null;
 
 if (slug) {
   try {
-    site = await fetchSite(slug);
+    const [siteRes, eventsRes, coursesRes] = await Promise.all([
+      fetchSite(slug),
+      fetchEvents(slug),
+      fetchCourses(slug),
+    ]);
+    site = siteRes;
+    events = eventsRes;
+    courses = coursesRes;
   } catch (e) {
     error = (e as Error).message;
   }
@@ -20,7 +29,7 @@ if (!site) {
   Astro.response.status = 404;
 }
 
-const siteConfig = site ? composeSiteConfig(site) : null;
+const siteConfig = site ? composeSiteConfig(site, events, courses) : null;
 ---
 
 {!siteConfig ? (

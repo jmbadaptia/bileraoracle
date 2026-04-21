@@ -152,11 +152,15 @@ const contacto = siteConfig.contacto!;
       status.textContent = "Enviando...";
 
       const fd = new FormData(form);
+      const host = window.location.hostname.toLowerCase();
+      const parts = host.split(".");
+      const slug = parts.length >= 3 ? parts[0] : "";
       const data = {
         nombre: fd.get("nombre"),
         email: fd.get("email"),
         asunto: fd.get("asunto"),
         mensaje: fd.get("mensaje"),
+        slug,
       };
       if (!data.nombre || !data.email || !data.asunto || !data.mensaje) {
         status.textContent = "Todos los campos son obligatorios.";

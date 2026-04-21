@@ -3,6 +3,7 @@ import { existsSync } from "fs";
 import { readFile, writeFile, mkdir, unlink } from "fs/promises";
 import path from "path";
 import oracledb from "oracledb";
+import nodemailer from "nodemailer";
 import { withConnection } from "../lib/db.js";
 import { requireAuth, requireAdmin } from "../middleware/auth.js";
 
@@ -21,6 +22,13 @@ type SiteConfig = {
   };
   gallery?: {
     enabled?: boolean;
+  };
+  contacto?: {
+    email?: string;
+    telefono?: string;
+    direccion?: string;
+    facebook?: string;
+    instagram?: string;
   };
 };
 
@@ -214,6 +222,160 @@ export async function siteRoutes(app: FastifyInstance) {
     if (existsSync(hp)) {
       await unlink(hp);
     }
+    return { ok: true };
+  });
+
+  // ── Public: GET /api/public/sites/:slug/events ──
+  // Upcoming GENERAL events (type EVENT/OTHER, PUBLISHED, start_date >= today)
+  app.get("/api/public/sites/:slug/events", async (request, reply) => {
+    const { slug } = request.params as { slug: string };
+    if (!slug || !SLUG_RE.test(slug)) {
+      return reply.code(404).send({ error: "No encontrado" });
+    }
+    return withConnection(async (conn) => {
+      const t = await conn.execute<any>(
+        `SELECT id FROM tenants WHERE slug = :slug AND active = 1 AND site_enabled = 1`,
+        { slug },
+        { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      );
+      const tenant = t.rows?.[0];
+      if (!tenant) return reply.code(404).send({ error: "No encontrado" });
+
+      const r = await conn.execute<any>(
+        `SELECT id, title, description, type, start_date, location, cover_image_path
+         FROM activities
+         WHERE tenant_id = :tenantId
+           AND visibility = 'GENERAL'
+           AND status = 'PUBLISHED'
+           AND type IN ('EVENT', 'OTHER')
+           AND start_date >= TRUNC(SYSDATE)
+         ORDER BY start_date ASC
+         FETCH FIRST 6 ROWS ONLY`,
+        { tenantId: tenant.ID },
+        { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      );
+      return {
+        events: (r.rows || []).map((row: any) => ({
+          id: row.ID,
+          title: row.TITLE,
+          description: row.DESCRIPTION || "",
+          type: row.TYPE,
+          startDate: row.START_DATE,
+          location: row.LOCATION,
+          hasCover: !!row.COVER_IMAGE_PATH,
+        })),
+      };
+    });
+  });
+
+  // ── Public: GET /api/public/sites/:slug/courses ──
+  // CURSO/TALLER GENERAL with enrollment open (deadline not passed)
+  app.get("/api/public/sites/:slug/courses", async (request, reply) => {
+    const { slug } = request.params as { slug: string };
+    if (!slug || !SLUG_RE.test(slug)) {
+      return reply.code(404).send({ error: "No encontrado" });
+    }
+    return withConnection(async (conn) => {
+      const t = await conn.execute<any>(
+        `SELECT id FROM tenants WHERE slug = :slug AND active = 1 AND site_enabled = 1`,
+        { slug },
+        { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      );
+      const tenant = t.rows?.[0];
+      if (!tenant) return reply.code(404).send({ error: "No encontrado" });
+
+      const r = await conn.execute<any>(
+        `SELECT id, title, start_date, max_capacity, enrollment_price, enrollment_deadline, cover_image_path
+         FROM activities
+         WHERE tenant_id = :tenantId
+           AND visibility = 'GENERAL'
+           AND status = 'PUBLISHED'
+           AND type IN ('CURSO', 'TALLER')
+           AND enrollment_enabled = 1
+           AND (enrollment_deadline IS NULL OR enrollment_deadline >= SYSTIMESTAMP)
+         ORDER BY start_date ASC NULLS LAST, title ASC
+         FETCH FIRST 6 ROWS ONLY`,
+        { tenantId: tenant.ID },
+        { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      );
+      return {
+        courses: (r.rows || []).map((row: any) => ({
+          id: row.ID,
+          title: row.TITLE,
+          startDate: row.START_DATE,
+          maxCapacity: row.MAX_CAPACITY,
+          price: row.ENROLLMENT_PRICE != null ? Number(row.ENROLLMENT_PRICE) : null,
+          deadline: row.ENROLLMENT_DEADLINE,
+          hasCover: !!row.COVER_IMAGE_PATH,
+        })),
+      };
+    });
+  });
+
+  // ── Public: POST /api/public/sites/:slug/contact ──
+  // Receives form submission from the mini-site and emails the tenant admin.
+  app.post("/api/public/sites/:slug/contact", async (request, reply) => {
+    const { slug } = request.params as { slug: string };
+    const body = request.body as {
+      nombre?: string;
+      email?: string;
+      asunto?: string;
+      mensaje?: string;
+    };
+    if (!slug || !SLUG_RE.test(slug)) {
+      return reply.code(404).send({ error: "No encontrado" });
+    }
+    if (!body?.nombre || !body?.email || !body?.asunto || !body?.mensaje) {
+      return reply.code(400).send({ error: "Faltan campos" });
+    }
+
+    const row = await withConnection(async (conn) => {
+      const r = await conn.execute<any>(
+        `SELECT id, name, site_enabled, site_config FROM tenants WHERE slug = :slug AND active = 1`,
+        { slug },
+        { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      );
+      return r.rows?.[0];
+    });
+    if (!row || !row.SITE_ENABLED) {
+      return reply.code(404).send({ error: "No encontrado" });
+    }
+
+    const config = parseConfig(row.SITE_CONFIG);
+    const dest = config.contacto?.email;
+    if (!dest) {
+      return reply.code(400).send({ error: "La asociación no ha configurado un email de contacto" });
+    }
+
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST || "localhost",
+      port: parseInt(process.env.SMTP_PORT || "1025"),
+      secure: process.env.SMTP_SECURE === "true",
+      ...(process.env.SMTP_USER
+        ? { auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } }
+        : {}),
+    });
+
+    const subject = `[${row.NAME}] ${body.asunto}`;
+    const text =
+      `Nuevo mensaje desde el mini-site de ${row.NAME}\n\n` +
+      `De: ${body.nombre} <${body.email}>\n` +
+      `Asunto: ${body.asunto}\n\n` +
+      `${body.mensaje}\n`;
+
+    try {
+      await transporter.sendMail({
+        from: process.env.SMTP_FROM || "Bilera <noreply@bilera.es>",
+        to: dest,
+        replyTo: `${body.nombre} <${body.email}>`,
+        subject,
+        text,
+      });
+    } catch (err: any) {
+      app.log.error({ err }, "contact form email failed");
+      return reply.code(500).send({ error: "No se pudo enviar el mensaje" });
+    }
+
     return { ok: true };
   });
 }

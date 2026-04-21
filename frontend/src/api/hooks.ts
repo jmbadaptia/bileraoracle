@@ -27,6 +27,13 @@ export type SiteConfig = {
   hero?: { title?: string; subtitle?: string };
   about?: { text?: string };
   gallery?: { enabled?: boolean };
+  contacto?: {
+    email?: string;
+    telefono?: string;
+    direccion?: string;
+    facebook?: string;
+    instagram?: string;
+  };
 };
 
 export type SiteData = {

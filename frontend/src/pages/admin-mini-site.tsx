@@ -108,6 +108,11 @@ export function AdminMiniSitePage() {
   const [galleryEnabled, setGalleryEnabled] = useState(false);
   const [heroKey, setHeroKey] = useState(0);
   const [currentTheme, setCurrentTheme] = useState(() => user?.theme || "default");
+  const [contactoEmail, setContactoEmail] = useState("");
+  const [contactoTelefono, setContactoTelefono] = useState("");
+  const [contactoDireccion, setContactoDireccion] = useState("");
+  const [contactoFacebook, setContactoFacebook] = useState("");
+  const [contactoInstagram, setContactoInstagram] = useState("");
 
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -119,6 +124,11 @@ export function AdminMiniSitePage() {
     setHeroSubtitle(data.config.hero?.subtitle || "");
     setAboutText(data.config.about?.text || "");
     setGalleryEnabled(!!data.config.gallery?.enabled);
+    setContactoEmail(data.config.contacto?.email || "");
+    setContactoTelefono(data.config.contacto?.telefono || "");
+    setContactoDireccion(data.config.contacto?.direccion || "");
+    setContactoFacebook(data.config.contacto?.facebook || "");
+    setContactoInstagram(data.config.contacto?.instagram || "");
   }, [data]);
 
   function handleSave() {
@@ -126,6 +136,13 @@ export function AdminMiniSitePage() {
       toast.error("Slug inválido. Usa letras minúsculas, números y guiones.");
       return;
     }
+    const contacto: SiteConfig["contacto"] = {
+      ...(contactoEmail.trim() ? { email: contactoEmail.trim() } : {}),
+      ...(contactoTelefono.trim() ? { telefono: contactoTelefono.trim() } : {}),
+      ...(contactoDireccion.trim() ? { direccion: contactoDireccion.trim() } : {}),
+      ...(contactoFacebook.trim() ? { facebook: contactoFacebook.trim() } : {}),
+      ...(contactoInstagram.trim() ? { instagram: contactoInstagram.trim() } : {}),
+    };
     const config: SiteConfig = {
       hero: {
         ...(heroTitle.trim() ? { title: heroTitle.trim() } : {}),
@@ -133,6 +150,7 @@ export function AdminMiniSitePage() {
       },
       about: aboutText.trim() ? { text: aboutText.trim() } : {},
       gallery: { enabled: galleryEnabled },
+      ...(Object.keys(contacto).length > 0 ? { contacto } : {}),
     };
     update.mutate(
       { slug, enabled, config },
@@ -395,9 +413,64 @@ export function AdminMiniSitePage() {
         </div>
       </Section>
 
+      {/* ── Contacto ── */}
+      <Section number={5} title="Contacto" subtitle="Email, teléfono, dirección y redes sociales">
+        <div className="grid gap-4 md:grid-cols-2 pt-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="contactoEmail">Email *</Label>
+            <Input
+              id="contactoEmail"
+              type="email"
+              value={contactoEmail}
+              onChange={(e) => setContactoEmail(e.target.value)}
+              placeholder="info@miasociacion.org"
+            />
+            <p className="text-xs text-muted-foreground">
+              Recibirás aquí los mensajes del formulario del mini-site. Obligatorio para que el formulario funcione.
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="contactoTelefono">Teléfono</Label>
+            <Input
+              id="contactoTelefono"
+              value={contactoTelefono}
+              onChange={(e) => setContactoTelefono(e.target.value)}
+              placeholder="600 123 456"
+            />
+          </div>
+          <div className="space-y-1.5 md:col-span-2">
+            <Label htmlFor="contactoDireccion">Dirección</Label>
+            <Input
+              id="contactoDireccion"
+              value={contactoDireccion}
+              onChange={(e) => setContactoDireccion(e.target.value)}
+              placeholder="Calle Mayor 12, 31001 Pamplona"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="contactoFacebook">Facebook</Label>
+            <Input
+              id="contactoFacebook"
+              value={contactoFacebook}
+              onChange={(e) => setContactoFacebook(e.target.value)}
+              placeholder="https://facebook.com/miasociacion"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="contactoInstagram">Instagram</Label>
+            <Input
+              id="contactoInstagram"
+              value={contactoInstagram}
+              onChange={(e) => setContactoInstagram(e.target.value)}
+              placeholder="https://instagram.com/miasociacion"
+            />
+          </div>
+        </div>
+      </Section>
+
       {/* ── Bloques opcionales ── */}
       <Section
-        number={5}
+        number={6}
         title="Bloques opcionales"
         subtitle="Galería, eventos, cursos…"
         defaultOpen={false}
