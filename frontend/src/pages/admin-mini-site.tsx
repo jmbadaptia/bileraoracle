@@ -6,14 +6,17 @@ import {
   Trash2,
   ImageIcon,
   ChevronDown,
+  Check,
 } from "lucide-react";
 import {
   useSiteConfig,
   useUpdateSite,
   useUploadHero,
   useDeleteHero,
+  useUpdateTheme,
   type SiteConfig,
 } from "@/api/hooks";
+import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +28,15 @@ import { cn } from "@/lib/utils";
 
 const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/;
 const MINI_SITE_DOMAIN = import.meta.env.VITE_MINI_SITE_DOMAIN as string | undefined;
+
+const THEME_PRESETS = [
+  { id: "default", label: "Naranja", color: "oklch(0.50 0.20 25)" },
+  { id: "blue",    label: "Azul",    color: "oklch(0.50 0.18 250)" },
+  { id: "green",   label: "Verde",   color: "oklch(0.52 0.17 150)" },
+  { id: "violet",  label: "Violeta", color: "oklch(0.50 0.18 290)" },
+  { id: "rose",    label: "Rosa",    color: "oklch(0.52 0.19 350)" },
+  { id: "teal",    label: "Turquesa",color: "oklch(0.52 0.13 180)" },
+];
 
 function buildPreviewUrl(slug: string): string {
   if (!slug) return "";
@@ -82,9 +94,11 @@ function Section({
 
 export function AdminMiniSitePage() {
   const { data, isLoading } = useSiteConfig();
+  const { user } = useAuth();
   const update = useUpdateSite();
   const uploadHero = useUploadHero();
   const deleteHero = useDeleteHero();
+  const updateTheme = useUpdateTheme();
 
   const [slug, setSlug] = useState("");
   const [enabled, setEnabled] = useState(false);
@@ -93,6 +107,7 @@ export function AdminMiniSitePage() {
   const [aboutText, setAboutText] = useState("");
   const [galleryEnabled, setGalleryEnabled] = useState(false);
   const [heroKey, setHeroKey] = useState(0);
+  const [currentTheme, setCurrentTheme] = useState(() => user?.theme || "default");
 
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -139,6 +154,36 @@ export function AdminMiniSitePage() {
       onError: (err: any) => toast.error(err?.message || "Error al subir"),
     });
     if (fileRef.current) fileRef.current.value = "";
+  }
+
+  function handleThemeChange(themeId: string) {
+    const prev = currentTheme;
+    setCurrentTheme(themeId);
+    if (themeId !== "default") {
+      document.documentElement.setAttribute("data-theme", themeId);
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+    }
+    updateTheme.mutate(themeId, {
+      onSuccess: () => {
+        const stored = localStorage.getItem("user");
+        if (stored) {
+          const u = JSON.parse(stored);
+          u.theme = themeId;
+          localStorage.setItem("user", JSON.stringify(u));
+        }
+        toast.success("Color actualizado");
+      },
+      onError: () => {
+        toast.error("Error al guardar el color");
+        setCurrentTheme(prev);
+        if (prev !== "default") {
+          document.documentElement.setAttribute("data-theme", prev);
+        } else {
+          document.documentElement.removeAttribute("data-theme");
+        }
+      },
+    });
   }
 
   function handleHeroDelete() {
@@ -230,8 +275,41 @@ export function AdminMiniSitePage() {
         </div>
       </Section>
 
+      {/* ── Color ── */}
+      <Section number={2} title="Color" subtitle="Color principal del mini-site y del panel de Bilera">
+        <div className="pt-2 space-y-2">
+          <p className="text-sm text-muted-foreground">
+            Elige el color que se usará en los botones, acentos y enlaces de tu mini-site. El mismo color se aplica al panel de gestión.
+          </p>
+          <div className="flex flex-wrap gap-4 pt-2">
+            {THEME_PRESETS.map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => handleThemeChange(preset.id)}
+                className="flex flex-col items-center gap-1.5 group"
+                title={preset.label}
+              >
+                <div
+                  className="h-10 w-10 rounded-full flex items-center justify-center ring-2 ring-offset-2 ring-offset-background transition-all"
+                  style={{
+                    backgroundColor: preset.color,
+                    outlineColor: currentTheme === preset.id ? preset.color : "transparent",
+                  }}
+                >
+                  {currentTheme === preset.id && <Check className="h-4 w-4 text-white" />}
+                </div>
+                <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
+                  {preset.label}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </Section>
+
       {/* ── Portada ── */}
-      <Section number={2} title="Portada" subtitle="Título, subtítulo e imagen de fondo">
+      <Section number={3} title="Portada" subtitle="Título, subtítulo e imagen de fondo">
         <div className="grid gap-5 md:grid-cols-[3fr_2fr] ">
           <div className="space-y-4">
             <div className="space-y-1.5">
@@ -306,7 +384,7 @@ export function AdminMiniSitePage() {
       </Section>
 
       {/* ── Sobre nosotros ── */}
-      <Section number={3} title="Sobre nosotros" subtitle="Descripción de tu asociación">
+      <Section number={4} title="Sobre nosotros" subtitle="Descripción de tu asociación">
         <div className="">
           <Textarea
             value={aboutText}
@@ -319,7 +397,7 @@ export function AdminMiniSitePage() {
 
       {/* ── Bloques opcionales ── */}
       <Section
-        number={4}
+        number={5}
         title="Bloques opcionales"
         subtitle="Galería, eventos, cursos…"
         defaultOpen={false}
