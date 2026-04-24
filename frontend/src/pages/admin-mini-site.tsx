@@ -113,6 +113,10 @@ export function AdminMiniSitePage() {
   const [contactoDireccion, setContactoDireccion] = useState("");
   const [contactoFacebook, setContactoFacebook] = useState("");
   const [contactoInstagram, setContactoInstagram] = useState("");
+  const [metaCategoria, setMetaCategoria] = useState("");
+  const [metaCiudad, setMetaCiudad] = useState("");
+  const [metaAnoFundacion, setMetaAnoFundacion] = useState("");
+  const [metaNumSocios, setMetaNumSocios] = useState("");
 
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -129,6 +133,10 @@ export function AdminMiniSitePage() {
     setContactoDireccion(data.config.contacto?.direccion || "");
     setContactoFacebook(data.config.contacto?.facebook || "");
     setContactoInstagram(data.config.contacto?.instagram || "");
+    setMetaCategoria(data.config.meta?.categoria || "");
+    setMetaCiudad(data.config.meta?.ciudad || "");
+    setMetaAnoFundacion(data.config.meta?.anoFundacion ? String(data.config.meta.anoFundacion) : "");
+    setMetaNumSocios(data.config.meta?.numSocios ? String(data.config.meta.numSocios) : "");
   }, [data]);
 
   function handleSave() {
@@ -143,6 +151,14 @@ export function AdminMiniSitePage() {
       ...(contactoFacebook.trim() ? { facebook: contactoFacebook.trim() } : {}),
       ...(contactoInstagram.trim() ? { instagram: contactoInstagram.trim() } : {}),
     };
+    const ano = parseInt(metaAnoFundacion, 10);
+    const socios = parseInt(metaNumSocios, 10);
+    const meta: SiteConfig["meta"] = {
+      ...(metaCategoria.trim() ? { categoria: metaCategoria.trim() } : {}),
+      ...(metaCiudad.trim() ? { ciudad: metaCiudad.trim() } : {}),
+      ...(Number.isFinite(ano) && ano > 0 ? { anoFundacion: ano } : {}),
+      ...(Number.isFinite(socios) && socios > 0 ? { numSocios: socios } : {}),
+    };
     const config: SiteConfig = {
       hero: {
         ...(heroTitle.trim() ? { title: heroTitle.trim() } : {}),
@@ -151,6 +167,7 @@ export function AdminMiniSitePage() {
       about: aboutText.trim() ? { text: aboutText.trim() } : {},
       gallery: { enabled: galleryEnabled },
       ...(Object.keys(contacto).length > 0 ? { contacto } : {}),
+      ...(Object.keys(meta).length > 0 ? { meta } : {}),
     };
     update.mutate(
       { slug, enabled, config },
@@ -402,14 +419,64 @@ export function AdminMiniSitePage() {
       </Section>
 
       {/* ── Sobre nosotros ── */}
-      <Section number={4} title="Sobre nosotros" subtitle="Descripción de tu asociación">
-        <div className="">
-          <Textarea
-            value={aboutText}
-            onChange={(e) => setAboutText(e.target.value)}
-            rows={6}
-            placeholder="Describe quiénes sois, qué hacéis, historia de la asociación..."
-          />
+      <Section number={4} title="Sobre nosotros" subtitle="Descripción y datos de tu asociación">
+        <div className="space-y-5 pt-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="aboutText">Descripción</Label>
+            <Textarea
+              id="aboutText"
+              value={aboutText}
+              onChange={(e) => setAboutText(e.target.value)}
+              rows={6}
+              placeholder="Describe quiénes sois, qué hacéis, historia de la asociación..."
+            />
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-4">
+            <div className="space-y-1.5 md:col-span-2">
+              <Label htmlFor="metaCategoria">Tipo / categoría</Label>
+              <Input
+                id="metaCategoria"
+                value={metaCategoria}
+                onChange={(e) => setMetaCategoria(e.target.value)}
+                placeholder="Ej: Asociación cultural"
+              />
+            </div>
+            <div className="space-y-1.5 md:col-span-2">
+              <Label htmlFor="metaCiudad">Ciudad</Label>
+              <Input
+                id="metaCiudad"
+                value={metaCiudad}
+                onChange={(e) => setMetaCiudad(e.target.value)}
+                placeholder="Ej: Pamplona"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="metaAno">Año de fundación</Label>
+              <Input
+                id="metaAno"
+                type="number"
+                inputMode="numeric"
+                value={metaAnoFundacion}
+                onChange={(e) => setMetaAnoFundacion(e.target.value)}
+                placeholder="2005"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="metaSocios">Nº de socios</Label>
+              <Input
+                id="metaSocios"
+                type="number"
+                inputMode="numeric"
+                value={metaNumSocios}
+                onChange={(e) => setMetaNumSocios(e.target.value)}
+                placeholder="120"
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Estos datos aparecen en la portada del mini-site (categoría · ciudad debajo del título, "+X socios" en la parte inferior).
+          </p>
         </div>
       </Section>
 

@@ -37,7 +37,7 @@ const fotos = (siteConfig.galeria || []).slice(0, 5);
   >
     {fotos.map((foto, i) => (
       <a
-        href={foto.imagenUrl}
+        href={foto.originalUrl}
         target="_blank"
         rel="noopener noreferrer"
         class="block overflow-hidden rounded-xl bg-neutral-100 group"

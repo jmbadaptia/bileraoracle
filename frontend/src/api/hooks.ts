@@ -34,6 +34,12 @@ export type SiteConfig = {
     facebook?: string;
     instagram?: string;
   };
+  meta?: {
+    categoria?: string;
+    ciudad?: string;
+    anoFundacion?: number;
+    numSocios?: number;
+  };
 };
 
 export type SiteData = {

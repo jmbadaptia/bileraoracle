@@ -30,6 +30,12 @@ type SiteConfig = {
     facebook?: string;
     instagram?: string;
   };
+  meta?: {
+    categoria?: string;
+    ciudad?: string;
+    anoFundacion?: number;
+    numSocios?: number;
+  };
 };
 
 function parseConfig(raw: string | null): SiteConfig {
@@ -309,6 +315,102 @@ export async function siteRoutes(app: FastifyInstance) {
           hasCover: !!row.COVER_IMAGE_PATH,
         })),
       };
+    });
+  });
+
+  // ── Public: GET /api/public/sites/:slug/gallery ──
+  // Photos from albums with visibility=GENERAL, newest first.
+  app.get("/api/public/sites/:slug/gallery", async (request, reply) => {
+    const { slug } = request.params as { slug: string };
+    if (!slug || !SLUG_RE.test(slug)) {
+      return reply.code(404).send({ error: "No encontrado" });
+    }
+    return withConnection(async (conn) => {
+      const t = await conn.execute<any>(
+        `SELECT id, site_config FROM tenants WHERE slug = :slug AND active = 1 AND site_enabled = 1`,
+        { slug },
+        { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      );
+      const tenant = t.rows?.[0];
+      if (!tenant) return reply.code(404).send({ error: "No encontrado" });
+
+      const cfg = parseConfig(tenant.SITE_CONFIG);
+      if (!cfg.gallery?.enabled) return { photos: [] };
+
+      const r = await conn.execute<any>(
+        `SELECT p.id, p.caption, p.created_at
+         FROM photos p
+         JOIN albums a ON a.id = p.album_id
+         WHERE a.tenant_id = :tenantId
+           AND a.visibility = 'GENERAL'
+         ORDER BY p.created_at DESC
+         FETCH FIRST 12 ROWS ONLY`,
+        { tenantId: tenant.ID },
+        { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      );
+      return {
+        photos: (r.rows || []).map((row: any) => ({
+          id: row.ID,
+          alt: row.CAPTION || "",
+        })),
+      };
+    });
+  });
+
+  // ── Public: GET /api/public/photos/:photoId/thumbnail ──
+  // Serves thumbnail if photo belongs to a GENERAL album of an enabled site.
+  app.get("/api/public/photos/:photoId/thumbnail", async (request, reply) => {
+    const { photoId } = request.params as { photoId: string };
+    return withConnection(async (conn) => {
+      const r = await conn.execute<any>(
+        `SELECT p.thumbnail_path
+         FROM photos p
+         JOIN albums a ON a.id = p.album_id
+         JOIN tenants t ON t.id = a.tenant_id
+         WHERE p.id = :photoId
+           AND a.visibility = 'GENERAL'
+           AND t.active = 1
+           AND t.site_enabled = 1`,
+        { photoId },
+        { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      );
+      const photo = r.rows?.[0];
+      if (!photo || !existsSync(photo.THUMBNAIL_PATH)) {
+        return reply.code(404).send({ error: "No encontrado" });
+      }
+      const buffer = await readFile(photo.THUMBNAIL_PATH);
+      return reply
+        .header("Content-Type", "image/webp")
+        .header("Cache-Control", "public, max-age=86400")
+        .send(buffer);
+    });
+  });
+
+  // ── Public: GET /api/public/photos/:photoId/file (original) ──
+  app.get("/api/public/photos/:photoId/file", async (request, reply) => {
+    const { photoId } = request.params as { photoId: string };
+    return withConnection(async (conn) => {
+      const r = await conn.execute<any>(
+        `SELECT p.file_path, p.file_type
+         FROM photos p
+         JOIN albums a ON a.id = p.album_id
+         JOIN tenants t ON t.id = a.tenant_id
+         WHERE p.id = :photoId
+           AND a.visibility = 'GENERAL'
+           AND t.active = 1
+           AND t.site_enabled = 1`,
+        { photoId },
+        { outFormat: oracledb.OUT_FORMAT_OBJECT }
+      );
+      const photo = r.rows?.[0];
+      if (!photo || !existsSync(photo.FILE_PATH)) {
+        return reply.code(404).send({ error: "No encontrado" });
+      }
+      const buffer = await readFile(photo.FILE_PATH);
+      return reply
+        .header("Content-Type", photo.FILE_TYPE || "application/octet-stream")
+        .header("Cache-Control", "public, max-age=86400")
+        .send(buffer);
     });
   });
 

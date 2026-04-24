@@ -22,6 +22,12 @@ export type SiteData = {
       facebook?: string;
       instagram?: string;
     };
+    meta?: {
+      categoria?: string;
+      ciudad?: string;
+      anoFundacion?: number;
+      numSocios?: number;
+    };
   };
 };
 
@@ -43,6 +49,11 @@ type RawCourse = {
   price: number | null;
   deadline: string | null;
   hasCover: boolean;
+};
+
+type RawPhoto = {
+  id: string;
+  alt: string;
 };
 
 export async function fetchSite(slug: string): Promise<SiteData | null> {
@@ -74,12 +85,31 @@ export async function fetchCourses(slug: string): Promise<RawCourse[]> {
   }
 }
 
+export async function fetchGallery(slug: string): Promise<RawPhoto[]> {
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/public/sites/${encodeURIComponent(slug)}/gallery`);
+    if (!res.ok) return [];
+    const body = await res.json();
+    return Array.isArray(body?.photos) ? body.photos : [];
+  } catch {
+    return [];
+  }
+}
+
 export function heroImageUrl(slug: string): string {
   return `${PUBLIC_API_URL}/public/sites/${encodeURIComponent(slug)}/hero-image`;
 }
 
 export function activityCoverUrl(activityId: string): string {
   return `${PUBLIC_API_URL}/activities/${encodeURIComponent(activityId)}/cover`;
+}
+
+export function photoThumbnailUrl(photoId: string): string {
+  return `${PUBLIC_API_URL}/public/photos/${encodeURIComponent(photoId)}/thumbnail`;
+}
+
+export function photoFileUrl(photoId: string): string {
+  return `${PUBLIC_API_URL}/public/photos/${encodeURIComponent(photoId)}/file`;
 }
 
 export function enrollmentUrl(activityId: string): string {
@@ -135,6 +165,7 @@ export interface SiteConfig {
   galeria?: Array<{
     id: string;
     imagenUrl: string;
+    originalUrl: string;
     alt: string;
   }>;
   contacto?: {
@@ -155,15 +186,6 @@ export interface SiteConfig {
     contacto: boolean;
   };
 }
-
-// Galería: mock until backend exposes it. TODO.
-const MOCK_GALERIA: SiteConfig["galeria"] = [
-  { id: "g1", imagenUrl: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1200&q=80", alt: "Actividad cultural" },
-  { id: "g2", imagenUrl: "https://images.unsplash.com/photo-1511578314322-379afb476865?w=600&q=80", alt: "Evento" },
-  { id: "g3", imagenUrl: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=600&q=80", alt: "Taller" },
-  { id: "g4", imagenUrl: "https://images.unsplash.com/photo-1515169067868-5387ec356754?w=600&q=80", alt: "Concierto" },
-  { id: "g5", imagenUrl: "https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=600&q=80", alt: "Reunión" },
-];
 
 const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 const TYPE_LABEL: Record<string, string> = {
@@ -197,7 +219,8 @@ function buildCourseSchedule(startDate: string | null, deadline: string | null):
 export function composeSiteConfig(
   site: SiteData,
   events: RawEvent[],
-  courses: RawCourse[]
+  courses: RawCourse[],
+  photos: RawPhoto[]
 ): SiteConfig {
   const colorTema = themeHex(site.tenant.theme);
   const nombre = site.config.hero?.title || site.tenant.name;
@@ -231,6 +254,13 @@ export function composeSiteConfig(
     inscripcionUrl: enrollmentUrl(c.id),
   }));
 
+  const galeria = photos.map((p) => ({
+    id: p.id,
+    imagenUrl: photoThumbnailUrl(p.id),
+    originalUrl: photoFileUrl(p.id),
+    alt: p.alt,
+  }));
+
   const cfgContacto = site.config.contacto;
   const hasContactInfo = !!(
     cfgContacto?.email ||
@@ -239,14 +269,15 @@ export function composeSiteConfig(
     cfgContacto?.facebook ||
     cfgContacto?.instagram
   );
+  const meta = site.config.meta || {};
 
   return {
     nombre,
     subtitulo,
-    categoria: "Asociación",
-    ciudad: cfgContacto?.direccion ? cfgContacto.direccion.split(",").pop()?.trim() || "" : "",
-    socios: 0,
-    anos: 0,
+    categoria: meta.categoria || "",
+    ciudad: meta.ciudad || "",
+    socios: meta.numSocios || 0,
+    anos: meta.anoFundacion ? Math.max(0, new Date().getFullYear() - meta.anoFundacion) : 0,
     colorTema,
     heroImageUrl: site.tenant.hasHero
       ? heroImageUrl(site.tenant.slug)
@@ -260,13 +291,13 @@ export function composeSiteConfig(
         : undefined,
     eventos,
     cursos,
-    galeria: MOCK_GALERIA,
+    galeria,
     contacto: hasContactInfo
       ? {
           email: cfgContacto?.email || "",
           telefono: cfgContacto?.telefono,
           direccion: cfgContacto?.direccion,
-          ciudad: "",
+          ciudad: meta.ciudad || "",
           redesSociales: {
             ...(cfgContacto?.facebook ? { facebook: cfgContacto.facebook } : {}),
             ...(cfgContacto?.instagram ? { instagram: cfgContacto.instagram } : {}),
@@ -277,7 +308,7 @@ export function composeSiteConfig(
       sobreNosotros: aboutParrafos.length > 0,
       eventos: eventos.length > 0,
       cursos: cursos.length > 0,
-      galeria: !!site.config.gallery?.enabled,
+      galeria: !!site.config.gallery?.enabled && galeria.length > 0,
       contacto: hasContactInfo,
     },
   };
