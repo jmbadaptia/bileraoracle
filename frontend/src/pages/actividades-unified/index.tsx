@@ -60,7 +60,7 @@ function groupByTimePeriod(activities: any[]) {
 const TYPE_STYLE: Record<string, { bg: string; border: string; dateBg: string; dateText: string }> = {
   EVENT:  { bg: "bg-emerald-50",  border: "border-l-emerald-500", dateBg: "bg-emerald-50",  dateText: "text-emerald-700" },
   CURSO:  { bg: "bg-red-50",      border: "border-l-red-400",     dateBg: "bg-red-50",      dateText: "text-red-700" },
-  TALLER: { bg: "bg-violet-50",   border: "border-l-violet-500",  dateBg: "bg-violet-50",   dateText: "text-violet-700" },
+  TALLER: { bg: "bg-red-50",      border: "border-l-red-400",     dateBg: "bg-red-50",      dateText: "text-red-700" }, // legacy, treated as CURSO
   OTHER:  { bg: "bg-gray-50",     border: "border-l-gray-400",    dateBg: "bg-gray-50",     dateText: "text-gray-600" },
 };
 

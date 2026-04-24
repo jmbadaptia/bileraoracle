@@ -421,18 +421,6 @@ export function InscripcionFormPage() {
             footer={<StepFooter onContinue={() => markComplete(1)} canContinue={title.trim().length > 0} />}
           >
             <div className="space-y-2">
-              <Label>Tipo</Label>
-              <div className="flex gap-2">
-                {[{ v: "CURSO", l: "Curso" }, { v: "TALLER", l: "Taller" }].map(t => (
-                  <button key={t.v} type="button" onClick={() => setCourseType(t.v)}
-                    className={cn("flex-1 h-10 rounded-lg border transition-colors text-sm font-medium",
-                      courseType === t.v ? "border-primary bg-primary text-primary-foreground" : "border-input text-muted-foreground hover:border-primary/30")}>
-                    {t.l}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="space-y-2">
               <Label>Título *</Label>
               <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ej: Curso de cocina vasca" />
             </div>

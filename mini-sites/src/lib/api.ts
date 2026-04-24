@@ -191,8 +191,8 @@ const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "o
 const TYPE_LABEL: Record<string, string> = {
   EVENT: "Evento",
   OTHER: "Otro",
-  CURSO: "Curso",
-  TALLER: "Taller",
+  CURSO: "Curso / Taller",
+  TALLER: "Curso / Taller",
 };
 
 function pad2(n: number) { return String(n).padStart(2, "0"); }
