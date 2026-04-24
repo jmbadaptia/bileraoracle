@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
@@ -183,6 +184,7 @@ export function InscripcionFormPage() {
   const [showInstructorDialog, setShowInstructorDialog] = useState(false);
   const [sessions, setSessions] = useState<Session[]>([{ sessionDate: "", timeStart: "18:00", timeEnd: "21:00", title: "", content: "" }]);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [publishWeb, setPublishWeb] = useState(true);
   const [synced, setSynced] = useState(false);
 
   const locationRef = useRef<HTMLDivElement>(null);
@@ -209,6 +211,7 @@ export function InscripcionFormPage() {
     setEnrollmentPrice(activity.enrollmentPrice ? String(activity.enrollmentPrice) : "0");
     setEnrollmentDeadline(activity.enrollmentDeadline ? activity.enrollmentDeadline.slice(0, 16) : "");
     setEnrollmentMode(activity.enrollmentMode || "FIFO");
+    setPublishWeb((activity.visibility || "GENERAL") === "GENERAL");
     setCourseType(activity.type || "EVENT");
     setPublishDate(activity.publishDate ? activity.publishDate.slice(0, 16) : "");
     setProgramText(activity.programText || "");
@@ -240,6 +243,7 @@ export function InscripcionFormPage() {
 
     const data: Record<string, any> = {
       title: title.trim(), description: description.trim() || undefined, type: courseType, status: statusValue,
+      visibility: publishWeb ? "GENERAL" : "PRIVATE",
       startDate: startDate || sessions[0]?.sessionDate || undefined,
       location: location.trim() || undefined, enrollmentEnabled: true, enrollmentMode,
       maxCapacity: maxCapacity ? parseInt(maxCapacity) : undefined,
@@ -693,6 +697,15 @@ export function InscripcionFormPage() {
                 </div>
               )}
             </div>
+            <label className="mt-4 flex items-start gap-3 cursor-pointer rounded-lg border p-3 hover:bg-muted/30 transition-colors">
+              <Checkbox checked={publishWeb} onCheckedChange={(v) => setPublishWeb(!!v)} className="mt-0.5" />
+              <div className="space-y-1">
+                <div className="font-medium text-sm">Publicar en la web</div>
+                <p className="text-xs text-muted-foreground">
+                  Si está marcado, este curso aparece en la página pública de tu asociación al publicarlo. Desmárcalo para que la inscripción sea solo por enlace directo.
+                </p>
+              </div>
+            </label>
           </AccordionStep>
         </div>
 

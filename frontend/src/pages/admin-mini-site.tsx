@@ -172,7 +172,7 @@ export function AdminMiniSitePage() {
     update.mutate(
       { slug, enabled, config },
       {
-        onSuccess: () => toast.success("Mini-site actualizado"),
+        onSuccess: () => toast.success("Web actualizada"),
         onError: (err: any) => toast.error(err?.message || "Error al guardar"),
       }
     );
@@ -235,7 +235,7 @@ export function AdminMiniSitePage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Mini-site</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Web</h1>
           <p className="text-muted-foreground">Página pública de tu asociación</p>
         </div>
         <Skeleton className="h-64 w-full" />
@@ -251,7 +251,7 @@ export function AdminMiniSitePage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Mini-site</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Web</h1>
           <p className="text-muted-foreground">
             Página pública de tu asociación con eventos, cursos y galería.
           </p>
@@ -301,7 +301,7 @@ export function AdminMiniSitePage() {
               className="mt-0.5"
             />
             <div className="space-y-1">
-              <div className="font-medium text-sm">Mini-site activo</div>
+              <div className="font-medium text-sm">Web activa</div>
               <p className="text-xs text-muted-foreground">
                 Cuando está activo, la URL pública muestra la página. Si no, devuelve 404.
               </p>
@@ -311,10 +311,10 @@ export function AdminMiniSitePage() {
       </Section>
 
       {/* ── Color ── */}
-      <Section number={2} title="Color" subtitle="Color principal del mini-site y del panel de Bilera">
+      <Section number={2} title="Color" subtitle="Color principal de la web y del panel de Bilera">
         <div className="pt-2 space-y-2">
           <p className="text-sm text-muted-foreground">
-            Elige el color que se usará en los botones, acentos y enlaces de tu mini-site. El mismo color se aplica al panel de gestión.
+            Elige el color que se usará en los botones, acentos y enlaces de tu web. El mismo color se aplica al panel de gestión.
           </p>
           <div className="flex flex-wrap gap-4 pt-2">
             {THEME_PRESETS.map((preset) => (
@@ -475,7 +475,7 @@ export function AdminMiniSitePage() {
             </div>
           </div>
           <p className="text-xs text-muted-foreground">
-            Estos datos aparecen en la portada del mini-site (categoría · ciudad debajo del título, "+X socios" en la parte inferior).
+            Estos datos aparecen en la portada de la web (categoría · ciudad debajo del título, "+X socios" en la parte inferior).
           </p>
         </div>
       </Section>
@@ -493,7 +493,7 @@ export function AdminMiniSitePage() {
               placeholder="info@miasociacion.org"
             />
             <p className="text-xs text-muted-foreground">
-              Recibirás aquí los mensajes del formulario del mini-site. Obligatorio para que el formulario funcione.
+              Recibirás aquí los mensajes del formulario de la web. Obligatorio para que el formulario funcione.
             </p>
           </div>
           <div className="space-y-1.5">
@@ -552,13 +552,13 @@ export function AdminMiniSitePage() {
             <div className="space-y-1">
               <div className="font-medium text-sm">Galería de fotos</div>
               <p className="text-xs text-muted-foreground">
-                Si está activo, el mini-site muestra hasta 12 fotos de tus álbumes públicos. Marca o desmarca cada álbum como público al editarlo desde Galería.
+                Si está activo, la web muestra hasta 12 fotos de tus álbumes públicos. Marca o desmarca cada álbum como público al editarlo desde Galería.
               </p>
             </div>
           </label>
 
           <p className="text-xs text-muted-foreground border-t pt-3">
-            <strong>Próximos eventos</strong> y <strong>Cursos con inscripción</strong> aparecen automáticamente en el mini-site cuando publiques actividades con visibilidad GENERAL en Actividades / Cursos.
+            <strong>Próximos eventos</strong> y <strong>Cursos con inscripción</strong> aparecen automáticamente en la web cuando publiques actividades con visibilidad GENERAL en Actividades / Cursos.
           </p>
         </div>
       </Section>

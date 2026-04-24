@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -129,6 +130,7 @@ export function ActividadFormPage() {
   const [enrollmentPrice, setEnrollmentPrice] = useState("");
   const [enrollmentDeadline, setEnrollmentDeadline] = useState("");
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [publishWeb, setPublishWeb] = useState(true);
   const [synced, setSynced] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -167,6 +169,7 @@ export function ActividadFormPage() {
     setMaxCapacity(activity.maxCapacity ? String(activity.maxCapacity) : "");
     setEnrollmentPrice(activity.enrollmentPrice ? String(activity.enrollmentPrice) : "");
     setEnrollmentDeadline(activity.enrollmentDeadline ? activity.enrollmentDeadline.slice(0, 16) : "");
+    setPublishWeb((activity.visibility || "GENERAL") === "GENERAL");
     if (activity.coverImagePath) setCoverPreview(`${API_BASE}/activities/${id}/cover?v=${Date.now()}`);
     setCompleted(new Set([1, 2, 3, 4]));
     setOpenStep(5);
@@ -194,6 +197,7 @@ export function ActividadFormPage() {
       ownerId: selectedOwnerId || user!.id,
       type: selectedType,
       status: selectedStatus,
+      visibility: publishWeb ? "GENERAL" : "PRIVATE",
       title: title.trim(),
       startDate: startDate || undefined,
       location: locationValue || undefined,
@@ -304,6 +308,15 @@ export function ActividadFormPage() {
                 </Select>
               </div>
             </div>
+            <label className="flex items-start gap-3 cursor-pointer rounded-lg border p-3 hover:bg-muted/30 transition-colors">
+              <Checkbox checked={publishWeb} onCheckedChange={(v) => setPublishWeb(!!v)} className="mt-0.5" />
+              <div className="space-y-1">
+                <div className="font-medium text-sm">Publicar en la web</div>
+                <p className="text-xs text-muted-foreground">
+                  Si está marcado, esta actividad aparece en la página pública de tu asociación cuando esté en estado Publicado.
+                </p>
+              </div>
+            </label>
             <div className="space-y-2">
               <Label>Descripción</Label>
               <textarea value={description} onChange={(e) => setDescription(e.target.value)}

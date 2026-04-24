@@ -200,15 +200,15 @@ export function AdminPage() {
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Globe className="h-4 w-4" />
-                Mini-site
+                Tu web
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               <p className="text-sm text-muted-foreground">
                 Configura la página pública de tu asociación con eventos, cursos y galería.
               </p>
-              <Link to="/admin/mini-site">
-                <Button variant="outline">Configurar mini-site</Button>
+              <Link to="/admin/web">
+                <Button variant="outline">Gestionar web</Button>
               </Link>
             </CardContent>
           </Card>

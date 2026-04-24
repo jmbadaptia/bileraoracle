@@ -119,9 +119,9 @@ export function AlbumFormPage() {
                 className="mt-0.5"
               />
               <div className="space-y-1">
-                <div className="font-medium text-sm">Visible en el mini-site público</div>
+                <div className="font-medium text-sm">Publicar en la web</div>
                 <p className="text-xs text-muted-foreground">
-                  Si está marcado, las fotos de este álbum aparecen en la galería pública de tu mini-site. Desmárcalo para mantenerlo privado.
+                  Si está marcado, las fotos de este álbum aparecen en la galería pública de tu web. Desmárcalo para mantenerlo solo dentro de Bilera.
                 </p>
               </div>
             </label>

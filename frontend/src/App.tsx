@@ -150,7 +150,8 @@ export function App() {
         <Route path="admin/usuarios/:id/editar" element={<AdminRoute><UsuarioFormPage /></AdminRoute>} />
         <Route path="admin/plan" element={<AdminRoute><PlanPage /></AdminRoute>} />
         <Route path="admin/ai-usage" element={<AdminRoute><AiUsagePage /></AdminRoute>} />
-        <Route path="admin/mini-site" element={<AdminRoute><AdminMiniSitePage /></AdminRoute>} />
+        <Route path="admin/web" element={<AdminRoute><AdminMiniSitePage /></AdminRoute>} />
+        <Route path="admin/mini-site" element={<Navigate to="/admin/web" replace />} />
       </Route>
     </Routes>
   );
