@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ImageIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -22,10 +23,12 @@ export function AlbumFormPage() {
   const [synced, setSynced] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [isPublic, setIsPublic] = useState(true);
 
   if (isEdit && album && !synced) {
     setTitle(album.title);
     setDescription(album.description || "");
+    setIsPublic((album.visibility || "GENERAL") === "GENERAL");
     setSynced(true);
   }
 
@@ -52,16 +55,23 @@ export function AlbumFormPage() {
     e.preventDefault();
     if (!title.trim()) return;
 
+    const visibility = isPublic ? "GENERAL" : "PRIVATE";
+
     setLoading(true);
     try {
       if (isEdit) {
-        await updateAlbum.mutateAsync({ title: title.trim(), description: description.trim() || undefined });
+        await updateAlbum.mutateAsync({
+          title: title.trim(),
+          description: description.trim() || undefined,
+          visibility,
+        });
         toast.success("Álbum actualizado");
         navigate(`/galeria/${id}`);
       } else {
         const newAlbum: any = await createAlbum.mutateAsync({
           title: title.trim(),
           description: description.trim() || undefined,
+          visibility,
         });
         toast.success("Álbum creado");
         navigate(`/galeria/${newAlbum.id}`);
@@ -102,6 +112,19 @@ export function AlbumFormPage() {
                 placeholder="Descripción opcional"
               />
             </div>
+            <label className="flex items-start gap-3 cursor-pointer rounded-lg border p-3 hover:bg-muted/30 transition-colors">
+              <Checkbox
+                checked={isPublic}
+                onCheckedChange={(v) => setIsPublic(!!v)}
+                className="mt-0.5"
+              />
+              <div className="space-y-1">
+                <div className="font-medium text-sm">Visible en el mini-site público</div>
+                <p className="text-xs text-muted-foreground">
+                  Si está marcado, las fotos de este álbum aparecen en la galería pública de tu mini-site. Desmárcalo para mantenerlo privado.
+                </p>
+              </div>
+            </label>
             <div className="flex gap-3">
               <Button type="submit" disabled={loading}>
                 {loading ? "Guardando..." : "Guardar"}

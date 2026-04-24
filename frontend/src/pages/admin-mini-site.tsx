@@ -542,7 +542,7 @@ export function AdminMiniSitePage() {
         subtitle="Galería, eventos, cursos…"
         defaultOpen={false}
       >
-        <div className="grid gap-4 md:grid-cols-3 ">
+        <div className="space-y-4 pt-2">
           <label className="flex items-start gap-3 cursor-pointer">
             <Checkbox
               checked={galleryEnabled}
@@ -552,30 +552,14 @@ export function AdminMiniSitePage() {
             <div className="space-y-1">
               <div className="font-medium text-sm">Galería de fotos</div>
               <p className="text-xs text-muted-foreground">
-                Álbumes GENERAL en el mini-site. (Próximamente)
+                Si está activo, el mini-site muestra hasta 12 fotos de tus álbumes públicos. Marca o desmarca cada álbum como público al editarlo desde Galería.
               </p>
             </div>
           </label>
 
-          <div className="flex items-start gap-3 opacity-50">
-            <Checkbox disabled className="mt-0.5" />
-            <div className="space-y-1">
-              <div className="font-medium text-sm">Próximos eventos</div>
-              <p className="text-xs text-muted-foreground">
-                Actividades GENERAL automáticas. (Próximamente)
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3 opacity-50">
-            <Checkbox disabled className="mt-0.5" />
-            <div className="space-y-1">
-              <div className="font-medium text-sm">Cursos con inscripción</div>
-              <p className="text-xs text-muted-foreground">
-                Talleres/cursos abiertos. (Próximamente)
-              </p>
-            </div>
-          </div>
+          <p className="text-xs text-muted-foreground border-t pt-3">
+            <strong>Próximos eventos</strong> y <strong>Cursos con inscripción</strong> aparecen automáticamente en el mini-site cuando publiques actividades con visibilidad GENERAL en Actividades / Cursos.
+          </p>
         </div>
       </Section>
     </div>

@@ -279,7 +279,7 @@ export function useAlbum(id: string) {
 export function useCreateAlbum() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: { title: string; description?: string }) =>
+    mutationFn: (data: { title: string; description?: string; visibility?: string }) =>
       api.post("/albums", data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["albums"] }),
   });
