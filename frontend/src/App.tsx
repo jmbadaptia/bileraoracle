@@ -50,6 +50,7 @@ import { TareasPage } from "@/pages/tareas";
 import { TareaFormPage } from "@/pages/tarea-form";
 import { ReunionesPage } from "@/pages/reuniones";
 import { ReunionFormPage } from "@/pages/reunion-form";
+import { ActivityWizardPage } from "@/pages/activity-wizard";
 
 function AsistenteWrapper() {
   return <AsistentePage />;
@@ -95,6 +96,8 @@ export function App() {
         <Route index element={<DashboardPage />} />
         <Route path="calendario" element={<CalendarioPage />} />
         <Route path="actividades" element={<ActividadesUnifiedPage />} />
+        <Route path="actividades/nueva-v2" element={<ActivityWizardPage />} />
+        <Route path="actividades/:id/editar-v2" element={<ActivityWizardPage />} />
         <Route path="actividades/historial" element={<HistorialPage />} />
         <Route path="actividades/nueva" element={<ActividadFormPage />} />
         <Route path="actividades/curso/nuevo" element={<InscripcionFormPage />} />
