@@ -13,6 +13,10 @@ import {
   Upload,
   Plus,
   Trash2,
+  MapPin,
+  Users,
+  Euro,
+  Clock,
 } from "lucide-react";
 import {
   useActivity,
@@ -365,6 +369,39 @@ export function ActivityWizardPage() {
   const typeInfo = TYPE_OPTIONS.find((o) => o.value === type)!;
   const TypeIcon = typeInfo.icon;
 
+  // ─── Preview progress ─────────────────────────────────────────────
+  const progressItems = (() => {
+    const checks = [
+      !!title,
+      !!description,
+      !!startDate,
+      !!location || type === "TASK",
+      type === "TASK" ? !!ownerId : type === "CURSO" ? !!instructorPick : attendeeIds.length > 0 || (type === "MEETING"),
+    ];
+    if (type === "CURSO") {
+      checks.push(!!enrollmentEnabled, !!programText || sessions.some((s) => s.sessionDate));
+    } else if (type === "EVENT" || type === "OTHER") {
+      checks.push(!!coverPreview);
+    }
+    return checks;
+  })();
+  const previewProgress = Math.round((progressItems.filter(Boolean).length / progressItems.length) * 100);
+
+  const previewDate = startDate
+    ? new Date(startDate).toLocaleDateString("es-ES", { day: "numeric", month: "short" })
+    : sessions[0]?.sessionDate
+    ? new Date(sessions[0].sessionDate + "T00:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "short" })
+    : null;
+  const previewTime = startDate ? new Date(startDate).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }) : null;
+  const sessionCount = sessions.filter((s) => s.sessionDate).length;
+  const isFree = !enrollmentPrice || parseFloat(enrollmentPrice) === 0;
+  const ownerName = members.find((m: any) => m.id === ownerId)?.name;
+  const instructorName = instructorPick
+    ? (instructorPick.type === "member"
+        ? members.find((m: any) => m.id === instructorPick.id)?.name
+        : contacts.find((c: any) => c.id === instructorPick.id)?.name) || ""
+    : "";
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -385,7 +422,8 @@ export function ActivityWizardPage() {
         </div>
       </div>
 
-      <div>
+      <div className="grid gap-6 lg:grid-cols-[1fr_320px] items-start">
+        <div>
         {/* Step 1 — Tipo + básicos */}
         <AccordionStep
           number={1} title="Tipo y datos básicos" subtitle="Qué es y cómo se llama"
@@ -476,18 +514,32 @@ export function ActivityWizardPage() {
           {isPublicType(type) && (
             <div className="space-y-2">
               <Label>Imagen de portada</Label>
-              <div
-                className="relative border-2 border-dashed rounded-xl p-6 flex flex-col items-center gap-2 cursor-pointer hover:border-primary/40 transition-colors bg-muted/20 overflow-hidden aspect-video"
-                onClick={() => coverInputRef.current?.click()}
-              >
-                {coverPreview ? (
-                  <img src={coverPreview} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                ) : (
-                  <>
-                    <Upload className="h-5 w-5 text-muted-foreground" />
-                    <p className="text-xs text-muted-foreground">Arrastra o haz clic para subir</p>
-                  </>
-                )}
+              <div className="flex items-start gap-3 max-w-md">
+                <div
+                  className="relative border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-primary/40 transition-colors bg-muted/20 overflow-hidden h-28 w-44 shrink-0"
+                  onClick={() => coverInputRef.current?.click()}
+                >
+                  {coverPreview ? (
+                    <img src={coverPreview} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 text-muted-foreground" />
+                      <p className="text-[11px] text-muted-foreground">Subir imagen</p>
+                    </>
+                  )}
+                </div>
+                <div className="flex-1 space-y-2 pt-1">
+                  <p className="text-xs text-muted-foreground">
+                    PNG, JPG o WebP. Recomendado 1920×1080.
+                  </p>
+                  {coverPreview && (
+                    <Button type="button" size="sm" variant="outline"
+                      onClick={() => { setCoverFile(null); setCoverPreview(null); if (coverInputRef.current) coverInputRef.current.value = ""; }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5 mr-1" /> Quitar
+                    </Button>
+                  )}
+                </div>
               </div>
               <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverSelect} />
             </div>
@@ -767,6 +819,131 @@ export function ActivityWizardPage() {
             </label>
           )}
         </AccordionStep>
+        </div>
+
+        {/* ═══ RIGHT: Preview Sidebar (desktop only) ═══ */}
+        <aside className="hidden lg:block sticky top-[80px] self-start space-y-4">
+          {/* Progress */}
+          <div>
+            <div className="flex justify-between items-center mb-1.5">
+              <span className="text-xs text-muted-foreground">Completado</span>
+              <span className="text-xs font-semibold text-primary">{previewProgress}%</span>
+            </div>
+            <div className="h-1 bg-muted rounded-full overflow-hidden">
+              <div
+                className={cn("h-full rounded-full transition-all duration-500", previewProgress === 100 ? "bg-emerald-500" : "bg-primary")}
+                style={{ width: `${previewProgress}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Preview card */}
+          <div className="rounded-xl border overflow-hidden">
+            <div
+              className={cn("h-24 relative", coverPreview ? "" : "bg-gradient-to-br from-primary/80 to-primary/60")}
+              style={coverPreview ? { backgroundImage: `url(${coverPreview})`, backgroundSize: "cover", backgroundPosition: "center" } : {}}
+            >
+              {!coverPreview && isPublicType(type) && (
+                <span className="absolute inset-0 flex items-center justify-center text-white/40 text-xs">Sin imagen</span>
+              )}
+              {!isPublicType(type) && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <TypeIcon className="h-8 w-8 text-white/70" />
+                </div>
+              )}
+            </div>
+            <div className="p-4 space-y-2">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">{typeInfo.label}</p>
+              <p className="text-sm font-bold leading-tight">{title || "Sin título"}</p>
+              {description && <p className="text-xs text-muted-foreground line-clamp-2">{description}</p>}
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {previewDate && (
+                  <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                    <CalendarDays className="h-2.5 w-2.5" />
+                    {previewDate}{previewTime && ` ${previewTime}`}
+                  </span>
+                )}
+                {location && (
+                  <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                    <MapPin className="h-2.5 w-2.5" />{location}
+                  </span>
+                )}
+                {enrollmentEnabled && (
+                  <>
+                    <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                      <Euro className="h-2.5 w-2.5" />{isFree ? "Gratis" : `${enrollmentPrice}€`}
+                    </span>
+                    {maxCapacity && (
+                      <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                        <Users className="h-2.5 w-2.5" />{maxCapacity} plazas
+                      </span>
+                    )}
+                  </>
+                )}
+                {sessionCount > 0 && (
+                  <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                    <Clock className="h-2.5 w-2.5" />{sessionCount} ses.
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Detail rows */}
+          <div className="rounded-xl border divide-y">
+            {ownerName && type === "TASK" && (
+              <div className="p-3">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Responsable</p>
+                <p className="text-sm font-medium mt-0.5">{ownerName}</p>
+              </div>
+            )}
+            {instructorName && (
+              <div className="p-3">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Instructor</p>
+                <p className="text-sm font-medium mt-0.5">{instructorName}</p>
+              </div>
+            )}
+            {(type === "EVENT" || type === "OTHER" || type === "MEETING") && attendeeIds.length > 0 && (
+              <div className="p-3">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Participantes</p>
+                <p className="text-sm font-medium mt-0.5">{attendeeIds.length} miembro{attendeeIds.length > 1 ? "s" : ""}</p>
+              </div>
+            )}
+            {programText && (
+              <div className="p-3">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Programa</p>
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-3">{programText}</p>
+              </div>
+            )}
+            {sessions.some((s) => s.sessionDate) && (
+              <div className="p-3">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Sesiones</p>
+                {sessions.filter((s) => s.sessionDate).slice(0, 4).map((s, i) => (
+                  <div key={i} className="flex justify-between text-xs py-0.5">
+                    <span>{new Date(s.sessionDate + "T00:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "short" })}</span>
+                    <span className="text-muted-foreground">{s.timeStart}-{s.timeEnd}</span>
+                  </div>
+                ))}
+                {sessionCount > 4 && (
+                  <p className="text-[10px] text-muted-foreground mt-1">+{sessionCount - 4} más</p>
+                )}
+              </div>
+            )}
+            {enrollmentDeadline && (
+              <div className="p-3">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Inscripción hasta</p>
+                <p className="text-sm font-medium mt-0.5">
+                  {new Date(enrollmentDeadline).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" })}
+                </p>
+              </div>
+            )}
+            {!ownerName && !instructorName && attendeeIds.length === 0 && !programText && !sessions.some((s) => s.sessionDate) && !enrollmentDeadline && (
+              <div className="p-4 text-center">
+                <p className="text-xs text-muted-foreground">Completa los pasos para ver la vista previa</p>
+              </div>
+            )}
+          </div>
+        </aside>
       </div>
     </div>
   );
